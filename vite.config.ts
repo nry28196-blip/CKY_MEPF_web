@@ -1,11 +1,16 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
+    // REQUIRED FOR GITHUB PAGES: 
+    // Matches your repository name so assets load correctly.
+    // NOTE: If you link a custom domain later (like cky-mepf.com), change this back to '/'
+    base: '/CKY_MEPF_web/',
+    
     plugins: [
       react(), 
       tailwindcss(),
@@ -13,9 +18,9 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         injectRegister: 'auto',
         manifest: {
-          name: 'MEP Engineering Calculator',
-          short_name: 'MEP Calc',
-          description: 'Offline-capable MEP Engineering Calculator',
+          name: 'CKY_MEPF - Engineering Calculation Suite',
+          short_name: 'CKY_MEPF',
+          description: 'MEP & F System Calculation Tool for Construction Project Design',
           theme_color: '#020617',
           background_color: '#020617',
           display: 'standalone'
@@ -33,7 +38,7 @@ export default defineConfig(() => {
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
