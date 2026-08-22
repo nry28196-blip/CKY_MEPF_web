@@ -29,6 +29,7 @@ export const translations: Record<LanguageType, Record<string, string>> = {
     // Mechanical
     mechCoolingTitle: "Cooling Load Sizing",
     mechDuctSizingTitle: "Duct Sizing",
+    mechVentilationTitle: "Ventilation System",
     estimationBasis: "Estimation Basis",
     floorArea: "Floor Area",
     roomVolume: "Room Volume",
@@ -139,6 +140,7 @@ export const translations: Record<LanguageType, Record<string, string>> = {
     // Mechanical
     mechCoolingTitle: "ទំហំបន្ទុកម៉ាស៊ីនត្រជាក់",
     mechDuctSizingTitle: "ទំហំបំពង់ខ្យល់",
+    mechVentilationTitle: "ប្រព័ន្ធខ្យល់ចេញចូល",
     estimationBasis: "មូលដ្ឋានប៉ាន់ស្មាន",
     floorArea: "ផ្ទៃក្រឡាកម្រាល",
     roomVolume: "មាឌបន្ទប់",

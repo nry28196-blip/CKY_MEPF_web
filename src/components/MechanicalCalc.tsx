@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Wind, Layers, Sliders, Thermometer, Info, Bookmark, CheckCircle2, FileSpreadsheet, Mail, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion } from 'motion/react';
 import DuctSizingCalc from './DuctSizingCalc';
+import VentilationCalc from './VentilationCalc';
 import TrendVisualizer from './TrendVisualizer';
 import VrfTopologyCanvas from './VrfTopologyCanvas';
 import TooltipLabel from './TooltipLabel';
@@ -11,7 +12,7 @@ import FormulaVisualizer, { FormulaDef } from './FormulaVisualizer';
 import { useLanguage } from '../lib/translations';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
 
-type SubTab = 'cooling' | 'ductSizing' | 'formulas';
+type SubTab = 'cooling' | 'ductSizing' | 'formulas' | 'ventilation';
 
 interface MechanicalCalcProps {
   restoredParams?: any;
@@ -313,6 +314,16 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
           {t('mechDuctSizingTitle')}
         </button>
         <button
+          onClick={() => setSubTab('ventilation')}
+          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
+            subTab === 'ventilation'
+              ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
+              : 'border-transparent text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          {t('mechVentilationTitle') || 'Ventilation'}
+        </button>
+        <button
           onClick={() => setSubTab('cooling')}
           className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
             subTab === 'cooling'
@@ -343,10 +354,36 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
       )}
 
       {/* Conditional Rendering */}
-      {subTab === 'formulas' ? (
+      {subTab === 'ventilation' ? (
+        <VentilationCalc />
+      ) : subTab === 'formulas' ? (
         <FormulaVisualizer
           category="Mechanical & HVAC"
           formulas={[
+                        {
+              id: 'ventilation',
+              title: 'Eq 1 — Breathing Zone Outdoor Airflow',
+              description: 'Calculates the breathing zone outdoor airflow based on occupant and floor area components.',
+              equation: 'V_{bz} = (R_p \cdot P_z) + (R_a \cdot A_z)',
+              variables: [
+                { symbol: 'V_{bz}', meaning: 'Breathing zone outdoor airflow' },
+                { symbol: 'R_p', meaning: 'Outdoor airflow rate required per person' },
+                { symbol: 'P_z', meaning: 'Zone population (number of people)' },
+                { symbol: 'R_a', meaning: 'Outdoor airflow rate required per unit area' },
+                { symbol: 'A_z', meaning: 'Net occupiable zone floor area' }
+              ]
+            },
+            {
+              id: 'zone_outdoor_air',
+              title: 'Eq 2 — Zone Outdoor Airflow',
+              description: 'Calculates the required zone outdoor airflow by applying the zone air distribution effectiveness.',
+              equation: 'V_{oz} = \frac{V_{bz}}{E_z}',
+              variables: [
+                { symbol: 'V_{oz}', meaning: 'Zone outdoor airflow required' },
+                { symbol: 'V_{bz}', meaning: 'Breathing zone outdoor airflow' },
+                { symbol: 'E_z', meaning: 'Zone air distribution effectiveness' }
+              ]
+            },
             {
               id: 'sensible_heat',
               title: 'Sensible Heat Load (Air)',

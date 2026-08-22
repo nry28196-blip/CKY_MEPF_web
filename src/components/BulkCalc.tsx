@@ -25,6 +25,19 @@ export default function BulkCalc() {
   const { unitSystem } = useUnit();
   const prevUnit = React.useRef(unitSystem);
 
+  const [systemType, setSystemType] = useState<BulkSystemType>('duct');
+  
+  const createDefaultRow = (type: BulkSystemType): BulkRow => {
+    switch(type) {
+      case 'duct': return { id: Math.random().toString(36).substring(2,9), in1: 2000, in2: 0.1, in3: 12, in4: 0, out1: 0, out2: 0, out3: 0 };
+      case 'cooling': return { id: Math.random().toString(36).substring(2,9), in1: 500, in2: 10, in3: 0, in4: 0, out1: 0, out2: 0, out3: 0 };
+      case 'flc': return { id: Math.random().toString(36).substring(2,9), in1: 400, in2: 3, in3: 10, in4: 0.85, out1: 0, out2: 0, out3: 0 };
+      case 'pipe': return { id: Math.random().toString(36).substring(2,9), in1: 5, in2: 50, in3: 0, in4: 0, out1: 0, out2: 0, out3: 0 };
+    }
+  };
+
+  const [rows, setRows] = useState<BulkRow[]>([createDefaultRow('duct'), createDefaultRow('duct')]);
+
   useEffect(() => {
     if (prevUnit.current !== unitSystem) {
       setRows(rows.map(r => {
@@ -61,19 +74,6 @@ export default function BulkCalc() {
       prevUnit.current = unitSystem;
     }
   }, [unitSystem, systemType, rows]);
-
-  const [systemType, setSystemType] = useState<BulkSystemType>('duct');
-  
-  const createDefaultRow = (type: BulkSystemType): BulkRow => {
-    switch(type) {
-      case 'duct': return { id: Math.random().toString(36).substring(2,9), in1: 2000, in2: 0.1, in3: 12, in4: 0, out1: 0, out2: 0, out3: 0 };
-      case 'cooling': return { id: Math.random().toString(36).substring(2,9), in1: 500, in2: 10, in3: 0, in4: 0, out1: 0, out2: 0, out3: 0 };
-      case 'flc': return { id: Math.random().toString(36).substring(2,9), in1: 400, in2: 3, in3: 10, in4: 0.85, out1: 0, out2: 0, out3: 0 };
-      case 'pipe': return { id: Math.random().toString(36).substring(2,9), in1: 5, in2: 50, in3: 0, in4: 0, out1: 0, out2: 0, out3: 0 };
-    }
-  };
-
-  const [rows, setRows] = useState<BulkRow[]>([createDefaultRow('duct'), createDefaultRow('duct')]);
 
   const handleSystemChange = (type: BulkSystemType) => {
     setSystemType(type);
