@@ -13,7 +13,9 @@ import TrendVisualizer from './TrendVisualizer';
 import TooltipLabel from './TooltipLabel';
 import { useLanguage } from '../lib/translations';
 import { exportPlumbingToCsv } from '../lib/exportCsv';
+import { IPC_FIXTURES } from '../lib/plumbingFixtures';
 import FormulaVisualizer from './FormulaVisualizer';
+import IPCReferenceModal from './IPCReferenceModal';
 
 type SubTab = 'fixtures' | 'tanks' | 'pumps' | 'formulas';
 
@@ -36,6 +38,7 @@ interface FixtureRow {
 export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCalculate = true }: PlumbingCalcProps) {
   const { t } = useLanguage();
   const [subTab, setSubTab] = useState<SubTab>('fixtures');
+  const [isRefModalOpen, setIsRefModalOpen] = useState(false);
   const [standard, setStandard] = useState<'ipc' | 'bs'>('ipc');
   
   // TOAST state
@@ -45,18 +48,28 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // State 1: Fixtures
+  // State 1: Fixtures (IPC Appendix E & Chapter 7 Compliant)
   const [fixtures, setFixtures] = useState<FixtureRow[]>([
-    { id: 'wc', name: 'Water Closet (Toilet)', wsfu: 10, dfu: 6, lu: 2.0, du: 2.0, qty: 10 },
-    { id: 'lav', name: 'Lavatory Sink (Bathroom)', wsfu: 1.5, dfu: 1, lu: 1.0, du: 0.5, qty: 12 },
-    { id: 'shower', name: 'Shower Head (Domestic)', wsfu: 2, dfu: 2, lu: 2.0, du: 0.6, qty: 8 },
-    { id: 'sink', name: 'Kitchen Sink', wsfu: 2.5, dfu: 2, lu: 3.0, du: 0.8, qty: 4 },
-    { id: 'urinal', name: 'Urinal (Flushometer/Bowl)', wsfu: 5, dfu: 4, lu: 1.5, du: 0.5, qty: 4 },
+    { id: 'wc_pub_fv', name: 'Water Closet (Public) - Flushometer', wsfu: 10, dfu: 6, lu: 2.0, du: 2.0, qty: 10 },
+    { id: 'lav_pub', name: 'Lavatory (Public) - Faucet', wsfu: 2.0, dfu: 1, lu: 1.0, du: 0.5, qty: 12 },
+    { id: 'shower_pub', name: 'Shower (Public) - Mixing Valve', wsfu: 4.0, dfu: 2, lu: 2.0, du: 0.6, qty: 8 },
+    { id: 'sink_priv', name: 'Kitchen Sink (Private) - Faucet', wsfu: 1.4, dfu: 2, lu: 3.0, du: 0.8, qty: 4 },
+    { id: 'urinal_pub_fv', name: 'Urinal (Public) - 1" Flushometer', wsfu: 5.0, dfu: 4, lu: 1.5, du: 0.5, qty: 4 },
   ]);
 
-  const [systemType, setSystemType] = useState<'valve' | 'tank'>('valve'); // IPC Curve style
   const [designVelocity, setDesignVelocity] = useState<number>(1.2); // m/s
   const [slope, setSlope] = useState<number>(2); // %, standard slopes are 1%, 2%, 4%
+
+  const [appliedFixtures, setAppliedFixtures] = useState<FixtureRow[]>(fixtures);
+  const [appliedStandard, setAppliedStandard] = useState<'ipc' | 'bs'>('ipc');
+
+  const determineSystemType = (fxs: FixtureRow[]) => {
+    const valveWSFU = fxs.filter(f => f.id.includes('_fv')).reduce((sum, f) => sum + (f.wsfu * f.qty), 0);
+    const tankWSFU = fxs.filter(f => !f.id.includes('_fv')).reduce((sum, f) => sum + (f.wsfu * f.qty), 0);
+    return valveWSFU > tankWSFU ? 'valve' : 'tank';
+  };
+  const systemType = determineSystemType(appliedFixtures);
+  const appliedSystemType = determineSystemType(appliedFixtures);
 
   // State 2: Tanks Sizing
   const [occupants, setOccupants] = useState<number>(120);
@@ -66,6 +79,15 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const [septicDischarge, setSepticDischarge] = useState<number>(80); // L/person/day
   const [septicDesludgeInterval, setSepticDesludgeInterval] = useState<number>(3); // years
   const [sumpInflow, setSumpInflow] = useState<number>(150); // Liters/min peak storm/waste flow
+
+  // Hydraulic Pipe Sizing States
+  const [pipeMaterial, setPipeMaterial] = useState<'pvc'|'copper'|'steel'>('pvc');
+  const [pipeLength, setPipeLength] = useState<number>(30); // meters
+  const [elevationChange, setElevationChange] = useState<number>(5); // meters
+  const [availablePressure, setAvailablePressure] = useState<number>(4.0); // bar
+  const [requiredResidual, setRequiredResidual] = useState<number>(1.5); // bar
+  const [elbow90Count, setElbow90Count] = useState<number>(6);
+  const [teeCount, setTeeCount] = useState<number>(4);
   
   // State 3: Pumps Sizing
   const [boosterStaticHead, setBoosterStaticHead] = useState<number>(35); // meters (height of building)
@@ -81,9 +103,6 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const [loadedHistoryId, setLoadedHistoryId] = useState<string | null>(null);
 
   // Decoupled applied states
-  const [appliedStandard, setAppliedStandard] = useState<'ipc' | 'bs'>('ipc');
-  const [appliedFixtures, setAppliedFixtures] = useState<FixtureRow[]>(fixtures);
-  const [appliedSystemType, setAppliedSystemType] = useState<'valve' | 'tank'>('valve');
   const [appliedDesignVelocity, setAppliedDesignVelocity] = useState<number>(1.2);
   const [appliedSlope, setAppliedSlope] = useState<number>(2);
   const [appliedOccupants, setAppliedOccupants] = useState<number>(120);
@@ -92,6 +111,13 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const [appliedSepticDischarge, setAppliedSepticDischarge] = useState<number>(80);
   const [appliedSepticDesludgeInterval, setAppliedSepticDesludgeInterval] = useState<number>(3);
   const [appliedSumpInflow, setAppliedSumpInflow] = useState<number>(150);
+  const [appliedPipeMaterial, setAppliedPipeMaterial] = useState<'pvc'|'copper'|'steel'>('pvc');
+  const [appliedPipeLength, setAppliedPipeLength] = useState<number>(30);
+  const [appliedElevationChange, setAppliedElevationChange] = useState<number>(5);
+  const [appliedAvailablePressure, setAppliedAvailablePressure] = useState<number>(4.0);
+  const [appliedRequiredResidual, setAppliedRequiredResidual] = useState<number>(1.5);
+  const [appliedElbow90Count, setAppliedElbow90Count] = useState<number>(6);
+  const [appliedTeeCount, setAppliedTeeCount] = useState<number>(4);
   const [appliedBoosterStaticHead, setAppliedBoosterStaticHead] = useState<number>(35);
   const [appliedBoosterResidualPress, setAppliedBoosterResidualPress] = useState<number>(2.0);
   const [appliedBoosterFrictionPercent, setAppliedBoosterFrictionPercent] = useState<number>(15);
@@ -105,8 +131,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     if (autoCalculate) {
       setAppliedStandard(standard);
       setAppliedFixtures(fixtures);
-      setAppliedSystemType(systemType);
       setAppliedDesignVelocity(designVelocity);
+    setAppliedSlope(slope);
       setAppliedSlope(slope);
       setAppliedOccupants(occupants);
       setAppliedConsumptionRate(consumptionRate);
@@ -114,6 +140,20 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
       setAppliedSepticDischarge(septicDischarge);
       setAppliedSepticDesludgeInterval(septicDesludgeInterval);
       setAppliedSumpInflow(sumpInflow);
+    setAppliedPipeMaterial(pipeMaterial);
+    setAppliedPipeLength(pipeLength);
+    setAppliedElevationChange(elevationChange);
+    setAppliedAvailablePressure(availablePressure);
+    setAppliedRequiredResidual(requiredResidual);
+    setAppliedElbow90Count(elbow90Count);
+    setAppliedTeeCount(teeCount);
+      setAppliedPipeMaterial(pipeMaterial);
+      setAppliedPipeLength(pipeLength);
+      setAppliedElevationChange(elevationChange);
+      setAppliedAvailablePressure(availablePressure);
+      setAppliedRequiredResidual(requiredResidual);
+      setAppliedElbow90Count(elbow90Count);
+      setAppliedTeeCount(teeCount);
       setAppliedBoosterStaticHead(boosterStaticHead);
       setAppliedBoosterResidualPress(boosterResidualPress);
       setAppliedBoosterFrictionPercent(boosterFrictionPercent);
@@ -123,8 +163,9 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
       setAppliedSumpStaticHead(sumpStaticHead);
     }
   }, [
-    autoCalculate, standard, fixtures, systemType, designVelocity, slope, occupants,
+    autoCalculate, standard, fixtures, designVelocity, slope, occupants,
     consumptionRate, storageDays, septicDischarge, septicDesludgeInterval, sumpInflow,
+    pipeMaterial, pipeLength, elevationChange, availablePressure, requiredResidual, elbow90Count, teeCount,
     boosterStaticHead, boosterResidualPress, boosterFrictionPercent, boosterEfficiency,
     transferFillTime, transferStaticHead, sumpStaticHead
   ]);
@@ -138,7 +179,6 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         if (p.subTab) setSubTab(p.subTab as SubTab);
         if (p.standard) { setStandard(p.standard); setAppliedStandard(p.standard); }
         if (Array.isArray(p.fixtures)) { setFixtures(p.fixtures); setAppliedFixtures(p.fixtures); }
-        if (p.systemType) { setSystemType(p.systemType); setAppliedSystemType(p.systemType); }
         if (p.designVelocity) { setDesignVelocity(p.designVelocity); setAppliedDesignVelocity(p.designVelocity); }
         if (p.slope) { setSlope(p.slope); setAppliedSlope(p.slope); }
         if (p.occupants) { setOccupants(p.occupants); setAppliedOccupants(p.occupants); }
@@ -162,13 +202,33 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
   // Fixture helpers
   const handleQtyChange = (id: string, value: number) => {
-    setFixtures(prev => prev.map(f => f.id === id ? { ...f, qty: Math.max(0, value) } : f));
+    const clampedValue = Math.min(9999, Math.max(0, value));
+    setFixtures(prev => prev.map(f => f.id === id ? { ...f, qty: clampedValue } : f));
+  };
+
+  const handleRemoveFixture = (id: string) => {
+    setFixtures(prev => prev.filter(f => f.id !== id));
+  };
+
+  const [selectedNewFixture, setSelectedNewFixture] = useState<string>('');
+  
+  const handleAddFixture = () => {
+    if (!selectedNewFixture) return;
+    const existing = fixtures.find(f => f.id === selectedNewFixture);
+    if (existing) {
+      handleQtyChange(selectedNewFixture, existing.qty + 1);
+    } else {
+      const fixtureData = IPC_FIXTURES.find(f => f.id === selectedNewFixture);
+      if (fixtureData) {
+        setFixtures(prev => [...prev, { ...fixtureData, qty: 1 }]);
+      }
+    }
+    setSelectedNewFixture('');
   };
 
   const hasPendingChanges = !autoCalculate && (
     standard !== appliedStandard ||
     JSON.stringify(fixtures) !== JSON.stringify(appliedFixtures) ||
-    systemType !== appliedSystemType ||
     designVelocity !== appliedDesignVelocity ||
     slope !== appliedSlope ||
     occupants !== appliedOccupants ||
@@ -177,6 +237,13 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     septicDischarge !== appliedSepticDischarge ||
     septicDesludgeInterval !== appliedSepticDesludgeInterval ||
     sumpInflow !== appliedSumpInflow ||
+    pipeMaterial !== appliedPipeMaterial ||
+    pipeLength !== appliedPipeLength ||
+    elevationChange !== appliedElevationChange ||
+    availablePressure !== appliedAvailablePressure ||
+    requiredResidual !== appliedRequiredResidual ||
+    elbow90Count !== appliedElbow90Count ||
+    teeCount !== appliedTeeCount ||
     boosterStaticHead !== appliedBoosterStaticHead ||
     boosterResidualPress !== appliedBoosterResidualPress ||
     boosterFrictionPercent !== appliedBoosterFrictionPercent ||
@@ -189,7 +256,6 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const handleApplyCalculations = () => {
     setAppliedStandard(standard);
     setAppliedFixtures(fixtures);
-    setAppliedSystemType(systemType);
     setAppliedDesignVelocity(designVelocity);
     setAppliedSlope(slope);
     setAppliedOccupants(occupants);
@@ -198,6 +264,13 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     setAppliedSepticDischarge(septicDischarge);
     setAppliedSepticDesludgeInterval(septicDesludgeInterval);
     setAppliedSumpInflow(sumpInflow);
+    setAppliedPipeMaterial(pipeMaterial);
+    setAppliedPipeLength(pipeLength);
+    setAppliedElevationChange(elevationChange);
+    setAppliedAvailablePressure(availablePressure);
+    setAppliedRequiredResidual(requiredResidual);
+    setAppliedElbow90Count(elbow90Count);
+    setAppliedTeeCount(teeCount);
     setAppliedBoosterStaticHead(boosterStaticHead);
     setAppliedBoosterResidualPress(boosterResidualPress);
     setAppliedBoosterFrictionPercent(boosterFrictionPercent);
@@ -219,18 +292,31 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   // Hunter's Curve Peak Demand Estimation (GPM)
   const getHuntersFlowGPM = (wsfu: number, type: 'valve' | 'tank') => {
     if (wsfu <= 0) return 0;
+    // IPC 2018 Table E103.3(3) Hunter's Curve Interpolation
     if (type === 'valve') {
-      // Commercial Flushometer Valve Curve
-      if (wsfu <= 5) return 10 + (2.5 * wsfu);
-      if (wsfu <= 20) return 22 + (1.2 * (wsfu - 5));
-      if (wsfu <= 100) return 40 + (0.45 * (wsfu - 20));
-      return 76 + (0.22 * (wsfu - 100));
+      if (wsfu <= 10) return 27; // Minimum starting point for flushometer
+      if (wsfu <= 20) return 27 + ((wsfu - 10) * (35 - 27) / 10);
+      if (wsfu <= 30) return 35 + ((wsfu - 20) * (42 - 35) / 10);
+      if (wsfu <= 40) return 42 + ((wsfu - 30) * (46 - 42) / 10);
+      if (wsfu <= 50) return 46 + ((wsfu - 40) * (51.5 - 46) / 10);
+      if (wsfu <= 100) return 51.5 + ((wsfu - 50) * (68 - 51.5) / 50);
+      if (wsfu <= 200) return 68 + ((wsfu - 100) * (91 - 68) / 100);
+      if (wsfu <= 500) return 91 + ((wsfu - 200) * (143 - 91) / 300);
+      return 143 + ((wsfu - 500) * 0.15); // Approximation above 500
     } else {
-      // Residential Flush Tank Curve
-      if (wsfu <= 5) return 1.5 * wsfu;
-      if (wsfu <= 20) return 5 + (0.8 * (wsfu - 5));
-      if (wsfu <= 100) return 17 + (0.35 * (wsfu - 20));
-      return 45 + (0.18 * (wsfu - 100));
+      // Flush tank
+      if (wsfu <= 1) return 3;
+      if (wsfu <= 2) return 5;
+      if (wsfu <= 5) return 5 + ((wsfu - 2) * (9.4 - 5) / 3);
+      if (wsfu <= 10) return 9.4 + ((wsfu - 5) * (16 - 9.4) / 5);
+      if (wsfu <= 20) return 16 + ((wsfu - 10) * (25 - 16) / 10);
+      if (wsfu <= 30) return 25 + ((wsfu - 20) * (33.3 - 25) / 10);
+      if (wsfu <= 40) return 33.3 + ((wsfu - 30) * (40 - 33.3) / 10);
+      if (wsfu <= 50) return 40 + ((wsfu - 40) * (46 - 40) / 10);
+      if (wsfu <= 100) return 46 + ((wsfu - 50) * (68 - 46) / 50);
+      if (wsfu <= 200) return 68 + ((wsfu - 100) * (91 - 68) / 100);
+      if (wsfu <= 500) return 91 + ((wsfu - 200) * (143 - 91) / 300);
+      return 143 + ((wsfu - 500) * 0.15); // Approximation above 500
     }
   };
 
@@ -262,70 +348,145 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
   const recommendedWaterPipe = getNominalPipeSize(calculatedWaterPipeDia);
 
-  // Sewage Pipe size based on IPC Table 710.1(1) and slope
-  const getSewagePipeSize = (dfu: number, slopePercent: number) => {
-    if (dfu <= 0) return { size: 'N/A', reason: 'No drainage load' };
-    
-    // Light Loads
-    if (dfu <= 3) return { size: 'DN40 (1.5")', reason: 'IPC Table 710.1 compliant (Branch size limit)' };
-    if (dfu <= 6) return { size: 'DN50 (2")', reason: 'IPC Table 710.1 compliant' };
-    if (dfu <= 20) return { size: 'DN75 (3")', reason: 'IPC Table 710.1 compliant (Minimum size for WCs)' };
-    
-    // High Loads depending on slope
-    if (slopePercent === 0.5) {
-      if (dfu <= 180) return { size: 'DN100 (4")', reason: 'IPC Table 710.1 at 0.5% slope' };
-      if (dfu <= 700) return { size: 'DN150 (6")', reason: 'IPC Table 710.1 at 0.5% slope' };
-      return { size: 'DN200 (8")', reason: 'High capacity drainage standard' };
-    } else if (slopePercent === 1) {
-      if (dfu <= 160) return { size: 'DN100 (4")', reason: 'IPC Table 710.1 at 1% slope' };
-      if (dfu <= 960) return { size: 'DN150 (6")', reason: 'IPC Table 710.1 at 1% slope' };
-      return { size: 'DN200 (8")', reason: 'High capacity drainage standard' };
-    } else if (slopePercent === 2) {
-      if (dfu <= 216) return { size: 'DN100 (4")', reason: 'IPC Table 710.1 at 2% slope' };
-      if (dfu <= 1400) return { size: 'DN150 (6")', reason: 'IPC Table 710.1 at 2% slope' };
-      return { size: 'DN200 (8")', reason: 'High capacity drainage standard' };
-    } else { // 4% slope
-      if (dfu <= 250) return { size: 'DN100 (4")', reason: 'IPC Table 710.1 at 4% slope' };
-      if (dfu <= 2200) return { size: 'DN150 (6")', reason: 'IPC Table 710.1 at 4% slope' };
-      return { size: 'DN200 (8")', reason: 'High capacity drainage standard' };
-    }
-  };
+  // Advanced Hydraulic Sizing (IPC Appendix E Style)
+  const calculateHydraulicPipe = () => {
+    if (peakFlowLps <= 0) return null;
+    const cFactor = appliedPipeMaterial === 'pvc' ? 150 : appliedPipeMaterial === 'copper' ? 140 : 120;
+    const q_m3s = peakFlowLps / 1000;
+    const sizes = [15, 20, 25, 32, 40, 50, 65, 80, 100, 125, 150, 200];
+    const minVelocityDiaMm = Math.sqrt((4 * q_m3s) / (Math.PI * appliedDesignVelocity)) * 1000;
 
-  // BS EN 12056: Gravity drainage systems inside buildings Sizing
-  const getBSSewagePipeSize = (du: number, slopePercent: number) => {
-    if (du <= 0) return { size: 'N/A', reason: 'No drainage load' };
-    
-    // BS EN 12056 Peak wastewater flow: Q = K * sqrt(Sum DU)
-    // K = 0.7 for standard commercial/public buildings
-    const peakDrainageFlow = 0.7 * Math.sqrt(du);
-    
-    // Minimum diameter for branches serving any WC is DN100 according to BS standards
-    if (du <= 4) {
-      return { 
-        size: 'DN75 (3")', 
-        reason: `BS EN 12056 compliant (Light waste branch. Peak: ${peakDrainageFlow.toFixed(2)} L/s)` 
+    let finalDiaMm = sizes[sizes.length - 1];
+    let hydraulicDetails = null;
+
+    for (const dia of sizes) {
+      if (dia < minVelocityDiaMm) continue; // Start checking from velocity-compliant size
+
+      const d_m = dia / 1000;
+      // Equivalent length calculation (Simplified L/D ratios: 90 elbow ~30, Tee ~60)
+      const equivFittings = (appliedElbow90Count * 30 * d_m) + (appliedTeeCount * 60 * d_m);
+      const totalLength = appliedPipeLength + equivFittings;
+
+      // Metric Hazen-Williams
+      const Hf = 10.67 * Math.pow(q_m3s, 1.85) / (Math.pow(cFactor, 1.85) * Math.pow(d_m, 4.87));
+      const frictionLossM = Hf * totalLength;
+      
+      const totalHeadLossM = frictionLossM + appliedElevationChange;
+      const totalHeadLossBar = totalHeadLossM / 10.197;
+      
+      const residualBar = appliedAvailablePressure - totalHeadLossBar;
+
+      if (residualBar >= appliedRequiredResidual) {
+        finalDiaMm = dia;
+        hydraulicDetails = {
+          size: `${dia} mm (DN${dia})`,
+          frictionLossBar: (frictionLossM / 10.197).toFixed(2),
+          elevationLossBar: (appliedElevationChange / 10.197).toFixed(2),
+          residualBar: residualBar.toFixed(2),
+          totalLength: totalLength.toFixed(1),
+          equivFittings: equivFittings.toFixed(1),
+          velocity: (q_m3s / (Math.PI * Math.pow(d_m / 2, 2))).toFixed(2)
+        };
+        break;
+      }
+    }
+
+    if (!hydraulicDetails) {
+      // Failed to find a size that works, use max
+      const d_m = finalDiaMm / 1000;
+      const equivFittings = (appliedElbow90Count * 30 * d_m) + (appliedTeeCount * 60 * d_m);
+      const totalLength = appliedPipeLength + equivFittings;
+      const Hf = 10.67 * Math.pow(q_m3s, 1.85) / (Math.pow(cFactor, 1.85) * Math.pow(d_m, 4.87));
+      const totalHeadLossBar = (Hf * totalLength + appliedElevationChange) / 10.197;
+      
+      hydraulicDetails = {
+        size: `> DN200`,
+        frictionLossBar: (Hf * totalLength / 10.197).toFixed(2),
+        elevationLossBar: (appliedElevationChange / 10.197).toFixed(2),
+        residualBar: (appliedAvailablePressure - totalHeadLossBar).toFixed(2),
+        totalLength: totalLength.toFixed(1),
+        equivFittings: equivFittings.toFixed(1),
+        velocity: (q_m3s / (Math.PI * Math.pow(d_m / 2, 2))).toFixed(2),
+        failed: true
       };
     }
     
-    // Capacity limits based on slope and standard drainage tables
+    return hydraulicDetails;
+  };
+  
+  const hydraulicResult = calculateHydraulicPipe();
+
+  // Sewage Pipe size based on IPC Table 710.1(1) and slope
+  const getSewagePipeSize = (dfu: number, slopePercent: number, hasWC: boolean) => {
+    if (dfu <= 0) return { size: 'N/A', reason: 'No drainage load' };
+    
+    // IPC 2018 Table 710.1(1) Building Drains and Sewers
+    // Evaluates the smallest acceptable pipe size. If the selected slope is too flat for a given pipe size,
+    // it returns the pipe size but appends a warning that a steeper slope is required by code.
+    
+    type PipeCap = { size: string, minSlope: number, cap05: number, cap1: number, cap2: number, cap4: number, noWC?: boolean, maxWCs?: number };
+    const pipes: PipeCap[] = [
+      { size: 'DN50 (2")', minSlope: 2.0, cap05: 0, cap1: 0, cap2: 21, cap4: 26, noWC: true },
+      { size: 'DN65 (2.5")', minSlope: 2.0, cap05: 0, cap1: 0, cap2: 24, cap4: 31, noWC: true },
+      { size: 'DN75 (3")', minSlope: 1.0, cap05: 0, cap1: 36, cap2: 42, cap4: 50, maxWCs: 2 },
+      { size: 'DN100 (4")', minSlope: 1.0, cap05: 0, cap1: 180, cap2: 216, cap4: 250 },
+      { size: 'DN125 (5")', minSlope: 1.0, cap05: 0, cap1: 390, cap2: 480, cap4: 575 },
+      { size: 'DN150 (6")', minSlope: 1.0, cap05: 0, cap1: 700, cap2: 840, cap4: 1000 },
+      { size: 'DN200 (8")', minSlope: 0.5, cap05: 1400, cap1: 1600, cap2: 1920, cap4: 2300 },
+      { size: 'DN250 (10")', minSlope: 0.5, cap05: 2500, cap1: 2900, cap2: 3500, cap4: 4200 },
+      { size: 'DN300 (12")', minSlope: 0.5, cap05: 3900, cap1: 4600, cap2: 5600, cap4: 6700 },
+      { size: 'DN375 (15")', minSlope: 0.5, cap05: 7000, cap1: 8300, cap2: 10000, cap4: 12000 }
+    ];
+
+    for (const p of pipes) {
+      if (hasWC && p.noWC) continue;
+      
+      // Get the capacity at the selected slope, or if the slope is too flat, use the capacity at its min slope
+      // to determine if the pipe is physically large enough (though it will require a slope correction)
+      const effectiveSlope = Math.max(slopePercent, p.minSlope);
+      let capacity = 0;
+      if (effectiveSlope === 0.5) capacity = p.cap05;
+      else if (effectiveSlope === 1.0) capacity = p.cap1;
+      else if (effectiveSlope === 2.0) capacity = p.cap2;
+      else if (effectiveSlope >= 4.0) capacity = p.cap4;
+
+      if (dfu <= capacity) {
+        if (slopePercent < p.minSlope) {
+          return { size: p.size, reason: `IPC 710.1(1) requires min ${p.minSlope}% slope for this size` };
+        }
+        return { size: p.size, reason: `IPC Table 710.1(1) at ${slopePercent}% slope` };
+      }
+    }
+    
+    return { size: 'DN375+ (15"+)', reason: `Exceeds table capacity for ${slopePercent}% slope` };
+  };
+
+  // BS EN 12056: Gravity drainage systems inside buildings Sizing
+  const getBSSewagePipeSize = (du: number, slopePercent: number, hasWC: boolean) => {
+    if (du <= 0) return { size: 'N/A', reason: 'No drainage load' };
+    const peakDrainageFlow = 0.7 * Math.sqrt(du);
+    
     if (slopePercent === 0.5) { // 1:200
-      if (peakDrainageFlow <= 3.0) return { size: 'DN100 (4")', reason: `BS EN 12056 compliant at 1:200 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      if (peakDrainageFlow <= 10.0) return { size: 'DN150 (6")', reason: `BS EN 12056 compliant at 1:200 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      return { size: 'DN200 (8")', reason: `BS EN 12056 high load capacity (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-    } else if (slopePercent === 1) { // 1:100
-      if (peakDrainageFlow <= 4.2) return { size: 'DN100 (4")', reason: `BS EN 12056 compliant at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      if (peakDrainageFlow <= 14.5) return { size: 'DN150 (6")', reason: `BS EN 12056 compliant at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      return { size: 'DN200 (8")', reason: `BS EN 12056 high load capacity (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-    } else { // 2% and above (1:50)
-      if (peakDrainageFlow <= 5.8) return { size: 'DN100 (4")', reason: `BS EN 12056 compliant at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      if (peakDrainageFlow <= 18.0) return { size: 'DN150 (6")', reason: `BS EN 12056 compliant at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      return { size: 'DN200 (8")', reason: `BS EN 12056 high load capacity (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 3.0) return { size: 'DN100 (4")', reason: `BS EN 12056 at 1:200 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 10.0) return { size: 'DN150 (6")', reason: `BS EN 12056 at 1:200 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      return { size: 'DN200+ (8"+)', reason: `BS EN 12056 at 1:200 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+    } else if (slopePercent === 1.0) { // 1:100
+      if (!hasWC && peakDrainageFlow <= 1.5) return { size: 'DN75 (3")', reason: `BS EN 12056 at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 4.2) return { size: 'DN100 (4")', reason: `BS EN 12056 at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 14.5) return { size: 'DN150 (6")', reason: `BS EN 12056 at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      return { size: 'DN200+ (8"+)', reason: `BS EN 12056 at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+    } else { // 1:50 (2%) or higher
+      if (!hasWC && peakDrainageFlow <= 1.5) return { size: 'DN75 (3")', reason: `BS EN 12056 at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 5.8) return { size: 'DN100 (4")', reason: `BS EN 12056 at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 18.0) return { size: 'DN150 (6")', reason: `BS EN 12056 at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      return { size: 'DN200+ (8"+)', reason: `BS EN 12056 at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
     }
   };
 
+  const hasAnyWC = appliedFixtures.some(f => f.qty > 0 && f.id.includes('wc'));
   const sewagePipe = appliedStandard === 'bs' 
-    ? getBSSewagePipeSize(totalDU, appliedSlope) 
-    : getSewagePipeSize(totalDFU, appliedSlope);
+    ? getBSSewagePipeSize(totalDU, appliedSlope, hasAnyWC) 
+    : getSewagePipeSize(totalDFU, appliedSlope, hasAnyWC);
 
   // Water Tank calculations
   const totalWaterStorageLiters = appliedOccupants * appliedConsumptionRate * appliedStorageDays;
@@ -503,6 +664,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   };
  
   return (
+    <>
+      <IPCReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} />
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 text-slate-100">
       
       {/* Toast Alert */}
@@ -529,6 +692,14 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
           </p>
         </div>
         <div className="flex items-center space-x-1 bg-slate-950 p-1.5 rounded-xl border border-slate-850">
+          <button
+            onClick={() => setIsRefModalOpen(true)}
+            className="px-3 py-1.5 text-[10px] font-bold uppercase rounded-lg transition-all cursor-pointer text-slate-400 hover:text-white flex items-center gap-1.5 mr-2 bg-slate-900 border border-slate-800 hover:bg-slate-800"
+            title="View Fixture Unit Reference Tables"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reference</span>
+          </button>
           <button
             onClick={() => setStandard('ipc')}
             className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded-lg transition-all cursor-pointer ${
@@ -654,20 +825,40 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       BS EN 806-3 Demand Curve
                     </span>
                   ) : (
-                    <>
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Curve Style:</label>
-                      <select
-                        value={systemType}
-                        onChange={(e) => setSystemType(e.target.value as 'valve' | 'tank')}
-                        className="bg-slate-950 border border-slate-800 text-[11px] font-mono font-bold text-cyan-400 rounded px-2.5 py-1 focus:outline-none"
-                      >
-                        <option value="valve">Flush Valves (Commercial)</option>
-                        <option value="tank">Flush Tanks (Residential)</option>
-                      </select>
-                    </>
+                    <div className="flex items-center space-x-2">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Demand Curve:</label>
+                      <div className="bg-slate-950 border border-slate-800 text-cyan-400 rounded px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider">
+                        {systemType} System
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
+
+              {(() => {
+                const currentTotalWSFU = fixtures.reduce((sum, f) => sum + (f.wsfu * f.qty), 0);
+                const currentTotalLU = fixtures.reduce((sum, f) => sum + (f.lu * f.qty), 0);
+                const currentTotalDFU = fixtures.reduce((sum, f) => sum + (f.dfu * f.qty), 0);
+                const currentTotalDU = fixtures.reduce((sum, f) => sum + (f.du * f.qty), 0);
+                
+                const isOverCapacity = standard === 'bs' 
+                  ? (currentTotalLU > 10000 || currentTotalDU > 12000) 
+                  : (currentTotalWSFU > 5000 || currentTotalDFU > 12000);
+                  
+                if (!isOverCapacity) return null;
+                
+                return (
+                  <div className="bg-amber-950/40 border border-amber-900/50 rounded-xl p-3 mb-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-amber-400 font-bold text-xs mb-1">Standard Capacity Exceeded</h4>
+                      <p className="text-amber-200/70 text-[10px] leading-relaxed">
+                        The total fixture load exceeds standard empirical sizing tables. Values displayed are extrapolated and may not be accurate for exceptionally high-demand systems. Consider dividing the system into distinct zones.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Fixtures Table Grid */}
               <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1 hide-scrollbar">
@@ -691,6 +882,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       </button>
                       <input
                         type="number"
+                        min="0"
+                        max="9999"
                         value={fix.qty}
                         onChange={(e) => handleQtyChange(fix.id, Number(e.target.value))}
                         className="w-12 bg-slate-950 border border-slate-800 text-white font-mono text-xs text-center rounded py-1 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
@@ -761,11 +954,59 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-3 py-2 text-xs font-mono"
                   >
                     <option value={0.5}>0.5% Slope (1:200)</option>
-                    <option value={1}>1% Slope (1:100)</option>
-                    <option value={2}>2% Slope (1:50)</option>
-                    <option value={4}>4% Slope (1:25)</option>
+                    <option value={1.0}>1% Slope (1:100)</option>
+                    <option value={2.0}>2% Slope (1:50)</option>
+                    <option value={4.0}>4% Slope (1:25)</option>
                   </select>
                 </div>
+
+                <div className="pt-4 mt-4 border-t border-slate-800 col-span-full">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase mb-3 flex items-center gap-2">
+                    <Droplet className="w-4 h-4 text-cyan-500" />
+                    Hydraulic Pressure Sizing (IPC Appendix E)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Pipe Material</label>
+                      <select
+                        value={pipeMaterial}
+                        onChange={(e) => setPipeMaterial(e.target.value as any)}
+                        className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-3 py-2 text-xs font-mono"
+                      >
+                        <option value="pvc">PVC / CPVC (C=150)</option>
+                        <option value="copper">Copper (C=140)</option>
+                        <option value="steel">Galvanized Steel (C=120)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Main Pipe Length (m)</label>
+                      <input type="number" min="1" value={pipeLength} onChange={(e) => setPipeLength(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Elevation Change (m)</label>
+                      <input type="number" min="0" value={elevationChange} onChange={(e) => setElevationChange(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Avail. Pressure (bar)</label>
+                      <input type="number" min="0.1" step="0.1" value={availablePressure} onChange={(e) => setAvailablePressure(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Req. Residual (bar)</label>
+                      <input type="number" min="0.1" step="0.1" value={requiredResidual} onChange={(e) => setRequiredResidual(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">90° Elbows</label>
+                        <input type="number" min="0" value={elbow90Count} onChange={(e) => setElbow90Count(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Tees (Branch)</label>
+                        <input type="number" min="0" value={teeCount} onChange={(e) => setTeeCount(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
@@ -1160,18 +1401,132 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   </div>
 
                   <div className="pt-2">
-                    <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">
-                      Suggested Cold Water Pipe
-                    </span>
-                    <p className="text-sm font-extrabold text-white mt-1">
-                      {recommendedWaterPipe}{' '}
-                      <span className="text-[10px] text-slate-500 font-mono font-normal">({calculatedWaterPipeDia.toFixed(1)} mm calculated)</span>
-                    </p>
+                    {standard === 'bs' ? (
+                      <>
+                        <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">
+                          Suggested Cold Water Pipe
+                        </span>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-extrabold text-white">
+                            {recommendedWaterPipe}
+                          </p>
+                        </div>
+                        <span className="block text-[10px] text-slate-500 font-mono font-normal mt-1">
+                          (Minimum internal diameter: {calculatedWaterPipeDia.toFixed(1)} mm @ {designVelocity} m/s)
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider flex items-center justify-between">
+                          Final Hydraulic Water Pipe (IPC)
+                          {hydraulicResult?.failed && (
+                            <span className="text-red-400 bg-red-950/40 px-1.5 py-0.5 rounded">Insufficient Pressure</span>
+                          )}
+                        </span>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <p className={`text-sm font-extrabold ${hydraulicResult?.failed ? 'text-red-400' : 'text-cyan-400'}`}>
+                            {hydraulicResult?.size}
+                          </p>
+                        </div>
+                        {hydraulicResult && (
+                          <div className="mt-2 bg-slate-900/50 border border-slate-800 p-2.5 rounded-lg text-[10px] font-mono text-slate-400 space-y-1">
+                            <div className="flex justify-between">
+                              <span>Min Vel. Diameter:</span>
+                              <span className="text-white">{calculatedWaterPipeDia.toFixed(1)} mm (@ {designVelocity} m/s)</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Total Eq. Length:</span>
+                              <span className="text-white">{hydraulicResult.totalLength} m (Fittings: {hydraulicResult.equivFittings} m)</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Friction Loss:</span>
+                              <span className="text-white">{hydraulicResult.frictionLossBar} bar</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Elevation Loss:</span>
+                              <span className="text-white">{hydraulicResult.elevationLossBar} bar</span>
+                            </div>
+                            <div className="flex justify-between border-t border-slate-700/50 pt-1 mt-1">
+                              <span>Residual Pressure:</span>
+                              <span className={Number(hydraulicResult.residualBar) >= appliedRequiredResidual ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                                {hydraulicResult.residualBar} bar (Req: {appliedRequiredResidual} bar)
+                              </span>
+                            </div>
+                            
+                            {/* Pressure Drop Visualizer */}
+                            {(() => {
+                              const avail = appliedAvailablePressure;
+                              const req = appliedRequiredResidual;
+                              const elev = Number(hydraulicResult.elevationLossBar);
+                              const fric = Number(hydraulicResult.frictionLossBar);
+                              
+                              const maxAllowable = Math.max(0, avail - req);
+                              const thresholdPct = Math.min((maxAllowable / avail) * 100, 100);
+                              
+                              const elevPct = Math.min((elev / avail) * 100, 100);
+                              const fricPct = Math.max(0, Math.min((fric / avail) * 100, 100 - elevPct));
+                              
+                              return (
+                                <div className="pt-3 mt-2 border-t border-slate-800/60 relative">
+                                  <div className="flex justify-between text-[9px] uppercase tracking-wider mb-2">
+                                    <span className="font-bold text-slate-500">Pressure Budget</span>
+                                    <span className={hydraulicResult.failed ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>
+                                      {hydraulicResult.failed ? "FAIL" : "PASS"}
+                                    </span>
+                                  </div>
+                                  <div className="relative mb-4">
+                                    <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden flex relative border border-slate-800">
+                                      {/* Max Allowable Threshold Line */}
+                                      {thresholdPct > 0 && (
+                                        <div 
+                                          className="absolute top-0 bottom-0 border-l-2 border-dashed border-emerald-500 z-10"
+                                          style={{ left: `${thresholdPct}%` }}
+                                        />
+                                      )}
+                                      
+                                      {/* Elevation Loss */}
+                                      <div 
+                                        className="h-full bg-blue-500/80 border-r border-slate-900 transition-all duration-500"
+                                        style={{ width: `${elevPct}%` }}
+                                        title={`Elevation Loss: ${elev} bar`}
+                                      />
+                                      {/* Friction Loss */}
+                                      <div 
+                                        className={`h-full transition-all duration-500 ${hydraulicResult.failed ? 'bg-red-500/80' : 'bg-orange-500/80'}`}
+                                        style={{ width: `${fricPct}%` }}
+                                        title={`Friction Loss: ${fric} bar`}
+                                      />
+                                    </div>
+                                    {/* Label for Threshold */}
+                                    {thresholdPct > 0 && (
+                                      <div 
+                                        className="absolute top-full mt-1 text-[8.5px] text-emerald-500/90 whitespace-nowrap -translate-x-1/2 font-bold"
+                                        style={{ left: `${thresholdPct}%` }}
+                                      >
+                                        Min Req.
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex justify-between text-[8px] text-slate-500">
+                                    <span>0</span>
+                                    <div className="flex gap-2">
+                                      <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-500/80"></span>Elev</span>
+                                      <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${hydraulicResult.failed ? 'bg-red-500/80' : 'bg-orange-500/80'}`}></span>Friction</span>
+                                    </div>
+                                    <span>Avail: {avail.toFixed(1)} bar</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
 
                   <div className="pt-2 border-t border-slate-850">
                     <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">
-                      {standard === 'bs' ? 'BS EN 12056 Main Drain' : 'Sewage Sewer Design Size'}
+                      {standard === 'bs' ? 'BS EN 12056 Main Drain' : 'Sewage Sewer Design Size (IPC Table 710.1)'}
                     </span>
                     <p className="text-sm font-extrabold text-cyan-400 mt-1">
                       {sewagePipe.size}
@@ -1341,7 +1696,9 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     `- Design Velocity: ${designVelocity} m/s\n` +
                     `- Sewage Slope: ${slope}%\n` +
                     `- Peak Flow: ${peakFlowLps.toFixed(2)} L/s (${peakFlowGPM.toFixed(1)} GPM)\n` +
-                    `- Recommended Water Pipe: ${recommendedWaterPipe}\n` +
+                    (standard === 'bs' 
+                      ? `- Recommended Water Pipe: ${recommendedWaterPipe}\n` 
+                      : `- Preliminary Water Pipe (Velocity): ${recommendedWaterPipe} *Requires IPC friction tables for complete sizing.\n`) +
                     `- Recommended Sewage Pipe: ${sewagePipe.size} (${sewagePipe.reason})`;
                 } else if (subTab === 'tanks') {
                   summaryText = `- Occupants: ${occupants}\n` +
@@ -1385,6 +1742,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
           totalLU: totalLU,
           peakFlowLps: peakFlowLps,
           standard: appliedStandard,
+          systemType: systemType,
           occupants: appliedOccupants,
           consumptionRate: appliedConsumptionRate,
           storageDays: appliedStorageDays,
@@ -1399,5 +1757,6 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         }}
       />
     </div>
+    </>
   );
 }

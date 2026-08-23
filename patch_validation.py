@@ -1,73 +1,71 @@
 import re
-with open('src/components/VentilationCalc.tsx', 'r') as f:
+
+with open('src/components/PlumbingCalc.tsx', 'r') as f:
     content = f.read()
 
-# 1. Add boolean flags at the end of Calculation block
-calc_end_str = "const voz = vozBase * densityRatio; // Adjusted zone outdoor airflow"
+# 1. Update handleQtyChange to clamp values between 0 and 9999
+search_handle = """  const handleQtyChange = (id: string, value: number) => {
+    setFixtures(prev => prev.map(f => f.id === id ? { ...f, qty: Math.max(0, value) } : f));
+  };"""
 
-new_flags = """const voz = vozBase * densityRatio; // Adjusted zone outdoor airflow
+replace_handle = """  const handleQtyChange = (id: string, value: number) => {
+    const clampedValue = Math.min(9999, Math.max(0, value));
+    setFixtures(prev => prev.map(f => f.id === id ? { ...f, qty: clampedValue } : f));
+  };"""
 
-  // Validations
-  const isExtremeArea = isMetric ? area > 50000 : area > 500000;
-  const isExtremeTemp = useTempAdj && (isMetric ? (airTemp < -10 || airTemp > 50) : (airTemp < 14 || airTemp > 122));
-  const actualDensity = area > 0 ? (occupants / area) * (isMetric ? 100 : 1000) : 0;
-  const isExtremeDensity = !useDefaultDensity && actualDensity > (isMetric ? 215 : 200);"""
+content = content.replace(search_handle, replace_handle)
 
-content = content.replace(calc_end_str, new_flags)
+# 2. Add max="9999" and min="0" to the input field
+search_input = """                      <input
+                        type="number"
+                        value={fix.qty}
+                        onChange={(e) => handleQtyChange(fix.id, Number(e.target.value))}
+                        className="w-12 bg-slate-950 border border-slate-800 text-white font-mono text-xs text-center rounded py-1 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
+                      />"""
 
-# 2. Add Area Alert
-area_block = """                  <Square className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-                  <span className="absolute right-3 top-2 text-xs text-slate-500 select-none">{areaUnit}</span>
-                </div>
-              </div>"""
+replace_input = """                      <input
+                        type="number"
+                        min="0"
+                        max="9999"
+                        value={fix.qty}
+                        onChange={(e) => handleQtyChange(fix.id, Number(e.target.value))}
+                        className="w-12 bg-slate-950 border border-slate-800 text-white font-mono text-xs text-center rounded py-1 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
+                      />"""
 
-new_area_block = """                  <Square className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-                  <span className="absolute right-3 top-2 text-xs text-slate-500 select-none">{areaUnit}</span>
-                </div>
-                {isExtremeArea && (
-                  <p className="text-[10px] text-amber-400 mt-1.5 flex items-center">
-                    <AlertTriangle className="w-3 h-3 mr-1" /> Unusually large area. Verify value.
-                  </p>
-                )}
-              </div>"""
+content = content.replace(search_input, replace_input)
 
-content = content.replace(area_block, new_area_block)
+# 3. Add the warning banner before the Fixtures Table Grid
+search_grid = """              {/* Fixtures Table Grid */}"""
 
-# 3. Add Occupants Alert
-occ_block = """                  <Users className={`w-4 h-4 absolute left-3 top-2.5 ${useDefaultDensity ? 'text-slate-600' : 'text-slate-500'}`} />
-                  <span className="absolute right-3 top-2 text-xs text-slate-500 select-none">People</span>
-                </div>
-              </div>"""
+replace_grid = """              {(() => {
+                const currentTotalWSFU = fixtures.reduce((sum, f) => sum + (f.wsfu * f.qty), 0);
+                const currentTotalLU = fixtures.reduce((sum, f) => sum + (f.lu * f.qty), 0);
+                const currentTotalDFU = fixtures.reduce((sum, f) => sum + (f.dfu * f.qty), 0);
+                const currentTotalDU = fixtures.reduce((sum, f) => sum + (f.du * f.qty), 0);
+                
+                const isOverCapacity = standard === 'bs' 
+                  ? (currentTotalLU > 10000 || currentTotalDU > 12000) 
+                  : (currentTotalWSFU > 5000 || currentTotalDFU > 12000);
+                  
+                if (!isOverCapacity) return null;
+                
+                return (
+                  <div className="bg-amber-950/40 border border-amber-900/50 rounded-xl p-3 mb-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-amber-400 font-bold text-xs mb-1">Standard Capacity Exceeded</h4>
+                      <p className="text-amber-200/70 text-[10px] leading-relaxed">
+                        The total fixture load exceeds standard empirical sizing tables. Values displayed are extrapolated and may not be accurate for exceptionally high-demand systems. Consider dividing the system into distinct zones.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
 
-new_occ_block = """                  <Users className={`w-4 h-4 absolute left-3 top-2.5 ${useDefaultDensity ? 'text-slate-600' : 'text-slate-500'}`} />
-                  <span className="absolute right-3 top-2 text-xs text-slate-500 select-none">People</span>
-                </div>
-                {isExtremeDensity && (
-                  <p className="text-[10px] text-amber-400 mt-1.5 flex items-center">
-                    <AlertTriangle className="w-3 h-3 mr-1" /> High occupant density. Verify value.
-                  </p>
-                )}
-              </div>"""
+              {/* Fixtures Table Grid */}"""
 
-content = content.replace(occ_block, new_occ_block)
+content = content.replace(search_grid, replace_grid)
 
-# 4. Add Temperature Alert
-temp_block = """                  <Thermometer className={`w-4 h-4 absolute left-3 top-2.5 ${!useTempAdj ? 'text-slate-600' : 'text-slate-500'}`} />
-                  <span className="absolute right-3 top-2 text-xs text-slate-500 select-none">{tempUnit}</span>
-                </div>
-              </div>"""
-
-new_temp_block = """                  <Thermometer className={`w-4 h-4 absolute left-3 top-2.5 ${!useTempAdj ? 'text-slate-600' : 'text-slate-500'}`} />
-                  <span className="absolute right-3 top-2 text-xs text-slate-500 select-none">{tempUnit}</span>
-                </div>
-                {isExtremeTemp && (
-                  <p className="text-[10px] text-amber-400 mt-1.5 flex items-center">
-                    <AlertTriangle className="w-3 h-3 mr-1" /> Extreme temperature value. Verify units.
-                  </p>
-                )}
-              </div>"""
-
-content = content.replace(temp_block, new_temp_block)
-
-with open('src/components/VentilationCalc.tsx', 'w') as f:
+with open('src/components/PlumbingCalc.tsx', 'w') as f:
     f.write(content)
+
