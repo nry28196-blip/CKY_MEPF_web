@@ -727,7 +727,11 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   )}
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Water Velocity (m/s)</label>
+                  <TooltipLabel 
+                    label="Water Velocity (m/s)" 
+                    tooltip="Maximum allowable velocity in water distribution pipes to prevent water hammer and excessive noise. Typical range: 1.2 to 2.4 m/s (4 to 8 ft/s)." 
+                    className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" 
+                  />
                   <input
                     type="number"
                     min="0.5"
@@ -748,7 +752,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div>
                   <TooltipLabel 
                     label="Sewage Slope (%)"
-                    tooltip="Minimum required slope per International Plumbing Code (IPC) to maintain self-cleansing velocity (typically 1-2%)."
+                    tooltip="Minimum slope per IPC to maintain self-cleansing velocity. Typical design range: 1% (1/8 in/ft) for pipes ≥ 3 inches, or 2% (1/4 in/ft) for pipes < 3 inches."
                     className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" 
                   />
                   <select

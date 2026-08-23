@@ -1,37 +1,58 @@
 import re
+
 with open('src/components/MechanicalCalc.tsx', 'r') as f:
     content = f.read()
 
-# Add VentilationCalc import
-content = content.replace("import DuctSizingCalc from './DuctSizingCalc';", "import DuctSizingCalc from './DuctSizingCalc';\nimport VentilationCalc from './VentilationCalc';")
+import_str = "import VrfTopologyCanvas from './VrfTopologyCanvas';"
+new_import = "import VrfTopologyCanvas from './VrfTopologyCanvas';\nimport VrfLoadDistributionChart from './VrfLoadDistributionChart';"
+if "VrfLoadDistributionChart" not in content:
+    content = content.replace(import_str, new_import)
 
-# Add SubTab
-content = content.replace("type SubTab = 'cooling' | 'ductSizing' | 'formulas';", "type SubTab = 'cooling' | 'ductSizing' | 'formulas' | 'ventilation';")
+search_start = """              <div className="w-full">
+                {/* Zones / Indoor Units Sizing Table */}
+                <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-4 border border-slate-800/80">"""
 
-# Add Tab Button
-tab_button = """        <button
-          onClick={() => setSubTab('ventilation')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
-            subTab === 'ventilation'
-              ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          {t('mechVentilationTitle') || 'Ventilation'}
-        </button>"""
+replacement_start = """              <div className="w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Zones / Indoor Units Sizing Table */}
+                    <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-4 border border-slate-800/80">"""
 
-content = content.replace("{t('mechDuctSizingTitle')}\n        </button>", "{t('mechDuctSizingTitle')}\n        </button>\n" + tab_button)
 
-# Render component
-render_part = """      {/* Conditional Rendering */}
-      {subTab === 'formulas' ? ("""
+search_end = """                        <Plus className="h-3 w-3" />
+                        <span>Add Zone to System</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              
+              </div>
+            </div>
+          )}
+          {/* Interactive Trend Chart Section */}"""
 
-render_part_new = """      {/* Conditional Rendering */}
-      {subTab === 'ventilation' ? (
-        <VentilationCalc />
-      ) : subTab === 'formulas' ? ("""
+replacement_end = """                        <Plus className="h-3 w-3" />
+                        <span>Add Zone to System</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                  </div>
+                  <div className="lg:col-span-1">
+                    <VrfLoadDistributionChart rooms={vrfRooms} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Interactive Trend Chart Section */}"""
 
-content = content.replace(render_part, render_part_new)
+if search_start in content and search_end in content:
+    content = content.replace(search_start, replacement_start)
+    content = content.replace(search_end, replacement_end)
+    with open('src/components/MechanicalCalc.tsx', 'w') as f:
+        f.write(content)
+        print("Patched successfully")
+else:
+    print("Search string not found")
 
-with open('src/components/MechanicalCalc.tsx', 'w') as f:
-    f.write(content)

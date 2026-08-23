@@ -326,7 +326,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
             <div>
               <TooltipLabel 
                 label="Voltage (V)"
-                tooltip="Line-to-Line voltage for 3-phase systems, or Line-to-Neutral for single phase. Essential for precise Full Load Current derivations."
+                tooltip={phase === 'three' ? "Line-to-Line voltage for 3-phase systems. Typical design range: 400V (EU/UK/Asia/ME) or 480V (US)." : "Line-to-Neutral voltage for single-phase systems. Typical design range: 230V (EU/UK/Asia/ME) or 120V (US)."}
                 className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase" 
               />
               <input

@@ -6,6 +6,7 @@
 import React from 'react';
 import { X, Scale, FileText, Clock, HelpCircle, Activity } from 'lucide-react';
 import { HistoryItem } from '../types';
+import ComparisonChart from './ComparisonChart';
 
 interface CompareModalProps {
   isOpen: boolean;
@@ -213,6 +214,9 @@ export default function CompareModal({ isOpen, onClose, items }: CompareModalPro
                 </div>
               </div>
 
+              {/* Variance Chart */}
+              <ComparisonChart calcA={calcA} calcB={calcB} />
+              
               {/* Parameter Table */}
               <div className="bg-slate-950 border border-slate-850 rounded-xl overflow-hidden shadow-inner">
                 <table className="w-full text-left border-collapse">

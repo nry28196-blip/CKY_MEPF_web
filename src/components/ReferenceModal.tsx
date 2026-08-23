@@ -42,6 +42,28 @@ export default function ReferenceModal({ isOpen, onClose }: ReferenceModalProps)
           ]
         },
         {
+          name: 'Minimum Exhaust Airflow (ASHRAE 62.1)',
+          formula: 'Q_exh = Ra × Az',
+          explanation: 'Calculates the required exhaust airflow using the area-based exhaust rate (e.g., for restrooms or kitchens).',
+          math: 'Density Adjusted: Q_exh(actual) = Q_exh × (T_actual / T_std)',
+          parameters: [
+            'Q_exh = Required exhaust airflow',
+            'Ra = Exhaust airflow rate required per unit area',
+            'Az = Net occupiable zone floor area',
+          ]
+        },
+        {
+          name: 'Commercial Kitchen Hood Extraction (ASHRAE 154)',
+          formula: 'Q = L × Base Rate',
+          explanation: 'Calculates required exhaust airflow for unlisted commercial kitchen hoods based on cooking equipment duty and hood canopy configuration.',
+          math: 'Q_cfm = Hood Length (ft) × Base Exhaust Rate (CFM/ft)',
+          parameters: [
+            'Q = Total exhaust airflow required',
+            'L = Length of the hood canopy over the equipment bank',
+            'Base Rate = Extraction rate per linear foot depending on duty (Light, Medium, Heavy, Extra Heavy) and hood type (Wall, Island)'
+          ]
+        },
+        {
           name: 'Cooling Thermal Load Sizing',
           formula: 'Q_total = (A x U x ΔT) + (N x q_p) + (V_fresh x ρ_air x C_p x ΔT)',
           explanation: 'Sensible transmission heat through fabric plus internal occupant gain plus ventilation fresh air tempering.',
@@ -55,6 +77,17 @@ export default function ReferenceModal({ isOpen, onClose }: ReferenceModalProps)
             'ρ_air = Dry air density (~1.2 kg/m³)',
             'C_p = Specific heat capacity of air (J/kg·K) (~1006 J/kg·K)',
             'ΔT = Temperature differential between exterior & interior (K)'
+          ]
+        },
+        {
+          name: 'Duct Sizing (Equal Friction Method)',
+          formula: 'ΔP/L = Constant (e.g. 0.1 in. wg/100 ft)',
+          explanation: 'Sizes ducts by maintaining a constant pressure loss per unit length across the entire system. Huebscher’s formula is then used to find equivalent rectangular dimensions.',
+          math: 'De = 1.30 × ((a × b)^0.625) / ((a + b)^0.25)',
+          parameters: [
+            'ΔP/L = Target friction loss rate',
+            'De = Equivalent round diameter for equal friction and capacity',
+            'a, b = Rectangular duct width and height'
           ]
         },
         {
@@ -183,6 +216,17 @@ export default function ReferenceModal({ isOpen, onClose }: ReferenceModalProps)
           parameters: [
             'WSFU = Total Water Supply Fixture Units summed across all fixtures',
             'Q_peak = Design water supply capacity (GPM) matching commercial flushometer vs residential flush-tank systems'
+          ]
+        },
+        {
+          name: 'Pipe Water Velocity',
+          formula: 'V = 4Q / (π × D²)',
+          explanation: 'Calculates the velocity of water through a pipe based on flow rate and internal diameter. Important for limiting water hammer and noise (Typical limit: 1.2 to 2.4 m/s).',
+          math: 'V_m/s = (4 × Q_m³/s) / (π × D_m²)',
+          parameters: [
+            'V = Water velocity in meters per second',
+            'Q = Flow rate in cubic meters per second',
+            'D = Internal pipe diameter in meters'
           ]
         },
         {

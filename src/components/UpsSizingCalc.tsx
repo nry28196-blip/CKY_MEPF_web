@@ -191,7 +191,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
               <div>
                 <TooltipLabel 
                   label="Load Power Factor"
-                  tooltip="Typical server loads are 0.9 to 1.0 (leading/lagging). Influences the total Apparent Power (kVA) the UPS inverter must supply."
+                  tooltip="Influences the total Apparent Power (kVA). Typical design range for server/IT loads: 0.90 to 0.99."
                   className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1" 
                 />
                 <div className="relative">
@@ -210,7 +210,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
               <div>
                 <TooltipLabel 
                   label="Design Margin (e.g. 1.25 for 25%)"
-                  tooltip="Safety factor applied to the total load to accommodate future expansion and prevent operating the UPS at 100% capacity."
+                  tooltip="Safety factor applied to the total load. Typical design range: 1.2 to 1.3 (20% to 30% margin) to accommodate future expansion."
                   className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1" 
                 />
                 <div className="relative">

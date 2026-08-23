@@ -7,6 +7,7 @@ import DuctSizingCalc from './DuctSizingCalc';
 import VentilationCalc from './VentilationCalc';
 import TrendVisualizer from './TrendVisualizer';
 import VrfTopologyCanvas from './VrfTopologyCanvas';
+import VrfLoadDistributionChart from './VrfLoadDistributionChart';
 import TooltipLabel from './TooltipLabel';
 import FormulaVisualizer, { FormulaDef } from './FormulaVisualizer';
 import { useLanguage } from '../lib/translations';
@@ -382,6 +383,17 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 { symbol: 'V_{oz}', meaning: 'Zone outdoor airflow required' },
                 { symbol: 'V_{bz}', meaning: 'Breathing zone outdoor airflow' },
                 { symbol: 'E_z', meaning: 'Zone air distribution effectiveness' }
+              ]
+            },
+            {
+              id: 'exhaust_airflow',
+              title: 'Minimum Exhaust Airflow',
+              description: 'Calculates the required exhaust airflow using the area-based exhaust rate (e.g., for restrooms or kitchens).',
+              equation: 'Q_{exh} = R_a \cdot A_z',
+              variables: [
+                { symbol: 'Q_{exh}', meaning: 'Required exhaust airflow' },
+                { symbol: 'R_a', meaning: 'Exhaust airflow rate required per unit area' },
+                { symbol: 'A_z', meaning: 'Net occupiable zone floor area' }
               ]
             },
             {
@@ -880,7 +892,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     {/* Diversity Factor Selector */}
                     <div>
                       <div className="flex justify-between text-xs font-semibold mb-1">
-                        <span className="text-slate-400 uppercase">Diversity / Coincidence Factor</span>
+                        <TooltipLabel
+                          label="Diversity / Coincidence Factor"
+                          tooltip="Accounts for non-coincidence of peak loads across multiple zones (Standard: 1.1 - 1.25)." 
+                          className="text-slate-400 uppercase"
+                        />
                         <span className="font-mono text-emerald-400 font-bold">{diversityFactor.toFixed(2)}x</span>
                       </div>
                       <input
@@ -947,7 +963,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
                    <div>
                      <div className="flex justify-between items-center text-xs font-semibold mb-1">
-                       <span className="text-slate-400 uppercase">Total Liquid Piping Length (m)</span>
+                       <TooltipLabel
+                         label="Total Liquid Piping Length (m)"
+                         tooltip="Physical length of the main refrigerant liquid line. Impacts additional refrigerant charge." 
+                         className="text-slate-400 uppercase"
+                       />
                        <div className="flex items-center space-x-1.5 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
                          <input
                            id="auto-calc-piping-toggle"
@@ -956,7 +976,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                            onChange={(e) => setAutoCalcPiping(e.target.checked)}
                            className="w-3 h-3 accent-emerald-500 cursor-pointer"
                          />
-                         <label htmlFor="auto-calc-piping-toggle" className="text-[9px] text-emerald-400 font-bold uppercase cursor-pointer select-none">Auto-Calculate from Canvas</label>
+                         <TooltipLabel
+                           label={<label htmlFor="auto-calc-piping-toggle" className="cursor-pointer">Auto-Calculate from Canvas</label>}
+                           tooltip="Automatically sync piping length from the drawn 2D topology canvas diagram." 
+                           className="text-[9px] text-emerald-400 font-bold uppercase select-none"
+                         />
                        </div>
                      </div>
                      {autoCalcPiping ? (
@@ -1050,7 +1074,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     ) : (
                       <div>
                         <div className="flex justify-between text-xs font-semibold mb-1">
-                          <span className="text-slate-400 uppercase text-[10px]">Max allowed CR limit</span>
+                          <TooltipLabel
+                          label="Max allowed CR limit"
+                          tooltip="Capacity Ratio limit. 130% is standard for VRF to prevent compressor short-cycling and ensure adequate part-load efficiency." 
+                          className="text-slate-400 uppercase text-[10px]"
+                        />
                           <span className="font-mono text-emerald-400 font-bold">{maxAllowedCr}%</span>
                         </div>
                         <input
@@ -1072,7 +1100,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   {!isOduAuto && (
                     <div className="pt-3 border-t border-slate-800/40">
                       <div className="flex justify-between text-xs font-semibold mb-1">
-                        <span className="text-slate-400 uppercase text-[10px]">Max allowed CR limit</span>
+                        <TooltipLabel
+                          label="Max allowed CR limit"
+                          tooltip="Capacity Ratio limit. 130% is standard for VRF to prevent compressor short-cycling and ensure adequate part-load efficiency." 
+                          className="text-slate-400 uppercase text-[10px]"
+                        />
                         <span className="font-mono text-emerald-400 font-bold">{maxAllowedCr}%</span>
                       </div>
                       <input
@@ -1375,6 +1407,8 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
               </div>
 
               <div className="w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-6">
                 {/* Zones / Indoor Units Sizing Table */}
                 <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-4 border border-slate-800/80">
                   <div className="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -1480,7 +1514,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
                   {/* Add Zone Interactive Builder Row */}
                   <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-850 space-y-3">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Add Custom Indoor Unit Zone</span>
+                    <TooltipLabel
+                      label="Add Custom Indoor Unit Zone"
+                      tooltip="Manually define an indoor unit capacity and location for the VRF circuit." 
+                      className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block"
+                    />
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                       <input
                         type="text"
@@ -1601,6 +1639,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   </div>
                 </div>
               
+                  </div>
+                  <div className="lg:col-span-1">
+                    <VrfLoadDistributionChart rooms={vrfRooms} />
+                  </div>
+                </div>
               </div>
             </div>
           )}

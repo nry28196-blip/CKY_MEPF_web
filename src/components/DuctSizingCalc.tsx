@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Wind, Copy, FileSpreadsheet, AlertTriangle, CheckCircle2, Sliders, Settings, Layers, HelpCircle, Bookmark, Mail } from 'lucide-react';
+import { Wind, Copy, FileSpreadsheet, AlertTriangle, CheckCircle2, Sliders, Settings, Layers, HelpCircle, Bookmark, Mail, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import TrendVisualizer from './TrendVisualizer';
+import TooltipLabel from './TooltipLabel';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { useUnitValue } from '../lib/useUnitValue';
@@ -42,6 +43,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
   const [airflow, setAirflow] = useState<number>(2500); // CFM
   const [frictionRate, setFrictionRate] = useState<number>(0.1); // in. wg/100 ft
   const [velocityLimit, setVelocityLimit] = useState<number>(1200); // FPM
+  const [ductType, setDuctType] = useState<'supply' | 'return' | 'exhaust'>('supply');
   const [ductHeight, setDuctHeight] = useState<number>(12); // inches (default fixed height)
 
   // Splitting Engine
@@ -54,6 +56,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
   const [appliedAirflow, setAppliedAirflow] = useState<number>(2500);
   const [appliedFrictionRate, setAppliedFrictionRate] = useState<number>(0.1);
   const [appliedVelocityLimit, setAppliedVelocityLimit] = useState<number>(1200);
+  const [appliedDuctType, setAppliedDuctType] = useState<'supply' | 'return' | 'exhaust'>('supply');
   const [appliedDuctHeight, setAppliedDuctHeight] = useState<number>(12);
   const [appliedEnableSplitting, setAppliedEnableSplitting] = useState<boolean>(true);
   const [appliedNumBranches, setAppliedNumBranches] = useState<number>(3);
@@ -65,6 +68,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
       setAppliedAirflow(airflow);
       setAppliedFrictionRate(frictionRate);
       setAppliedVelocityLimit(velocityLimit);
+    setAppliedDuctType(ductType);
       setAppliedDuctHeight(ductHeight);
       setAppliedEnableSplitting(enableSplitting);
       setAppliedNumBranches(numBranches);
@@ -279,6 +283,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
         if (typeof p.airflow === 'number') { setAirflow(p.airflow); setAppliedAirflow(p.airflow); }
         if (typeof p.frictionRate === 'number') { setFrictionRate(p.frictionRate); setAppliedFrictionRate(p.frictionRate); }
         if (typeof p.velocityLimit === 'number') { setVelocityLimit(p.velocityLimit); setAppliedVelocityLimit(p.velocityLimit); }
+        if (typeof p.ductType === 'string') { setDuctType(p.ductType as any); setAppliedDuctType(p.ductType as any); }
         if (typeof p.ductHeight === 'number') { setDuctHeight(p.ductHeight); setAppliedDuctHeight(p.ductHeight); }
         if (typeof p.enableSplitting === 'boolean') { setEnableSplitting(p.enableSplitting); setAppliedEnableSplitting(p.enableSplitting); }
         if (typeof p.numBranches === 'number') { setNumBranches(p.numBranches); setAppliedNumBranches(p.numBranches); }
@@ -292,6 +297,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
     airflow !== appliedAirflow ||
     frictionRate !== appliedFrictionRate ||
     velocityLimit !== appliedVelocityLimit ||
+    ductType !== appliedDuctType ||
     ductHeight !== appliedDuctHeight ||
     enableSplitting !== appliedEnableSplitting ||
     numBranches !== appliedNumBranches ||
@@ -302,6 +308,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
     setAppliedAirflow(airflow);
     setAppliedFrictionRate(frictionRate);
     setAppliedVelocityLimit(velocityLimit);
+    setAppliedDuctType(ductType);
     setAppliedDuctHeight(ductHeight);
     setAppliedEnableSplitting(enableSplitting);
     setAppliedNumBranches(numBranches);
@@ -320,6 +327,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
           airflow,
           frictionRate,
           velocityLimit,
+          ductType,
           ductHeight,
           enableSplitting,
           numBranches,
@@ -386,7 +394,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
             {/* Parameter 1: Airflow */}
             <div className="space-y-2 mb-6">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400 font-medium">Main Airflow (Q)</span>
+                <TooltipLabel label="Main Airflow (Q)" tooltip="Total air volume flow rate entering the main duct branch." className="text-slate-400 font-medium" />
                 <div className="flex items-center space-x-1.5">
                   <input
                     type="number"
@@ -426,7 +434,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
             {/* Parameter 2: Friction rate */}
             <div className="space-y-2 mb-6">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400 font-medium">Friction Loss Rate (F)</span>
+                <TooltipLabel label="Friction Loss Rate (F)" tooltip="Target pressure drop per unit length. Typical design range: 0.08 to 0.12 in. wg/100 ft (0.8 - 1.2 Pa/m) for standard low-pressure systems." className="text-slate-400 font-medium" />
                 <div className="flex items-center space-x-1.5">
                   <input
                     type="number"
@@ -464,50 +472,149 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
               )}
             </div>
 
-            {/* Parameter 3: Velocity Limit */}
-            <div className="space-y-2 mb-6">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400 font-medium">Max Velocity Limit</span>
-                <div className="flex items-center space-x-1.5">
-                  <input
-                    type="number"
-                    min="400"
-                    max="6000"
-                    value={velocityLimit || ''}
-                    onChange={(e) => setVelocityLimit(e.target.value === '' ? 0 : velUnitHook.getInternalValue(Number(e.target.value)))}
-                    className={`w-20 text-center font-mono text-xs rounded py-0.5 focus:outline-none transition-colors bg-slate-950 border ${velocityLimit !== 0 && (velocityLimit < 400 || velocityLimit > 6000)
-                      ? 'border-red-500/70 text-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500/20'
-                      : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
-                      } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
-                  />
-                  <span className="text-[10px] text-slate-500 font-mono">{velUnit}</span>
+            {/* Parameter 3: Duct Type & Velocity Limit */}
+            <div className="space-y-4 mb-6">
+              <div className="space-y-2">
+                <div><TooltipLabel label="System / Duct Type" tooltip="Determines the target reference velocity ranges based on the application." className="text-xs text-slate-400 font-medium mb-1" />
+                  <span className="text-[10px] text-slate-500 font-normal">For reference guidelines</span></div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setDuctType('supply')}
+                    className={`flex-1 text-[11px] py-1.5 rounded font-mono border transition-all ${
+                      ductType === 'supply'
+                        ? 'bg-sky-950/50 border-sky-500/50 text-sky-300'
+                        : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    }`}
+                  >
+                    Supply
+                  </button>
+                  <button
+                    onClick={() => setDuctType('return')}
+                    className={`flex-1 text-[11px] py-1.5 rounded font-mono border transition-all ${
+                      ductType === 'return'
+                        ? 'bg-purple-950/50 border-purple-500/50 text-purple-300'
+                        : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    }`}
+                  >
+                    Return
+                  </button>
+                  <button
+                    onClick={() => setDuctType('exhaust')}
+                    className={`flex-1 text-[11px] py-1.5 rounded font-mono border transition-all ${
+                      ductType === 'exhaust'
+                        ? 'bg-amber-950/50 border-amber-500/50 text-amber-300'
+                        : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    }`}
+                  >
+                    Exhaust
+                  </button>
                 </div>
               </div>
-              <input
-                type="range"
-                min="600"
-                max="2500"
-                step="50"
-                value={velocityLimit || 600}
-                onChange={(e) => setVelocityLimit(velUnitHook.getInternalValue(Number(e.target.value)))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
-              />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                <span>600 (Quiet Residence)</span>
-                <span>1,200 (Commercial Office)</span>
-                <span>2,500 (Industrial)</span>
-              </div>
-              {velocityLimit !== 0 && (velocityLimit < 400 || velocityLimit > 6000) && (
-                <div className="text-[10px] text-red-400 font-mono leading-none mt-1 bg-red-950/20 px-2 py-1 rounded border border-red-950/50">
-                  ⚠️ Recommended safe range: 400 to 6,000 FPM
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <TooltipLabel label="Max Velocity Limit" tooltip={ductType === 'supply' ? "Maximum allowable air velocity. Typical Supply Range: 1000 - 2000 FPM (5 - 10 m/s)." : ductType === 'return' ? "Maximum allowable air velocity. Typical Return Range: 800 - 1500 FPM (4 - 7.5 m/s)." : "Maximum allowable air velocity. Typical Exhaust Range: 1500 - 2500 FPM (7.5 - 12.5 m/s)."} className="text-slate-400 font-medium" />
+                  <div className="flex items-center space-x-1.5">
+                    <input
+                      type="number"
+                      min="400"
+                      max="6000"
+                      value={velocityLimit || ''}
+                      onChange={(e) => setVelocityLimit(e.target.value === '' ? 0 : velUnitHook.getInternalValue(Number(e.target.value)))}
+                      className={`w-20 text-center font-mono text-xs rounded py-0.5 focus:outline-none transition-colors bg-slate-950 border ${velocityLimit !== 0 && (velocityLimit < 400 || velocityLimit > 6000)
+                        ? 'border-red-500/70 text-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500/20'
+                        : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
+                        } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
+                    />
+                    <span className="text-[10px] text-slate-500 font-mono">{velUnit}</span>
+                  </div>
                 </div>
-              )}
+                <input
+                  type="range"
+                  min="600"
+                  max="2500"
+                  step="50"
+                  value={velocityLimit || 600}
+                  onChange={(e) => setVelocityLimit(velUnitHook.getInternalValue(Number(e.target.value)))}
+                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
+                />
+                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                  <span>600 (Quiet)</span>
+                  <span>1,200 (Office)</span>
+                  <span>2,500 (Ind.)</span>
+                </div>
+                {velocityLimit !== 0 && (velocityLimit < 400 || velocityLimit > 6000) && (
+                  <div className="text-[10px] text-red-400 font-mono leading-none mt-1 bg-red-950/20 px-2 py-1 rounded border border-red-950/50">
+                    ⚠️ Recommended safe range: 400 to 6,000 FPM
+                  </div>
+                )}
+              </div>
+
+              {/* Interactive Reference Table */}
+              <div className="bg-slate-950/40 rounded-lg border border-slate-800/80 overflow-hidden">
+                <div className="px-3 py-2 bg-slate-900/50 border-b border-slate-800/80 flex items-center">
+                  <Info className="w-3 h-3 text-slate-400 mr-1.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Velocity Guidelines</span>
+                </div>
+                <div className="p-0">
+                  <table className="w-full text-left text-[10px]">
+                    <thead>
+                      <tr className="border-b border-slate-800/50 text-slate-500">
+                        <th className="px-3 py-1.5 font-medium">Application</th>
+                        <th className="px-3 py-1.5 font-medium text-right">Main Duct</th>
+                        <th className="px-3 py-1.5 font-medium text-right">Branch</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/50">
+                      <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'supply' ? 'bg-sky-950/30 text-sky-200' : 'text-slate-400'}`} onClick={() => setDuctType('supply')}>
+                        <td className="px-3 py-2 flex items-center">
+                          <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ductType === 'supply' ? 'bg-sky-500' : 'bg-transparent'}`}></div>
+                          Supply Air
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {velUnitHook.getDisplayValue(1000).toFixed(0)} - {velUnitHook.getDisplayValue(2000).toFixed(0)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {velUnitHook.getDisplayValue(600).toFixed(0)} - {velUnitHook.getDisplayValue(1200).toFixed(0)}
+                        </td>
+                      </tr>
+                      <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'return' ? 'bg-purple-950/30 text-purple-200' : 'text-slate-400'}`} onClick={() => setDuctType('return')}>
+                        <td className="px-3 py-2 flex items-center">
+                          <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ductType === 'return' ? 'bg-purple-500' : 'bg-transparent'}`}></div>
+                          Return Air
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {velUnitHook.getDisplayValue(800).toFixed(0)} - {velUnitHook.getDisplayValue(1500).toFixed(0)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {velUnitHook.getDisplayValue(400).toFixed(0)} - {velUnitHook.getDisplayValue(1000).toFixed(0)}
+                        </td>
+                      </tr>
+                      <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'exhaust' ? 'bg-amber-950/30 text-amber-200' : 'text-slate-400'}`} onClick={() => setDuctType('exhaust')}>
+                        <td className="px-3 py-2 flex items-center">
+                          <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ductType === 'exhaust' ? 'bg-amber-500' : 'bg-transparent'}`}></div>
+                          General Exhaust
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {velUnitHook.getDisplayValue(1500).toFixed(0)} - {velUnitHook.getDisplayValue(2000).toFixed(0)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {velUnitHook.getDisplayValue(1000).toFixed(0)} - {velUnitHook.getDisplayValue(1500).toFixed(0)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div className="px-3 py-1.5 bg-slate-900/30 text-[9px] text-slate-500 flex justify-between border-t border-slate-800/50">
+                    <span>* Values in {velUnit}. Varies by noise constraint.</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Parameter 4: Assigned Height */}
             <div className="space-y-3 mb-6 pt-2 border-t border-slate-800">
               <div className="flex justify-between items-center">
-                <label className="text-xs text-slate-400 font-medium">Assigned Duct Height (H)</label>
+                <TooltipLabel label="Assigned Duct Height (H)" tooltip="Fixed vertical dimension of rectangular duct. Width will be calculated." className="text-xs text-slate-400 font-medium" />
                 <div className="flex items-center space-x-1">
                   <input
                     type="number"
@@ -716,6 +823,135 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                     </div>
                   </div>
                 </div>
+              </div>
+              
+              
+              {/* System Flow Schematic */}
+              <div className="bg-slate-950/60 border border-slate-850/80 rounded-xl p-5 flex flex-col min-h-[220px] relative overflow-hidden">
+                 <span className="absolute top-3 left-3 text-[10px] text-slate-500 uppercase tracking-wider font-semibold font-mono z-10">System Flow Schematic</span>
+                 
+                 <div className="w-full flex-1 flex items-center justify-center mt-6">
+                   <svg viewBox="0 0 400 160" className="w-full h-auto drop-shadow-md">
+                     <defs>
+                       <pattern id="gridPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                         <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#334155" strokeWidth="0.5" strokeOpacity="0.3"/>
+                       </pattern>
+                     </defs>
+                     
+                     <rect width="400" height="160" fill="url(#gridPattern)" rx="8" />
+                     
+                     {/* Left Box */}
+                     <rect x="20" y="50" width="70" height="60" fill="#1e293b" stroke="#475569" strokeWidth="2" rx="6" />
+                     <text x="55" y="84" fill="#94a3b8" fontSize="10" textAnchor="middle" fontWeight="bold">
+                        {ductType === 'supply' ? 'AHU / RTU' : ductType === 'return' ? 'AHU / RTU' : 'Exhaust Fan'}
+                     </text>
+                     
+                     {/* Main Airflow */}
+                     <path d="M 90 80 L 170 80" fill="none" 
+                           stroke={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} 
+                           strokeWidth="16" opacity="0.7" />
+                     {ductType === 'supply' ? (
+                       <polygon points="155,68 175,80 155,92" fill={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} />
+                     ) : (
+                       <polygon points="105,68 85,80 105,92" fill={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} />
+                     )}
+                     
+                     <text x="130" y="65" fill={ductType === 'supply' ? '#38bdf8' : ductType === 'return' ? '#c084fc' : '#fbbf24'} fontSize="12" textAnchor="middle" fontWeight="bold" className="font-mono">
+                       {Math.round(airflowUnitHook.getDisplayValue(airflow))} {flowUnit}
+                     </text>
+                     
+                     {/* Right side (Splitting vs Single) */}
+                     {enableSplitting ? (
+                       <g>
+                         {/* Manifold */}
+                         <rect x="175" y="40" width="20" height="80" fill="#334155" rx="4" />
+                         
+                         {branches.slice(0, 4).map((b, i, arr) => {
+                           const num = arr.length;
+                           const spacing = 80 / (num + 1);
+                           const yPos = 40 + spacing * (i + 1);
+                           const branchVal = airflowUnitHook.getDisplayValue(b.cfm);
+                           
+                           return (
+                             <g key={i}>
+                               <path d={`M 195 ${yPos} L 270 ${yPos}`} fill="none" stroke={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} strokeWidth="6" opacity="0.7" />
+                               {ductType === 'supply' ? (
+                                 <polygon points={`260,${yPos - 5} 270,${yPos} 260,${yPos + 5}`} fill={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} />
+                               ) : (
+                                 <polygon points={`205,${yPos - 5} 195,${yPos} 205,${yPos + 5}`} fill={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} />
+                               )}
+                               <rect x="270" y={yPos - 12} width="65" height="24" fill="#1e293b" stroke="#475569" strokeWidth="1" rx="2" />
+                               <text x="302.5" y={yPos + 3} fill="#94a3b8" fontSize="8" textAnchor="middle">Branch {i+1}</text>
+                               <text x="235" y={yPos - 6} fill={ductType === 'supply' ? '#38bdf8' : ductType === 'return' ? '#c084fc' : '#fbbf24'} fontSize="8" textAnchor="middle" className="font-mono">{Math.round(branchVal)}</text>
+                               
+                               {/* Branch Interactive Node */}
+                               <g className="group cursor-pointer">
+                                 <circle cx="235" cy={yPos} r="10" fill="transparent" />
+                                 <circle cx="235" cy={yPos} r="3" fill={ductType === 'supply' ? '#38bdf8' : ductType === 'return' ? '#c084fc' : '#fbbf24'} stroke="#0f172a" strokeWidth="1" className="group-hover:scale-150 transition-transform" style={{ transformOrigin: `235px ${yPos}px` }} />
+                                 
+                                 <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none drop-shadow-xl">
+                                   <rect x={155} y={yPos + 8} width="85" height="32" fill="#0f172a" stroke="#334155" strokeWidth="1" rx="3" />
+                                   <text x={160} y={yPos + 19} fill="#e2e8f0" fontSize="7" fontWeight="bold">Size: {lenUnitHook.getDisplayValue(b.width).toFixed(1)}{lenUnit} x {lenUnitHook.getDisplayValue(b.height).toFixed(1)}{lenUnit}</text>
+                                   <text x={160} y={yPos + 29} fill="#94a3b8" fontSize="7">Vel: {velUnitHook.getDisplayValue(b.velocityRect).toFixed(0)} {velUnit}</text>
+                                 </g>
+                               </g>
+                             </g>
+                           )
+                         })}
+                         {branches.length > 4 && (
+                            <text x="302.5" y="140" fill="#64748b" fontSize="10" textAnchor="middle" fontStyle="italic">+ {branches.length - 4} more...</text>
+                         )}
+                       </g>
+                     ) : (
+                       <g>
+                         <path d="M 175 80 L 290 80" fill="none" stroke={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} strokeWidth="16" opacity="0.7" />
+                         {ductType === 'supply' ? (
+                           <polygon points="275,68 295,80 275,92" fill={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} />
+                         ) : (
+                           <polygon points="190,68 170,80 190,92" fill={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} />
+                         )}
+                         <rect x="295" y="50" width="80" height="60" fill="#1e293b" stroke="#475569" strokeWidth="2" rx="6" />
+                         <text x="335" y="84" fill="#94a3b8" fontSize="10" textAnchor="middle" fontWeight="bold">
+                           {ductType === 'supply' ? 'Zone / Diffuser' : ductType === 'return' ? 'Return Grille' : 'Hood / Intake'}
+                         </text>
+                         
+                         {/* Terminal Run Interactive Node */}
+                         <g className="group cursor-pointer">
+                           <circle cx="235" cy="80" r="10" fill="transparent" />
+                           <circle cx="235" cy="80" r="3" fill={ductType === 'supply' ? '#38bdf8' : ductType === 'return' ? '#c084fc' : '#fbbf24'} stroke="#0f172a" strokeWidth="1" className="group-hover:scale-150 transition-transform origin-[235px_80px]" />
+                           
+                           <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none drop-shadow-xl z-50">
+                             <rect x="190" y="92" width="90" height="42" fill="#0f172a" stroke="#334155" strokeWidth="1" rx="4" />
+                             <text x="197" y="105" fill="#e2e8f0" fontSize="8" fontWeight="bold">Terminal Run</text>
+                             <text x="197" y="116" fill="#94a3b8" fontSize="7.5">Size: {lenUnitHook.getDisplayValue(widthMain).toFixed(1)}{lenUnit} x {lenUnitHook.getDisplayValue(ductHeight).toFixed(1)}{lenUnit}</text>
+                             <text x="197" y="126" fill="#94a3b8" fontSize="7.5">Vel: {velUnitHook.getDisplayValue(velRectMain).toFixed(0)} {velUnit}</text>
+                           </g>
+                         </g>
+                       </g>
+                     )}
+                     
+                     {/* Type Badge */}
+                     <rect x="290" y="10" width="90" height="20" fill="#0f172a" stroke={ductType === 'supply' ? '#0ea5e9' : ductType === 'return' ? '#9333ea' : '#d97706'} strokeWidth="1" rx="4" />
+                     <text x="335" y="24" fill={ductType === 'supply' ? '#38bdf8' : ductType === 'return' ? '#c084fc' : '#fbbf24'} fontSize="9" textAnchor="middle" fontWeight="bold" letterSpacing="1">
+                       {ductType === 'supply' ? 'SUPPLY AIR' : ductType === 'return' ? 'RETURN AIR' : 'EXHAUST AIR'}
+                     </text>
+
+                     {/* INTERACTIVE NODES */}
+                     {/* Main Duct Node */}
+                     <g className="group cursor-pointer">
+                       <circle cx="130" cy="80" r="14" fill="transparent" />
+                       <circle cx="130" cy="80" r="4.5" fill={ductType === 'supply' ? '#38bdf8' : ductType === 'return' ? '#c084fc' : '#fbbf24'} stroke="#0f172a" strokeWidth="1.5" className="group-hover:scale-150 transition-transform origin-[130px_80px]" />
+                       
+                       <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none drop-shadow-xl z-50">
+                         <rect x="85" y="92" width="90" height="42" fill="#0f172a" stroke="#334155" strokeWidth="1" rx="4" />
+                         <text x="92" y="105" fill="#e2e8f0" fontSize="8" fontWeight="bold">Main Duct</text>
+                         <text x="92" y="116" fill="#94a3b8" fontSize="7.5">Size: {lenUnitHook.getDisplayValue(widthMain).toFixed(1)}{lenUnit} x {lenUnitHook.getDisplayValue(ductHeight).toFixed(1)}{lenUnit}</text>
+                         <text x="92" y="126" fill="#94a3b8" fontSize="7.5">Vel: {velUnitHook.getDisplayValue(velRectMain).toFixed(0)} {velUnit}</text>
+                       </g>
+                     </g>
+
+                   </svg>
+                 </div>
               </div>
               
               {/* Duct visual cross-section representation using dynamic SVG shape */}

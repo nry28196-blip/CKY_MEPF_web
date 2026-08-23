@@ -168,7 +168,7 @@ export default function App() {
     switch (activeTab) {
       case 'mechanical': 
         return (
-          <MechanicalCalc key={key} isDarkMode={isDarkMode} 
+          <MechanicalCalc  isDarkMode={isDarkMode} 
             restoredParams={restoredParams} 
             onSaveCalculation={addHistoryItem} 
             autoCalculate={autoCalculate}
@@ -176,7 +176,7 @@ export default function App() {
         );
       case 'electrical': 
         return (
-          <ElectricalCalc key={key}
+          <ElectricalCalc 
             restoredParams={restoredParams} 
             onSaveCalculation={addHistoryItem} 
             autoCalculate={autoCalculate}
@@ -184,7 +184,7 @@ export default function App() {
         );
       case 'plumbing': 
         return (
-          <PlumbingCalc key={key}
+          <PlumbingCalc 
             restoredParams={restoredParams} 
             onSaveCalculation={addHistoryItem} 
             autoCalculate={autoCalculate}
@@ -192,7 +192,7 @@ export default function App() {
         );
       case 'fire': 
         return (
-          <FireCalc key={key}
+          <FireCalc 
             restoredParams={restoredParams} 
             onSaveCalculation={addHistoryItem} 
             autoCalculate={autoCalculate}
@@ -200,11 +200,11 @@ export default function App() {
         );
       case 'bulk': 
         return (
-          <BulkCalc key={key} />
+          <BulkCalc  />
         );
       default: 
         return (
-          <MechanicalCalc key={key} isDarkMode={isDarkMode} 
+          <MechanicalCalc  isDarkMode={isDarkMode} 
             restoredParams={restoredParams} 
             onSaveCalculation={addHistoryItem} 
           />
