@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Droplet, AlertTriangle, CheckCircle2, Compass, Bookmark, 
-  Trash2, Layers, ShieldCheck, Activity, Info, HelpCircle, FileSpreadsheet, Mail
+  Plus, Trash2, Layers, ShieldCheck, Activity, Info, HelpCircle, FileSpreadsheet, Mail
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import TrendVisualizer from './TrendVisualizer';
@@ -16,6 +16,27 @@ import { exportPlumbingToCsv } from '../lib/exportCsv';
 import { IPC_FIXTURES } from '../lib/plumbingFixtures';
 import FormulaVisualizer from './FormulaVisualizer';
 import IPCReferenceModal from './IPCReferenceModal';
+import PressureGauge from './PressureGauge';
+
+export interface SelectedFitting {
+  id: string;
+  typeId: string;
+  qty: number;
+}
+
+export const FITTING_TYPES = [
+  { id: 'elbow_90', name: '90° Elbow (Std)', ratio: 30 },
+  { id: 'elbow_90_lr', name: '90° Elbow (LR)', ratio: 20 },
+  { id: 'elbow_45', name: '45° Elbow', ratio: 16 },
+  { id: 'tee_run', name: 'Tee (Run)', ratio: 20 },
+  { id: 'tee_branch', name: 'Tee (Branch)', ratio: 60 },
+  { id: 'valve_gate', name: 'Gate Valve', ratio: 8 },
+  { id: 'valve_globe', name: 'Globe Valve', ratio: 340 },
+  { id: 'valve_check', name: 'Swing Check Valve', ratio: 50 },
+  { id: 'valve_butterfly', name: 'Butterfly Valve', ratio: 45 },
+];
+
+import FrictionLossReference from './FrictionLossReference';
 
 type SubTab = 'fixtures' | 'tanks' | 'pumps' | 'formulas';
 
@@ -39,6 +60,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const { t } = useLanguage();
   const [subTab, setSubTab] = useState<SubTab>('fixtures');
   const [isRefModalOpen, setIsRefModalOpen] = useState(false);
+  const [isFrictionModalOpen, setIsFrictionModalOpen] = useState(false);
+  const [isOptimizerModalOpen, setIsOptimizerModalOpen] = useState(false);
   const [standard, setStandard] = useState<'ipc' | 'bs'>('ipc');
   
   // TOAST state
@@ -81,13 +104,19 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const [sumpInflow, setSumpInflow] = useState<number>(150); // Liters/min peak storm/waste flow
 
   // Hydraulic Pipe Sizing States
+  const [hydraulicMode, setHydraulicMode] = useState<'auto'|'multi'>('auto');
+  const [multiSegments, setMultiSegments] = useState<any[]>([
+    { id: '1', diameterMm: 25, lengthM: 10, elevationChangeM: 2, fittings: [] }
+  ]);
   const [pipeMaterial, setPipeMaterial] = useState<'pvc'|'copper'|'steel'>('pvc');
   const [pipeLength, setPipeLength] = useState<number>(30); // meters
   const [elevationChange, setElevationChange] = useState<number>(5); // meters
   const [availablePressure, setAvailablePressure] = useState<number>(4.0); // bar
   const [requiredResidual, setRequiredResidual] = useState<number>(1.5); // bar
-  const [elbow90Count, setElbow90Count] = useState<number>(6);
-  const [teeCount, setTeeCount] = useState<number>(4);
+  const [fittings, setFittings] = useState<SelectedFitting[]>([
+    { id: 'init-1', typeId: 'elbow_90', qty: 6 },
+    { id: 'init-2', typeId: 'tee_branch', qty: 4 },
+  ]);
   
   // State 3: Pumps Sizing
   const [boosterStaticHead, setBoosterStaticHead] = useState<number>(35); // meters (height of building)
@@ -111,13 +140,19 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const [appliedSepticDischarge, setAppliedSepticDischarge] = useState<number>(80);
   const [appliedSepticDesludgeInterval, setAppliedSepticDesludgeInterval] = useState<number>(3);
   const [appliedSumpInflow, setAppliedSumpInflow] = useState<number>(150);
+  const [appliedHydraulicMode, setAppliedHydraulicMode] = useState<'auto'|'multi'>('auto');
+  const [appliedMultiSegments, setAppliedMultiSegments] = useState<any[]>([
+    { id: '1', diameterMm: 25, lengthM: 10, elevationChangeM: 2, fittings: [] }
+  ]);
   const [appliedPipeMaterial, setAppliedPipeMaterial] = useState<'pvc'|'copper'|'steel'>('pvc');
   const [appliedPipeLength, setAppliedPipeLength] = useState<number>(30);
   const [appliedElevationChange, setAppliedElevationChange] = useState<number>(5);
   const [appliedAvailablePressure, setAppliedAvailablePressure] = useState<number>(4.0);
   const [appliedRequiredResidual, setAppliedRequiredResidual] = useState<number>(1.5);
-  const [appliedElbow90Count, setAppliedElbow90Count] = useState<number>(6);
-  const [appliedTeeCount, setAppliedTeeCount] = useState<number>(4);
+  const [appliedFittings, setAppliedFittings] = useState<SelectedFitting[]>([
+    { id: 'init-1', typeId: 'elbow_90', qty: 6 },
+    { id: 'init-2', typeId: 'tee_branch', qty: 4 },
+  ]);
   const [appliedBoosterStaticHead, setAppliedBoosterStaticHead] = useState<number>(35);
   const [appliedBoosterResidualPress, setAppliedBoosterResidualPress] = useState<number>(2.0);
   const [appliedBoosterFrictionPercent, setAppliedBoosterFrictionPercent] = useState<number>(15);
@@ -140,20 +175,20 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
       setAppliedSepticDischarge(septicDischarge);
       setAppliedSepticDesludgeInterval(septicDesludgeInterval);
       setAppliedSumpInflow(sumpInflow);
+      setAppliedHydraulicMode(hydraulicMode);
+      setAppliedMultiSegments(multiSegments);
     setAppliedPipeMaterial(pipeMaterial);
     setAppliedPipeLength(pipeLength);
     setAppliedElevationChange(elevationChange);
     setAppliedAvailablePressure(availablePressure);
     setAppliedRequiredResidual(requiredResidual);
-    setAppliedElbow90Count(elbow90Count);
-    setAppliedTeeCount(teeCount);
+    setAppliedFittings(fittings);
       setAppliedPipeMaterial(pipeMaterial);
       setAppliedPipeLength(pipeLength);
       setAppliedElevationChange(elevationChange);
       setAppliedAvailablePressure(availablePressure);
       setAppliedRequiredResidual(requiredResidual);
-      setAppliedElbow90Count(elbow90Count);
-      setAppliedTeeCount(teeCount);
+      setAppliedFittings(fittings);
       setAppliedBoosterStaticHead(boosterStaticHead);
       setAppliedBoosterResidualPress(boosterResidualPress);
       setAppliedBoosterFrictionPercent(boosterFrictionPercent);
@@ -165,7 +200,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   }, [
     autoCalculate, standard, fixtures, designVelocity, slope, occupants,
     consumptionRate, storageDays, septicDischarge, septicDesludgeInterval, sumpInflow,
-    pipeMaterial, pipeLength, elevationChange, availablePressure, requiredResidual, elbow90Count, teeCount,
+    pipeMaterial, pipeLength, elevationChange, availablePressure, requiredResidual, fittings,
     boosterStaticHead, boosterResidualPress, boosterFrictionPercent, boosterEfficiency,
     transferFillTime, transferStaticHead, sumpStaticHead
   ]);
@@ -237,13 +272,12 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     septicDischarge !== appliedSepticDischarge ||
     septicDesludgeInterval !== appliedSepticDesludgeInterval ||
     sumpInflow !== appliedSumpInflow ||
-    pipeMaterial !== appliedPipeMaterial ||
+    hydraulicMode !== appliedHydraulicMode || JSON.stringify(multiSegments) !== JSON.stringify(appliedMultiSegments) || pipeMaterial !== appliedPipeMaterial ||
     pipeLength !== appliedPipeLength ||
     elevationChange !== appliedElevationChange ||
     availablePressure !== appliedAvailablePressure ||
     requiredResidual !== appliedRequiredResidual ||
-    elbow90Count !== appliedElbow90Count ||
-    teeCount !== appliedTeeCount ||
+    JSON.stringify(fittings) !== JSON.stringify(appliedFittings) ||
     boosterStaticHead !== appliedBoosterStaticHead ||
     boosterResidualPress !== appliedBoosterResidualPress ||
     boosterFrictionPercent !== appliedBoosterFrictionPercent ||
@@ -264,13 +298,14 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     setAppliedSepticDischarge(septicDischarge);
     setAppliedSepticDesludgeInterval(septicDesludgeInterval);
     setAppliedSumpInflow(sumpInflow);
+      setAppliedHydraulicMode(hydraulicMode);
+      setAppliedMultiSegments(multiSegments);
     setAppliedPipeMaterial(pipeMaterial);
     setAppliedPipeLength(pipeLength);
     setAppliedElevationChange(elevationChange);
     setAppliedAvailablePressure(availablePressure);
     setAppliedRequiredResidual(requiredResidual);
-    setAppliedElbow90Count(elbow90Count);
-    setAppliedTeeCount(teeCount);
+    setAppliedFittings(fittings);
     setAppliedBoosterStaticHead(boosterStaticHead);
     setAppliedBoosterResidualPress(boosterResidualPress);
     setAppliedBoosterFrictionPercent(boosterFrictionPercent);
@@ -353,6 +388,61 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     if (peakFlowLps <= 0) return null;
     const cFactor = appliedPipeMaterial === 'pvc' ? 150 : appliedPipeMaterial === 'copper' ? 140 : 120;
     const q_m3s = peakFlowLps / 1000;
+    
+    if (appliedHydraulicMode === 'multi') {
+      let cumFrictionM = 0;
+      let cumElevationM = 0;
+      const segResults = [];
+
+      for (const seg of appliedMultiSegments) {
+        const d_m = seg.diameterMm / 1000;
+        let equivFittings = 0;
+        for (const fit of seg.fittings) {
+          const type = FITTING_TYPES.find(t => t.id === fit.typeId);
+          if (type) equivFittings += (fit.qty * type.ratio * d_m);
+        }
+        const totalLength = seg.lengthM + equivFittings;
+        const Hf = 10.67 * Math.pow(q_m3s, 1.85) / (Math.pow(cFactor, 1.85) * Math.pow(d_m, 4.87));
+        const frictionLossM = Hf * totalLength;
+        const elevationLossM = seg.elevationChangeM;
+        
+        cumFrictionM += frictionLossM;
+        cumElevationM += elevationLossM;
+        
+        const vel = q_m3s / (Math.PI * Math.pow(d_m / 2, 2));
+        const reynolds = Math.round((vel * d_m) / 1.004e-6);
+        let regime = 'Turbulent';
+        if (reynolds < 2300) regime = 'Laminar';
+        else if (reynolds <= 4000) regime = 'Transitional';
+
+        segResults.push({
+          id: seg.id,
+          size: `${seg.diameterMm} mm (DN${seg.diameterMm})`,
+          frictionLossBar: (frictionLossM / 10.197).toFixed(3),
+          elevationLossBar: (elevationLossM / 10.197).toFixed(3),
+          velocity: vel.toFixed(2),
+          mode: 'auto',
+          reynoldsNumber: reynolds.toLocaleString(),
+          flowRegime: regime,
+          totalLength: totalLength.toFixed(1),
+          equivFittings: equivFittings.toFixed(1)
+        });
+      }
+
+      const totalHeadLossM = cumFrictionM + cumElevationM;
+      const totalHeadLossBar = totalHeadLossM / 10.197;
+      const residualBar = appliedAvailablePressure - totalHeadLossBar;
+
+      return {
+        mode: 'multi',
+        frictionLossBar: (cumFrictionM / 10.197).toFixed(2),
+        elevationLossBar: (cumElevationM / 10.197).toFixed(2),
+        residualBar: residualBar.toFixed(2),
+        failed: residualBar < appliedRequiredResidual,
+        segmentResults: segResults
+      };
+    }
+
     const sizes = [15, 20, 25, 32, 40, 50, 65, 80, 100, 125, 150, 200];
     const minVelocityDiaMm = Math.sqrt((4 * q_m3s) / (Math.PI * appliedDesignVelocity)) * 1000;
 
@@ -364,7 +454,11 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
       const d_m = dia / 1000;
       // Equivalent length calculation (Simplified L/D ratios: 90 elbow ~30, Tee ~60)
-      const equivFittings = (appliedElbow90Count * 30 * d_m) + (appliedTeeCount * 60 * d_m);
+      let equivFittings = 0;
+      for (const fit of appliedFittings) {
+        const type = FITTING_TYPES.find(t => t.id === fit.typeId);
+        if (type) equivFittings += (fit.qty * type.ratio * d_m);
+      }
       const totalLength = appliedPipeLength + equivFittings;
 
       // Metric Hazen-Williams
@@ -378,6 +472,12 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
       if (residualBar >= appliedRequiredResidual) {
         finalDiaMm = dia;
+        const vel = q_m3s / (Math.PI * Math.pow(d_m / 2, 2));
+        const reynolds = Math.round((vel * d_m) / 1.004e-6);
+        let regime = 'Turbulent';
+        if (reynolds < 2300) regime = 'Laminar';
+        else if (reynolds <= 4000) regime = 'Transitional';
+
         hydraulicDetails = {
           size: `${dia} mm (DN${dia})`,
           frictionLossBar: (frictionLossM / 10.197).toFixed(2),
@@ -385,7 +485,10 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
           residualBar: residualBar.toFixed(2),
           totalLength: totalLength.toFixed(1),
           equivFittings: equivFittings.toFixed(1),
-          velocity: (q_m3s / (Math.PI * Math.pow(d_m / 2, 2))).toFixed(2)
+          velocity: vel.toFixed(2),
+          mode: 'auto',
+          reynoldsNumber: reynolds.toLocaleString(),
+          flowRegime: regime
         };
         break;
       }
@@ -394,11 +497,21 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     if (!hydraulicDetails) {
       // Failed to find a size that works, use max
       const d_m = finalDiaMm / 1000;
-      const equivFittings = (appliedElbow90Count * 30 * d_m) + (appliedTeeCount * 60 * d_m);
+      let equivFittings = 0;
+      for (const fit of appliedFittings) {
+        const type = FITTING_TYPES.find(t => t.id === fit.typeId);
+        if (type) equivFittings += (fit.qty * type.ratio * d_m);
+      }
       const totalLength = appliedPipeLength + equivFittings;
       const Hf = 10.67 * Math.pow(q_m3s, 1.85) / (Math.pow(cFactor, 1.85) * Math.pow(d_m, 4.87));
       const totalHeadLossBar = (Hf * totalLength + appliedElevationChange) / 10.197;
       
+      const vel = q_m3s / (Math.PI * Math.pow(d_m / 2, 2));
+      const reynolds = Math.round((vel * d_m) / 1.004e-6);
+      let regime = 'Turbulent';
+      if (reynolds < 2300) regime = 'Laminar';
+      else if (reynolds <= 4000) regime = 'Transitional';
+
       hydraulicDetails = {
         size: `> DN200`,
         frictionLossBar: (Hf * totalLength / 10.197).toFixed(2),
@@ -406,7 +519,10 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         residualBar: (appliedAvailablePressure - totalHeadLossBar).toFixed(2),
         totalLength: totalLength.toFixed(1),
         equivFittings: equivFittings.toFixed(1),
-        velocity: (q_m3s / (Math.PI * Math.pow(d_m / 2, 2))).toFixed(2),
+        velocity: vel.toFixed(2),
+          mode: 'auto',
+        reynoldsNumber: reynolds.toLocaleString(),
+        flowRegime: regime,
         failed: true
       };
     }
@@ -666,6 +782,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   return (
     <>
       <IPCReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} />
+      <FrictionLossReference isOpen={isFrictionModalOpen} onClose={() => setIsFrictionModalOpen(false)} />
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 text-slate-100">
       
       {/* Toast Alert */}
@@ -953,13 +1070,80 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-slate-800 col-span-full">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase mb-3 flex items-center gap-2">
-                    <Droplet className="w-4 h-4 text-cyan-500" />
-                    Hydraulic Pressure Sizing (IPC Appendix E)
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-bold text-slate-300 uppercase flex items-center gap-2">
+                      <Droplet className="w-4 h-4 text-cyan-500" />
+                      Hydraulic Pressure Sizing (IPC Appendix E)
+                    </h4>
+                    <button
+                      onClick={() => setIsFrictionModalOpen(true)}
+                      className="text-[9px] flex items-center gap-1.5 text-slate-400 hover:text-white bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800 hover:border-slate-700 hover:bg-slate-800 transition-colors uppercase font-bold"
+                      title="View C-Factor Reference Table"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5 text-cyan-500" />
+                      C-Factors
+                    </button>
+                  </div>
+                  <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-1 w-fit mb-4">
+                    <button 
+                      onClick={() => setHydraulicMode('auto')}
+                      className={`px-3 py-1.5 text-[10px] uppercase font-bold rounded-md transition-colors cursor-pointer ${hydraulicMode === 'auto' ? 'bg-cyan-900/50 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                      Single Segment (Auto Sizer)
+                    </button>
+                    <button 
+                      onClick={() => setHydraulicMode('multi')}
+                      className={`px-3 py-1.5 text-[10px] uppercase font-bold rounded-md transition-colors cursor-pointer ${hydraulicMode === 'multi' ? 'bg-cyan-900/50 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                      Multi-Segment System
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Pipe Material</label>
+                      <div className="flex justify-between items-center mb-1.5 relative">
+                        <div className="flex items-center gap-1.5 group">
+                          <label className="block text-[10px] font-extrabold text-slate-400 uppercase">Pipe Material</label>
+                          <span className="cursor-help text-slate-500 hover:text-cyan-400 pb-0.5">
+                            <Info className="w-3.5 h-3.5" />
+                          </span>
+                          <div className="absolute left-0 top-6 w-64 p-3 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-[10px] normal-case text-slate-300 font-normal pointer-events-none drop-shadow-2xl">
+                            <strong className="block text-white mb-2 text-xs border-b border-slate-700 pb-1">Roughness Advisor (C-Factor by Age)</strong>
+                            <div className="grid grid-cols-4 gap-2 text-right">
+                              <span className="font-bold text-slate-400 text-left">Material</span>
+                              <span className="font-bold text-slate-400">New</span>
+                              <span className="font-bold text-slate-400">10yr</span>
+                              <span className="font-bold text-slate-400">20yr</span>
+                              
+                              <span className="text-left text-white">PVC/CPVC</span>
+                              <span>150</span>
+                              <span>145</span>
+                              <span>140</span>
+                              
+                              <span className="text-left text-white">Copper</span>
+                              <span>140</span>
+                              <span>135</span>
+                              <span>130</span>
+                              
+                              <span className="text-left text-white">Steel</span>
+                              <span>120</span>
+                              <span>100</span>
+                              <span>80</span>
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-slate-800 text-[9px] text-slate-500 italic">
+                              Hazen-Williams coefficients degrade over time due to scaling and corrosion. Note: Current calculations use standard 'New' values.
+                            </div>
+                          </div>
+                        </div>
+                        {hydraulicMode === 'auto' && (
+                          <button 
+                            onClick={() => setIsOptimizerModalOpen(true)}
+                            className="text-[9px] uppercase font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                          >
+                            Optimize
+                          </button>
+                        )}
+                      </div>
                       <select
                         value={pipeMaterial}
                         onChange={(e) => setPipeMaterial(e.target.value as any)}
@@ -971,14 +1155,6 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Main Pipe Length (m)</label>
-                      <input type="number" min="1" value={pipeLength} onChange={(e) => setPipeLength(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Elevation Change (m)</label>
-                      <input type="number" min="0" value={elevationChange} onChange={(e) => setElevationChange(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
-                    </div>
-                    <div>
                       <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Avail. Pressure (bar)</label>
                       <input type="number" min="0.1" step="0.1" value={availablePressure} onChange={(e) => setAvailablePressure(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                     </div>
@@ -986,23 +1162,180 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Req. Residual (bar)</label>
                       <input type="number" min="0.1" step="0.1" value={requiredResidual} onChange={(e) => setRequiredResidual(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                  </div>
+
+                  {hydraulicMode === 'auto' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">90° Elbows</label>
-                        <input type="number" min="0" value={elbow90Count} onChange={(e) => setElbow90Count(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                        <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Main Pipe Length (m)</label>
+                        <input type="number" min="1" value={pipeLength} onChange={(e) => setPipeLength(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Tees (Branch)</label>
-                        <input type="number" min="0" value={teeCount} onChange={(e) => setTeeCount(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                        <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Elevation Change (m)</label>
+                        <input type="number" value={elevationChange} onChange={(e) => setElevationChange(e.target.value === '' ? 0 : Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                      </div>
+                      <div className="col-span-1 md:col-span-2 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] font-extrabold text-slate-400 uppercase">Fittings & Valves (Equivalent Length)</label>
+                          <button 
+                            onClick={() => setFittings([...fittings, { id: Date.now().toString(), typeId: 'elbow_90', qty: 1 }])}
+                            className="text-[10px] flex items-center gap-1 bg-cyan-900/30 text-cyan-400 px-2 py-1 rounded border border-cyan-800/50 hover:bg-cyan-800/50 transition-colors cursor-pointer uppercase font-bold"
+                          >
+                            <Plus className="w-3 h-3" /> Add Fitting
+                          </button>
+                        </div>
+                        <div className="bg-slate-950/50 rounded-xl border border-slate-800/60 p-2 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                          {fittings.length === 0 && (
+                            <div className="text-center py-4 text-xs text-slate-500 font-mono">No fittings added</div>
+                          )}
+                          {fittings.map((fitting) => (
+                            <div key={fitting.id} className="flex gap-2 items-center">
+                              <select 
+                                value={fitting.typeId}
+                                onChange={(e) => setFittings(fittings.map(f => f.id === fitting.id ? { ...f, typeId: e.target.value } : f))}
+                                className="flex-1 bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono"
+                              >
+                                {FITTING_TYPES.map(type => (
+                                  <option key={type.id} value={type.id}>{type.name} (L/D: {type.ratio})</option>
+                                ))}
+                              </select>
+                              <input 
+                                type="number" min="1" 
+                                value={fitting.qty || ''} 
+                                onChange={(e) => setFittings(fittings.map(f => f.id === fitting.id ? { ...f, qty: Number(e.target.value) || 0 } : f))}
+                                className="w-16 bg-slate-900 border border-slate-700 text-center text-white rounded-lg px-2 py-1.5 text-xs font-mono"
+                              />
+                              <button 
+                                onClick={() => setFittings(fittings.filter(f => f.id !== fitting.id))}
+                                className="p-1.5 bg-slate-900 hover:bg-red-950/40 border border-slate-800 text-slate-500 hover:text-red-400 hover:border-red-900/50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase">Pipe Segments (In Series)</label>
+                        <button 
+                          onClick={() => setMultiSegments([...multiSegments, { id: Date.now().toString(), diameterMm: 25, lengthM: 10, elevationChangeM: 0, fittings: [] }])}
+                          className="text-[10px] flex items-center gap-1 bg-cyan-900/30 text-cyan-400 px-2 py-1 rounded border border-cyan-800/50 hover:bg-cyan-800/50 transition-colors cursor-pointer uppercase font-bold"
+                        >
+                          <Plus className="w-3 h-3" /> Add Segment
+                        </button>
+                      </div>
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                        {multiSegments.map((seg, idx) => (
+                          <div key={seg.id} className="bg-slate-950/50 border border-slate-800 rounded-lg p-3 relative">
+                            <div className="flex justify-between items-center mb-3">
+                              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">Segment {idx + 1}</span>
+                              <button 
+                                onClick={() => setMultiSegments(multiSegments.filter(s => s.id !== seg.id))}
+                                className="text-slate-500 hover:text-red-400 cursor-pointer p-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3 mb-3">
+                              <div>
+                                <label className="block text-[9px] text-slate-400 mb-1 uppercase font-bold">Diameter</label>
+                                <select 
+                                  value={seg.diameterMm}
+                                  onChange={(e) => setMultiSegments(multiSegments.map(s => s.id === seg.id ? { ...s, diameterMm: Number(e.target.value) } : s))}
+                                  className="w-full bg-slate-900 border border-slate-700 text-white rounded px-2 py-1.5 text-xs font-mono"
+                                >
+                                  {[15, 20, 25, 32, 40, 50, 65, 80, 100, 125, 150, 200].map(d => (
+                                    <option key={d} value={d}>DN{d}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[9px] text-slate-400 mb-1 uppercase font-bold">Length (m)</label>
+                                <input 
+                                  type="number" min="0.1" step="0.1"
+                                  value={seg.lengthM}
+                                  onChange={(e) => setMultiSegments(multiSegments.map(s => s.id === seg.id ? { ...s, lengthM: Number(e.target.value) || 0 } : s))}
+                                  className="w-full bg-slate-900 border border-slate-700 text-white rounded px-2 py-1.5 text-xs font-mono"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[9px] text-slate-400 mb-1 uppercase font-bold">Elev. (m)</label>
+                                <input 
+                                  type="number"
+                                  value={seg.elevationChangeM}
+                                  onChange={(e) => setMultiSegments(multiSegments.map(s => s.id === seg.id ? { ...s, elevationChangeM: e.target.value === '' ? 0 : Number(e.target.value) } : s))}
+                                  className="w-full bg-slate-900 border border-slate-700 text-white rounded px-2 py-1.5 text-xs font-mono"
+                                />
+                              </div>
+                            </div>
+                            
+                            {/* Segment Fittings */}
+                            <div className="bg-slate-900/50 rounded p-2 border border-slate-800">
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="block text-[9px] text-slate-500 uppercase font-bold">Fittings</label>
+                                <button 
+                                  onClick={() => {
+                                    const newFittings = [...seg.fittings, { id: Date.now().toString(), typeId: 'elbow_90', qty: 1 }];
+                                    setMultiSegments(multiSegments.map(s => s.id === seg.id ? { ...s, fittings: newFittings } : s));
+                                  }}
+                                  className="text-[9px] text-cyan-400 hover:text-cyan-300 font-bold uppercase cursor-pointer flex items-center gap-1"
+                                >
+                                  <Plus className="w-2.5 h-2.5" /> Add
+                                </button>
+                              </div>
+                              {seg.fittings.length === 0 ? (
+                                <div className="text-center py-2 text-[10px] text-slate-600 font-mono">No fittings in this segment</div>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {seg.fittings.map((fit: any) => (
+                                    <div key={fit.id} className="flex gap-1.5 items-center">
+                                      <select 
+                                        value={fit.typeId}
+                                        onChange={(e) => {
+                                          const newFittings = seg.fittings.map((f: any) => f.id === fit.id ? { ...f, typeId: e.target.value } : f);
+                                          setMultiSegments(multiSegments.map(s => s.id === seg.id ? { ...s, fittings: newFittings } : s));
+                                        }}
+                                        className="flex-1 bg-slate-950 border border-slate-800 text-slate-300 rounded px-1.5 py-1 text-[10px] font-mono"
+                                      >
+                                        {FITTING_TYPES.map(type => (
+                                          <option key={type.id} value={type.id}>{type.name} (L/D: {type.ratio})</option>
+                                        ))}
+                                      </select>
+                                      <input 
+                                        type="number" min="1" 
+                                        value={fit.qty || ''} 
+                                        onChange={(e) => {
+                                          const newFittings = seg.fittings.map((f: any) => f.id === fit.id ? { ...f, qty: Number(e.target.value) || 0 } : f);
+                                          setMultiSegments(multiSegments.map(s => s.id === seg.id ? { ...s, fittings: newFittings } : s));
+                                        }}
+                                        className="w-12 bg-slate-950 border border-slate-800 text-center text-white rounded px-1 py-1 text-[10px] font-mono"
+                                      />
+                                      <button 
+                                        onClick={() => {
+                                          const newFittings = seg.fittings.filter((f: any) => f.id !== fit.id);
+                                          setMultiSegments(multiSegments.map(s => s.id === seg.id ? { ...s, fittings: newFittings } : s));
+                                        }}
+                                        className="text-slate-500 hover:text-red-400 p-1 cursor-pointer"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-
               </div>
             </div>
           )}
-
           {subTab === 'tanks' && (
             <div className="space-y-5">
               <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
@@ -1415,53 +1748,150 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                             <span className="text-red-400 bg-red-950/40 px-1.5 py-0.5 rounded">Insufficient Pressure</span>
                           )}
                         </span>
-                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                          <p className={`text-sm font-extrabold ${hydraulicResult?.failed ? 'text-red-400' : 'text-cyan-400'}`}>
-                            {hydraulicResult?.size}
-                          </p>
-                        </div>
-                        {hydraulicResult && (
-                          <div className="mt-2 bg-slate-900/50 border border-slate-800 p-2.5 rounded-lg text-[10px] font-mono text-slate-400 space-y-1">
-                            <div className="flex justify-between">
-                              <span>Min Vel. Diameter:</span>
-                              <span className="text-white">{calculatedWaterPipeDia.toFixed(1)} mm (@ {designVelocity} m/s)</span>
+                        
+                        {hydraulicResult?.mode === 'auto' && (
+                          <>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <p className={`text-sm font-extrabold ${hydraulicResult?.failed ? 'text-red-400' : 'text-cyan-400'}`}>
+                                {hydraulicResult?.size}
+                              </p>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Total Eq. Length:</span>
-                              <span className="text-white">{hydraulicResult.totalLength} m (Fittings: {hydraulicResult.equivFittings} m)</span>
+                            <div className="mt-2 bg-slate-900/50 border border-slate-800 p-2.5 rounded-lg text-[10px] font-mono text-slate-400 space-y-1">
+                              <div className="flex justify-between">
+                                <span>Min Vel. Diameter:</span>
+                                <span className="text-white">{calculatedWaterPipeDia.toFixed(1)} mm (@ {designVelocity} m/s)</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Total Eq. Length:</span>
+                                <span className="text-white">{hydraulicResult.totalLength} m (Fittings: {hydraulicResult.equivFittings} m)</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Friction Loss:</span>
+                                <span className="text-white">{hydraulicResult.frictionLossBar} bar</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Elevation {Number(hydraulicResult.elevationLossBar) < 0 ? 'Gain' : 'Loss'}:</span>
+                                <span className="text-white">{Number(hydraulicResult.elevationLossBar) < 0 ? '+' : ''}{Math.abs(Number(hydraulicResult.elevationLossBar)).toFixed(2)} bar</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Calc. Velocity:</span>
+                                <span className={Number(hydraulicResult.velocity) > 2.5 ? 'text-red-400 font-bold' : 'text-white'}>
+                                  {hydraulicResult.velocity} m/s
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Reynolds Number:</span>
+                                <span className="text-white">
+                                  {hydraulicResult.reynoldsNumber} (<span className={
+                                    (hydraulicResult.flowRegime as string) === 'Laminar' ? 'text-emerald-400' : 
+                                    (hydraulicResult.flowRegime as string) === 'Transitional' ? 'text-yellow-400' : 'text-cyan-400'
+                                  }>{hydraulicResult.flowRegime}</span>)
+                                </span>
+                              </div>
+                              <div className="flex justify-between border-t border-slate-700/50 pt-1 mt-1">
+                                <span>Residual Pressure:</span>
+                                <span className={Number(hydraulicResult.residualBar) >= appliedRequiredResidual ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                                  {hydraulicResult.residualBar} bar (Req: {appliedRequiredResidual} bar)
+                                </span>
+                              </div>
+                              
+                              {(Number(hydraulicResult.velocity) > 2.5 || hydraulicResult.failed) && (
+                                <div className="mt-3 p-2 bg-red-950/30 border border-red-900/50 rounded flex flex-col gap-1">
+                                  {Number(hydraulicResult.velocity) > 2.5 && (
+                                    <div className="flex items-start gap-1.5 text-red-400">
+                                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                                      <span><strong>Velocity Warning:</strong> {hydraulicResult.velocity} m/s exceeds standard 2.5 m/s limit for cold water. Consider increasing pipe size or decreasing flow.</span>
+                                    </div>
+                                  )}
+                                  {hydraulicResult.failed && (
+                                    <div className="flex items-start gap-1.5 text-red-400">
+                                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                                      <span><strong>Pressure Warning:</strong> Total pressure drop exceeds available system pressure (Residual &lt; {appliedRequiredResidual} bar).</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <div className="flex justify-between">
-                              <span>Friction Loss:</span>
-                              <span className="text-white">{hydraulicResult.frictionLossBar} bar</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Elevation Loss:</span>
-                              <span className="text-white">{hydraulicResult.elevationLossBar} bar</span>
-                            </div>
-                            <div className="flex justify-between border-t border-slate-700/50 pt-1 mt-1">
-                              <span>Residual Pressure:</span>
-                              <span className={Number(hydraulicResult.residualBar) >= appliedRequiredResidual ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
-                                {hydraulicResult.residualBar} bar (Req: {appliedRequiredResidual} bar)
-                              </span>
+                          </>
+                        )}
+                        
+                        {hydraulicResult?.mode === 'multi' && (
+                          <div className="mt-2 space-y-2">
+                            <div className="bg-slate-900/50 border border-slate-800 p-2.5 rounded-lg text-[10px] font-mono text-slate-400 space-y-1">
+                              <div className="flex justify-between">
+                                <span>Total Friction Loss:</span>
+                                <span className="text-orange-400 font-bold">-{hydraulicResult.frictionLossBar} bar</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Total Elevation {Number(hydraulicResult.elevationLossBar) < 0 ? 'Gain' : 'Loss'}:</span>
+                                <span className={Number(hydraulicResult.elevationLossBar) < 0 ? 'text-cyan-400 font-bold' : 'text-orange-400 font-bold'}>
+                                  {Number(hydraulicResult.elevationLossBar) < 0 ? '+' : '-'}{Math.abs(Number(hydraulicResult.elevationLossBar)).toFixed(2)} bar
+                                </span>
+                              </div>
+                              <div className="flex justify-between border-t border-slate-700/50 pt-1 mt-1">
+                                <span>Final Residual Pressure:</span>
+                                <span className={Number(hydraulicResult.residualBar) >= appliedRequiredResidual ? 'text-emerald-400 font-bold text-sm' : 'text-red-400 font-bold text-sm'}>
+                                  {hydraulicResult.residualBar} bar
+                                </span>
+                              </div>
+                              {hydraulicResult.failed && (
+                                <div className="mt-2 p-1.5 bg-red-950/30 border border-red-900/50 rounded flex items-start gap-1.5 text-red-400">
+                                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                                  <span><strong>System Failed:</strong> Target residual ({appliedRequiredResidual} bar) not met.</span>
+                                </div>
+                              )}
                             </div>
                             
-                            {/* Pressure Drop Visualizer */}
+                            <div className="max-h-40 overflow-y-auto custom-scrollbar pr-1 space-y-1.5">
+                              {(hydraulicResult as any).segmentResults.map((seg: any, idx: number) => {
+                                const highVel = Number(seg.velocity) > 2.5;
+                                return (
+                                  <div key={seg.id} className="bg-slate-950 border border-slate-800 p-2 rounded-lg text-[9px] font-mono">
+                                    <div className="flex justify-between items-center mb-1 border-b border-slate-800/60 pb-1">
+                                      <span className="text-cyan-400 font-bold uppercase">Segment {idx + 1}</span>
+                                      <span className="text-white font-bold">{seg.size}</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-500">
+                                      <span>Length (Eq. {seg.totalLength}m)</span>
+                                      <span className="text-slate-300">-{seg.frictionLossBar} bar</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-500">
+                                      <span>Elev. Loss</span>
+                                      <span className="text-slate-300">-{seg.elevationLossBar} bar</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-500">
+                                      <span>Velocity / Re</span>
+                                      <span className={highVel ? 'text-red-400 font-bold' : 'text-slate-300'}>
+                                        {seg.velocity} m/s / {seg.flowRegime}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                            
+                            {hydraulicResult && (
+                              <div className="mt-2">
+                                {/* Pressure Drop Visualizer */}
                             {(() => {
                               const avail = appliedAvailablePressure;
                               const req = appliedRequiredResidual;
                               const elev = Number(hydraulicResult.elevationLossBar);
                               const fric = Number(hydraulicResult.frictionLossBar);
                               
-                              const maxAllowable = Math.max(0, avail - req);
-                              const thresholdPct = Math.min((maxAllowable / avail) * 100, 100);
+                              const effectiveAvail = elev < 0 ? avail + Math.abs(elev) : avail;
+                              const maxAllowable = Math.max(0, avail - req) + (elev < 0 ? Math.abs(elev) : 0);
+                              const thresholdPct = Math.min((maxAllowable / effectiveAvail) * 100, 100);
                               
-                              const elevPct = Math.min((elev / avail) * 100, 100);
-                              const fricPct = Math.max(0, Math.min((fric / avail) * 100, 100 - elevPct));
+                              const elevLossPct = elev > 0 ? Math.min((elev / effectiveAvail) * 100, 100) : 0;
+                              const fricPct = Math.max(0, Math.min((fric / effectiveAvail) * 100, 100 - elevLossPct));
                               
                               return (
                                 <div className="pt-3 mt-2 border-t border-slate-800/60 relative">
                                   <div className="flex justify-between text-[9px] uppercase tracking-wider mb-2">
-                                    <span className="font-bold text-slate-500">Pressure Budget</span>
+                                    <span className="font-bold text-slate-500">Pressure Budget {elev < 0 && '(w/ Elev Gain)'}</span>
                                     <span className={hydraulicResult.failed ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>
                                       {hydraulicResult.failed ? "FAIL" : "PASS"}
                                     </span>
@@ -1477,11 +1907,13 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                                       )}
                                       
                                       {/* Elevation Loss */}
-                                      <div 
-                                        className="h-full bg-blue-500/80 border-r border-slate-900 transition-all duration-500"
-                                        style={{ width: `${elevPct}%` }}
-                                        title={`Elevation Loss: ${elev} bar`}
-                                      />
+                                      {elev > 0 && (
+                                        <div 
+                                          className="h-full bg-blue-500/80 border-r border-slate-900 transition-all duration-500"
+                                          style={{ width: `${elevLossPct}%` }}
+                                          title={`Elevation Loss: ${elev} bar`}
+                                        />
+                                      )}
                                       {/* Friction Loss */}
                                       <div 
                                         className={`h-full transition-all duration-500 ${hydraulicResult.failed ? 'bg-red-500/80' : 'bg-orange-500/80'}`}
