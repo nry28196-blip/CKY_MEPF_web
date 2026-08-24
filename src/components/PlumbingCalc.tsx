@@ -94,18 +94,23 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   ]);
 
   const [designVelocity, setDesignVelocity] = useState<number>(1.2); // m/s
+  
   const [slope, setSlope] = useState<number>(2); // %, standard slopes are 1%, 2%, 4%
 
   const [appliedFixtures, setAppliedFixtures] = useState<FixtureRow[]>(fixtures);
   const [appliedStandard, setAppliedStandard] = useState<'ipc' | 'bs'>('ipc');
+  const [demandCurveOverride, setDemandCurveOverride] = useState<'auto' | 'valve' | 'tank'>('auto');
+  const [appliedDemandCurveOverride, setAppliedDemandCurveOverride] = useState<'auto' | 'valve' | 'tank'>('auto');
 
-  const determineSystemType = (fxs: FixtureRow[]) => {
+  const determineSystemType = (fxs: FixtureRow[], override: 'auto' | 'valve' | 'tank' = 'auto') => {
+    if (override !== 'auto') return override;
     const valveWSFU = fxs.filter(f => f.id.includes('_fv')).reduce((sum, f) => sum + (f.wsfu * f.qty), 0);
     const tankWSFU = fxs.filter(f => !f.id.includes('_fv')).reduce((sum, f) => sum + (f.wsfu * f.qty), 0);
     return valveWSFU > tankWSFU ? 'valve' : 'tank';
   };
-  const systemType = determineSystemType(appliedFixtures);
-  const appliedSystemType = determineSystemType(appliedFixtures);
+  const systemType = determineSystemType(appliedFixtures, appliedDemandCurveOverride);
+  const liveSystemType = determineSystemType(fixtures, demandCurveOverride);
+  const appliedSystemType = determineSystemType(appliedFixtures, appliedDemandCurveOverride);
 
   // State 2: Tanks Sizing
   const [occupants, setOccupants] = useState<number>(120);
@@ -354,40 +359,47 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const totalDU = appliedFixtures.reduce((sum, f) => sum + (f.du * f.qty), 0);
 
   // Hunter's Curve Peak Demand Estimation (GPM)
-  const getHuntersFlowGPM = (wsfu: number, type: 'valve' | 'tank') => {
+    const getHuntersFlowGPM = (wsfu: number, type: 'valve' | 'tank') => {
     if (wsfu <= 0) return 0;
-    // IPC 2018 Table E103.3(3) Hunter's Curve Interpolation
-    if (type === 'valve') {
-      if (wsfu <= 10) return 27; // Minimum starting point for flushometer
-      if (wsfu <= 20) return 27 + ((wsfu - 10) * (35 - 27) / 10);
-      if (wsfu <= 30) return 35 + ((wsfu - 20) * (42 - 35) / 10);
-      if (wsfu <= 40) return 42 + ((wsfu - 30) * (46 - 42) / 10);
-      if (wsfu <= 50) return 46 + ((wsfu - 40) * (51.5 - 46) / 10);
-      if (wsfu <= 100) return 51.5 + ((wsfu - 50) * (68 - 51.5) / 50);
-      if (wsfu <= 200) return 68 + ((wsfu - 100) * (91 - 68) / 100);
-      if (wsfu <= 500) return 91 + ((wsfu - 200) * (143 - 91) / 300);
-      return 143 + ((wsfu - 500) * 0.15); // Approximation above 500
-    } else {
-      // Flush tank
-      if (wsfu <= 1) return 3;
-      if (wsfu <= 2) return 5;
-      if (wsfu <= 5) return 5 + ((wsfu - 2) * (9.4 - 5) / 3);
-      if (wsfu <= 10) return 9.4 + ((wsfu - 5) * (16 - 9.4) / 5);
-      if (wsfu <= 20) return 16 + ((wsfu - 10) * (25 - 16) / 10);
-      if (wsfu <= 30) return 25 + ((wsfu - 20) * (33.3 - 25) / 10);
-      if (wsfu <= 40) return 33.3 + ((wsfu - 30) * (40 - 33.3) / 10);
-      if (wsfu <= 50) return 40 + ((wsfu - 40) * (46 - 40) / 10);
-      if (wsfu <= 100) return 46 + ((wsfu - 50) * (68 - 46) / 50);
-      if (wsfu <= 200) return 68 + ((wsfu - 100) * (91 - 68) / 100);
-      if (wsfu <= 500) return 91 + ((wsfu - 200) * (143 - 91) / 300);
-      return 143 + ((wsfu - 500) * 0.15); // Approximation above 500
+    // IPC 2018 Table E103.3(3) Hunter's Curve Exact Data Points
+    const ipcValveData = [
+      [0, 0], [5, 15], [10, 27], [15, 31], [20, 35], [25, 38], [30, 42], [35, 44],
+      [40, 46], [45, 48], [50, 50], [60, 54], [70, 58], [80, 61.2], [90, 64.3],
+      [100, 67.5], [120, 73], [140, 77], [160, 81], [180, 85.5], [200, 90],
+      [225, 95.5], [250, 101], [275, 104.5], [300, 108], [400, 127], [500, 143]
+    ];
+    
+    const ipcTankData = [
+      [0, 0], [1, 3], [2, 5], [3, 6.5], [4, 8], [5, 9.4], [10, 14.6],
+      [15, 17.5], [20, 19.6], [25, 21.5], [30, 23.3], [35, 24.9], [40, 26.3],
+      [45, 27.7], [50, 29.1], [60, 32], [70, 35], [80, 38], [90, 41],
+      [100, 43.5], [120, 48], [140, 52.5], [160, 57], [180, 61], [200, 65],
+      [225, 70], [250, 75], [275, 80], [300, 85], [400, 105], [500, 124]
+    ];
+
+    const data = type === 'valve' ? ipcValveData : ipcTankData;
+
+    if (wsfu >= 500) {
+      const baseGPM = type === 'valve' ? 143 : 124;
+      return baseGPM + ((wsfu - 500) * 0.15); // Standard extrapolation
     }
+
+    for (let i = 0; i < data.length - 1; i++) {
+      const [x1, y1] = data[i];
+      const [x2, y2] = data[i + 1];
+      if (wsfu >= x1 && wsfu <= x2) {
+        if (wsfu === x1) return y1;
+        if (wsfu === x2) return y2;
+        return y1 + ((wsfu - x1) * (y2 - y1) / (x2 - x1));
+      }
+    }
+    return 0;
   };
 
   // Peak water supply flow rate calculation
   const peakFlowLps = appliedStandard === 'bs' 
-    ? (totalLU > 0 ? 0.09 * Math.sqrt(totalLU) : 0) // BS EN 806-3 loading units formula
-    : (getHuntersFlowGPM(totalWSFU, appliedSystemType) * 0.06309); // Hunter's curve converted to L/s
+    ? (totalLU > 0 ? 0.09 * Math.sqrt(totalLU) : 0)
+    : (getHuntersFlowGPM(totalWSFU, appliedSystemType) * 0.06309);
   const peakFlowGPM = peakFlowLps / 0.06309;
 
   // Pipe Sizing Logic
@@ -965,9 +977,15 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   ) : (
                     <div className="flex items-center space-x-2">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Demand Curve:</label>
-                      <div className="bg-slate-950 border border-slate-800 text-cyan-400 rounded px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider">
-                        {systemType} System
-                      </div>
+                      <select
+                        value={demandCurveOverride}
+                        onChange={(e) => setDemandCurveOverride(e.target.value as 'auto' | 'valve' | 'tank')}
+                        className="bg-slate-950 border border-slate-800 text-cyan-400 rounded px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider outline-none cursor-pointer focus:border-cyan-500/50"
+                      >
+                        <option value="auto">Auto ({determineSystemType(fixtures, 'auto')} System)</option>
+                        <option value="valve">Valve System</option>
+                        <option value="tank">Tank System</option>
+                      </select>
                     </div>
                   )}
                 </div>
@@ -1117,6 +1135,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     <option value={4.0}>4% Slope (1:25)</option>
                   </select>
                 </div>
+                
 
                 <div className="pt-4 mt-4 border-t border-slate-800 col-span-full">
                   <div className="flex items-center justify-between mb-3">
