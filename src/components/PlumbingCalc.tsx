@@ -13,7 +13,7 @@ import TrendVisualizer from './TrendVisualizer';
 import TooltipLabel from './TooltipLabel';
 import { useLanguage } from '../lib/translations';
 import { exportPlumbingToCsv } from '../lib/exportCsv';
-import { IPC_FIXTURES } from '../lib/plumbingFixtures';
+import { IPC_FIXTURES, getFixtureById } from '../lib/plumbingFixtures';
 import FormulaVisualizer from './FormulaVisualizer';
 import IPCReferenceModal from './IPCReferenceModal';
 import PressureGauge from './PressureGauge';
@@ -54,6 +54,13 @@ interface FixtureRow {
   lu: number;   // Loading Unit (BS 8558 / BS EN 806)
   du: number;   // Discharge Unit (BS EN 12056)
   qty: number;
+  baseName?: string;
+  usageType?: 'public' | 'private' | 'na';
+  options?: {
+    public?: string;
+    private?: string;
+    na?: string;
+  };
 }
 
 export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCalculate = true }: PlumbingCalcProps) {
@@ -73,11 +80,17 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
   // State 1: Fixtures (IPC Appendix E & Chapter 7 Compliant)
   const [fixtures, setFixtures] = useState<FixtureRow[]>([
-    { id: 'wc_pub_fv', name: 'Water Closet (Public) - Flushometer', wsfu: 10, dfu: 6, lu: 2.0, du: 2.0, qty: 10 },
-    { id: 'lav_pub', name: 'Lavatory (Public) - Faucet', wsfu: 2.0, dfu: 1, lu: 1.0, du: 0.5, qty: 12 },
-    { id: 'shower_pub', name: 'Shower (Public) - Mixing Valve', wsfu: 4.0, dfu: 2, lu: 2.0, du: 0.6, qty: 8 },
-    { id: 'sink_priv', name: 'Kitchen Sink (Private) - Faucet', wsfu: 1.4, dfu: 2, lu: 3.0, du: 0.8, qty: 4 },
-    { id: 'urinal_pub_fv', name: 'Urinal (Public) - 1" Flushometer', wsfu: 5.0, dfu: 4, lu: 1.5, du: 0.5, qty: 4 },
+    { ...getFixtureById('wc_pub_fv')!, qty: 10, baseName: 'Water Closet - Flushometer (1.6 GPF)', usageType: 'public', options: { public: 'wc_pub_fv', private: 'wc_priv_fv' } },
+    { ...getFixtureById('wc_pub_ft')!, qty: 0, baseName: 'Water Closet - Flush Tank', usageType: 'public', options: { public: 'wc_pub_ft', private: 'wc_priv_ft' } },
+    { ...getFixtureById('lav_pub')!, qty: 12, baseName: 'Lavatory - Faucet', usageType: 'public', options: { public: 'lav_pub', private: 'lav_priv' } },
+    { ...getFixtureById('shower_pub')!, qty: 8, baseName: 'Shower - Mixing Valve', usageType: 'public', options: { public: 'shower_pub', private: 'shower_priv' } },
+    { ...getFixtureById('sink_priv')!, qty: 4, baseName: 'Sink - Faucet', usageType: 'private', options: { public: 'sink_pub', private: 'sink_priv' } },
+    { ...getFixtureById('urinal_pub_fv')!, qty: 4, baseName: 'Urinal - 1" Flushometer', usageType: 'public', options: { public: 'urinal_pub_fv' } },
+    { ...getFixtureById('drink_fount')!, qty: 0, baseName: 'Drinking Fountain', usageType: 'na', options: { na: 'drink_fount' } },
+    { ...getFixtureById('bathtub')!, qty: 0, baseName: 'Bathtub', usageType: 'private', options: { private: 'bathtub' } },
+    { ...getFixtureById('bidet')!, qty: 0, baseName: 'Bidet', usageType: 'private', options: { private: 'bidet' } },
+    { ...getFixtureById('dishwasher_dom')!, qty: 0, baseName: 'Dishwasher (Domestic)', usageType: 'private', options: { private: 'dishwasher_dom' } },
+    { ...getFixtureById('washing_mach')!, qty: 0, baseName: 'Washing Machine (8 lb)', usageType: 'private', options: { private: 'washing_mach' } },
   ]);
 
   const [designVelocity, setDesignVelocity] = useState<number>(1.2); // m/s
@@ -236,9 +249,25 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   }, [restoredParams, loadedHistoryId]);
 
   // Fixture helpers
-  const handleQtyChange = (id: string, value: number) => {
+  
+  const handleQtyChange = (baseName: string, value: number) => {
     const clampedValue = Math.min(9999, Math.max(0, value));
-    setFixtures(prev => prev.map(f => f.id === id ? { ...f, qty: clampedValue } : f));
+    setFixtures(prev => prev.map(f => (f.baseName || f.id) === baseName ? { ...f, qty: clampedValue } : f));
+  };
+
+  const handleUsageChange = (baseName: string, newUsage: 'public' | 'private' | 'na') => {
+    setFixtures(prev => prev.map(f => {
+      if ((f.baseName || f.id) === baseName) {
+        const newId = f.options?.[newUsage];
+        if (newId) {
+          const newData = getFixtureById(newId);
+          if (newData) {
+             return { ...newData, qty: f.qty, baseName: f.baseName, usageType: newUsage, options: f.options };
+          }
+        }
+      }
+      return f;
+    }));
   };
 
   const handleRemoveFixture = (id: string) => {
@@ -942,9 +971,11 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     </div>
                   )}
                 </div>
+
               </div>
 
               {(() => {
+
                 const currentTotalWSFU = fixtures.reduce((sum, f) => sum + (f.wsfu * f.qty), 0);
                 const currentTotalLU = fixtures.reduce((sum, f) => sum + (f.lu * f.qty), 0);
                 const currentTotalDFU = fixtures.reduce((sum, f) => sum + (f.dfu * f.qty), 0);
@@ -974,17 +1005,35 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 {fixtures.map((fix) => (
                   <div key={fix.id} className="flex items-center justify-between bg-slate-950/40 p-3 rounded-xl border border-slate-850 hover:border-slate-800 transition-colors">
                     <div className="min-w-0 pr-3">
-                      <span className="block text-xs font-bold text-slate-200 leading-snug">{fix.name}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="block text-xs font-bold text-slate-200 leading-snug">{fix.baseName || fix.name}</span>
+                        {fix.options && Object.keys(fix.options).length > 1 && (
+                          <select
+                            value={fix.usageType}
+                            onChange={(e) => handleUsageChange(fix.baseName!, e.target.value as any)}
+                            className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-1 py-0.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                          >
+                            {fix.options.public && <option value="public">Public</option>}
+                            {fix.options.private && <option value="private">Private</option>}
+                          </select>
+                        )}
+                        {fix.options && Object.keys(fix.options).length === 1 && fix.options.public && !fix.options.private && (
+                          <span className="text-[10px] text-slate-500 bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-800">Public</span>
+                        )}
+                        {fix.options && Object.keys(fix.options).length === 1 && fix.options.private && !fix.options.public && (
+                          <span className="text-[10px] text-slate-500 bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-800">Private</span>
+                        )}
+                      </div>
                       <span className="block text-[10px] text-slate-500 font-mono mt-0.5">
                         {standard === 'bs'
-                          ? `Loading Units (LU): ${fix.lu} | Discharge Units (DU): ${fix.du} per unit`
-                          : `WSFU: ${fix.wsfu} | DFU: ${fix.dfu} per unit`
+                          ? `Loading Units (LU): ${fix.lu} | Discharge Units (DU): ${fix.du}`
+                          : `WSFU: ${fix.wsfu} | DFU: ${fix.dfu}`
                         }
                       </span>
                     </div>
                     <div className="flex items-center space-x-3 shrink-0">
                       <button
-                        onClick={() => handleQtyChange(fix.id, fix.qty - 1)}
+                        onClick={() => handleQtyChange(fix.baseName || fix.id, fix.qty - 1)}
                         className="h-7 w-7 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-black cursor-pointer"
                       >
                         -
@@ -994,11 +1043,11 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         min="0"
                         max="9999"
                         value={fix.qty}
-                        onChange={(e) => handleQtyChange(fix.id, Number(e.target.value))}
+                        onChange={(e) => handleQtyChange(fix.baseName || fix.id, Number(e.target.value))}
                         className="w-12 bg-slate-950 border border-slate-800 text-white font-mono text-xs text-center rounded py-1 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                       />
                       <button
-                        onClick={() => handleQtyChange(fix.id, fix.qty + 1)}
+                        onClick={() => handleQtyChange(fix.baseName || fix.id, fix.qty + 1)}
                         className="h-7 w-7 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-black cursor-pointer"
                       >
                         +
