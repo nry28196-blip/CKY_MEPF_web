@@ -381,16 +381,26 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
     if (wsfu >= 500) {
       const baseGPM = type === 'valve' ? 143 : 124;
-      return baseGPM + ((wsfu - 500) * 0.15); // Standard extrapolation
+      const extrapolated = baseGPM + ((wsfu - 500) * 0.15); // Standard extrapolation
+      console.log(`Hunter's Curve Extrapolated: WSFU=${wsfu} => ${extrapolated.toFixed(2)} GPM`);
+      return extrapolated;
     }
 
     for (let i = 0; i < data.length - 1; i++) {
       const [x1, y1] = data[i];
       const [x2, y2] = data[i + 1];
       if (wsfu >= x1 && wsfu <= x2) {
-        if (wsfu === x1) return y1;
-        if (wsfu === x2) return y2;
-        return y1 + ((wsfu - x1) * (y2 - y1) / (x2 - x1));
+        if (wsfu === x1) {
+          console.log(`Hunter's Curve Exact Match: WSFU=${wsfu} matches [x: ${x1}, y: ${y1}] => ${y1} GPM`);
+          return y1;
+        }
+        if (wsfu === x2) {
+          console.log(`Hunter's Curve Exact Match: WSFU=${wsfu} matches [x: ${x2}, y: ${y2}] => ${y2} GPM`);
+          return y2;
+        }
+        const interpolated = y1 + ((wsfu - x1) * (y2 - y1) / (x2 - x1));
+        console.log(`Hunter's Curve Interpolated: WSFU=${wsfu} lies between [x: ${x1}, y: ${y1}] and [x: ${x2}, y: ${y2}] => ${interpolated.toFixed(2)} GPM`);
+        return interpolated;
       }
     }
     return 0;
@@ -1791,6 +1801,11 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       {peakFlowLps.toFixed(2)} <span className="text-xs text-slate-400 font-semibold">L/s</span>{' '}
                       <span className="text-xs text-slate-500">({peakFlowGPM.toFixed(1)} GPM)</span>
                     </p>
+                    {standard === 'ipc' && (
+                      <span className="block text-[9px] text-slate-400 font-mono mt-1 pt-1 border-t border-slate-800/50">
+                        *Raw Flow Calculated: {peakFlowGPM.toFixed(2)} GPM (No safety factors)
+                      </span>
+                    )}
                   </div>
 
                   <div className="pt-2">
