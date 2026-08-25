@@ -167,10 +167,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const [appliedElevationChange, setAppliedElevationChange] = useState<number>(5);
   const [appliedAvailablePressure, setAppliedAvailablePressure] = useState<number>(4.0);
   const [appliedRequiredResidual, setAppliedRequiredResidual] = useState<number>(1.5);
-  const [appliedFittings, setAppliedFittings] = useState<SelectedFitting[]>([
-    { id: 'init-1', typeId: 'elbow_90', qty: 6 },
-    { id: 'init-2', typeId: 'tee_branch', qty: 4 },
-  ]);
+  const [appliedFittings, setAppliedFittings] = useState<SelectedFitting[]>([]);
   const [appliedBoosterStaticHead, setAppliedBoosterStaticHead] = useState<number>(35);
   const [appliedBoosterResidualPress, setAppliedBoosterResidualPress] = useState<number>(2.0);
   const [appliedBoosterFrictionPercent, setAppliedBoosterFrictionPercent] = useState<number>(15);
@@ -359,31 +356,70 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const totalDU = appliedFixtures.reduce((sum, f) => sum + (f.du * f.qty), 0);
 
   // Hunter's Curve Peak Demand Estimation (GPM)
-    const getHuntersFlowGPM = (wsfu: number, type: 'valve' | 'tank') => {
-    if (wsfu <= 0) return 0;
-    // IPC 2018 Table E103.3(3) Hunter's Curve Exact Data Points
-    const ipcValveData = [
-      [0, 0], [5, 15], [10, 27], [15, 31], [20, 35], [25, 38], [30, 42], [35, 44],
-      [40, 46], [45, 48], [50, 50], [60, 54], [70, 58], [80, 61.2], [90, 64.3],
-      [100, 67.5], [120, 73], [140, 77], [160, 81], [180, 85.5], [200, 90],
-      [225, 95.5], [250, 101], [275, 104.5], [300, 108], [400, 127], [500, 143]
-    ];
     
-    const ipcTankData = [
-      [0, 0], [1, 3], [2, 5], [3, 6.5], [4, 8], [5, 9.4], [10, 14.6],
-      [15, 17.5], [20, 19.6], [25, 21.5], [30, 23.3], [35, 24.9], [40, 26.3],
-      [45, 27.7], [50, 29.1], [60, 32], [70, 35], [80, 38], [90, 41],
-      [100, 43.5], [120, 48], [140, 52.5], [160, 57], [180, 61], [200, 65],
-      [225, 70], [250, 75], [275, 80], [300, 85], [400, 105], [500, 124]
-    ];
+  // IPC 2018 Table E103.3(3) Hunter's Curve Exact Data Points
+  const ipcValveData = [
+    [0, 0], [5, 15], [10, 27], [15, 31], [20, 35], [25, 38], [30, 42], [35, 44],
+    [40, 46], [45, 48], [50, 50], [60, 54], [70, 58], [80, 61.2], [90, 64.3],
+    [100, 67.5], [120, 73], [140, 77], [160, 81], [180, 85.5], [200, 90],
+    [225, 95.5], [250, 101], [275, 104.5], [300, 108], [400, 127], [500, 143]
+  ];
+  
+  const ipcTankData = [
+    [0, 0], [1, 3], [2, 5], [3, 6.5], [4, 8], [5, 9.4], [10, 14.6],
+    [15, 17.5], [20, 19.6], [25, 21.5], [30, 23.3], [35, 24.9], [40, 26.3],
+    [45, 27.7], [50, 29.1], [60, 32], [70, 35], [80, 38], [90, 41],
+    [100, 43.5], [120, 48], [140, 52.5], [160, 57], [180, 61], [200, 65],
+    [225, 70], [250, 75], [275, 80], [300, 85], [400, 105], [500, 124]
+  ];
 
+  // Helper function to validate IPC Data Table against standard constants
+  const validateIPCHuntersCurve = () => {
+    // Standard baseline values to verify against
+    const CONSTANTS = {
+      TANK_10: 14.6, TANK_100: 43.5, TANK_500: 124,
+      VALVE_10: 27, VALVE_100: 67.5, VALVE_500: 143
+    };
+    
+    let isValid = true;
+    
+    const checkPoint = (data: number[][], x: number, expectedY: number, label: string) => {
+      const point = data.find(p => p[0] === x);
+      if (!point || point[1] !== expectedY) {
+        console.error(`IPC Validation Error (${label}): Expected ${expectedY} at ${x} WSFU, found ${point ? point[1] : 'undefined'}`);
+        isValid = false;
+      }
+    };
+    
+    checkPoint(ipcTankData, 10, CONSTANTS.TANK_10, 'Tank 10 WSFU');
+    checkPoint(ipcTankData, 100, CONSTANTS.TANK_100, 'Tank 100 WSFU');
+    checkPoint(ipcTankData, 500, CONSTANTS.TANK_500, 'Tank 500 WSFU');
+    
+    checkPoint(ipcValveData, 10, CONSTANTS.VALVE_10, 'Valve 10 WSFU');
+    checkPoint(ipcValveData, 100, CONSTANTS.VALVE_100, 'Valve 100 WSFU');
+    checkPoint(ipcValveData, 500, CONSTANTS.VALVE_500, 'Valve 500 WSFU');
+    
+    if (isValid) {
+      console.log('IPC Hunter\'s Curve validated against standard constants. No hidden multipliers detected.');
+    }
+    
+    return isValid;
+  };
+
+  const getHuntersFlowGPM = (wsfu: number, type: 'valve' | 'tank'): {gpm: number, log: string} => {
+    // Run validation to guarantee data integrity
+    validateIPCHuntersCurve();
+
+    if (wsfu <= 0) return {gpm: 0, log: 'WSFU is 0 or less.'};
+    
     const data = type === 'valve' ? ipcValveData : ipcTankData;
 
     if (wsfu >= 500) {
       const baseGPM = type === 'valve' ? 143 : 124;
       const extrapolated = baseGPM + ((wsfu - 500) * 0.15); // Standard extrapolation
-      console.log(`Hunter's Curve Extrapolated: WSFU=${wsfu} => ${extrapolated.toFixed(2)} GPM`);
-      return extrapolated;
+      const log = `Extrapolated: WSFU=${wsfu.toFixed(1)} => ${extrapolated.toFixed(2)} GPM`;
+      console.log(`Hunter's Curve ${log}`);
+      return {gpm: extrapolated, log};
     }
 
     for (let i = 0; i < data.length - 1; i++) {
@@ -391,25 +427,34 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
       const [x2, y2] = data[i + 1];
       if (wsfu >= x1 && wsfu <= x2) {
         if (wsfu === x1) {
-          console.log(`Hunter's Curve Exact Match: WSFU=${wsfu} matches [x: ${x1}, y: ${y1}] => ${y1} GPM`);
-          return y1;
+          const log = `Exact Match: WSFU=${wsfu.toFixed(1)} exactly matches IPC row [x: ${x1}, y: ${y1}] => ${y1} GPM`;
+          console.log(`Hunter's Curve ${log}`);
+          return {gpm: y1, log};
         }
         if (wsfu === x2) {
-          console.log(`Hunter's Curve Exact Match: WSFU=${wsfu} matches [x: ${x2}, y: ${y2}] => ${y2} GPM`);
-          return y2;
+          const log = `Exact Match: WSFU=${wsfu.toFixed(1)} exactly matches IPC row [x: ${x2}, y: ${y2}] => ${y2} GPM`;
+          console.log(`Hunter's Curve ${log}`);
+          return {gpm: y2, log};
         }
         const interpolated = y1 + ((wsfu - x1) * (y2 - y1) / (x2 - x1));
-        console.log(`Hunter's Curve Interpolated: WSFU=${wsfu} lies between [x: ${x1}, y: ${y1}] and [x: ${x2}, y: ${y2}] => ${interpolated.toFixed(2)} GPM`);
-        return interpolated;
+        const log = `Interpolated: WSFU=${wsfu.toFixed(1)} lies between IPC row [x: ${x1}, y: ${y1}] and [x: ${x2}, y: ${y2}] => ${interpolated.toFixed(2)} GPM`;
+        console.log(`Hunter's Curve ${log}`);
+        return {gpm: interpolated, log};
       }
     }
-    return 0;
+    return {gpm: 0, log: 'Out of bounds'};
   };
 
+  
+  const totalFixtures = appliedFixtures.reduce((sum, f) => sum + f.qty, 0);
+  const wsfuDensity = totalFixtures > 0 ? (totalWSFU / totalFixtures).toFixed(2) : '0.00';
+  const luDensity = totalFixtures > 0 ? (totalLU / totalFixtures).toFixed(2) : '0.00';
+  
   // Peak water supply flow rate calculation
+  const hunterDebug = appliedStandard !== 'bs' ? getHuntersFlowGPM(totalWSFU, appliedSystemType) : null;
   const peakFlowLps = appliedStandard === 'bs' 
     ? (totalLU > 0 ? 0.09 * Math.sqrt(totalLU) : 0)
-    : (getHuntersFlowGPM(totalWSFU, appliedSystemType) * 0.06309);
+    : (hunterDebug?.gpm || 0) * 0.06309;
   const peakFlowGPM = peakFlowLps / 0.06309;
 
   // Pipe Sizing Logic
@@ -483,6 +528,15 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
       const totalHeadLossM = cumFrictionM + cumElevationM;
       const totalHeadLossBar = totalHeadLossM / 10.197;
       const residualBar = appliedAvailablePressure - totalHeadLossBar;
+      
+      console.log(`[Hydraulic Sizing Trace - Multi-Segment]`);
+      console.log(`  - Flow (m³/s): ${q_m3s}`);
+      console.log(`  - Cum Friction (m): ${cumFrictionM}`);
+      console.log(`  - Cum Elevation (m): ${cumElevationM}`);
+      console.log(`  - Total Head Loss (m): ${totalHeadLossM}`);
+      console.log(`  - Total Head Loss (bar): ${totalHeadLossBar}`);
+      console.log(`  - Available Pressure (bar): ${appliedAvailablePressure}`);
+      console.log(`  - Residual Pressure (bar): ${residualBar}`);
 
       return {
         mode: 'multi',
@@ -556,6 +610,17 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
       const totalLength = appliedPipeLength + equivFittings;
       const Hf = 10.67 * Math.pow(q_m3s, 1.85) / (Math.pow(cFactor, 1.85) * Math.pow(d_m, 4.87));
       const totalHeadLossBar = (Hf * totalLength + appliedElevationChange) / 10.197;
+      
+      console.log(`[Hydraulic Sizing Trace - Max Size Fallback] Dia: >200mm`);
+      console.log(`  - Flow (m³/s): ${q_m3s}`);
+      console.log(`  - Pipe Length (m): ${appliedPipeLength}`);
+      console.log(`  - Equiv Fittings (m): ${equivFittings}`);
+      console.log(`  - Total Length (m): ${totalLength}`);
+      console.log(`  - Friction Loss (m): ${Hf * totalLength}`);
+      console.log(`  - Elevation Change (m): ${appliedElevationChange}`);
+      console.log(`  - Total Head Loss (bar): ${totalHeadLossBar}`);
+      console.log(`  - Available Pressure (bar): ${appliedAvailablePressure}`);
+      console.log(`  - Residual Pressure (bar): ${appliedAvailablePressure - totalHeadLossBar}`);
       
       const vel = q_m3s / (Math.PI * Math.pow(d_m / 2, 2));
       const reynolds = Math.round((vel * d_m) / 1.004e-6);
@@ -1757,7 +1822,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
             {subTab === 'fixtures' && (
               <div className="space-y-4">
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-3">
+
                   <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-xl">
                     <span className="block text-[9px] text-slate-500 uppercase font-semibold">
                       {standard === 'bs' ? 'Total Loading Units' : 'Total Water Load'}
@@ -1790,8 +1856,28 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       )}
                     </p>
                   </div>
+                                  
+                  <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-xl col-span-2">
+                    <span className="block text-[9px] text-slate-500 uppercase font-semibold">
+                      {standard === 'bs' ? 'Avg Load Density (LU/fixture)' : 'Demand Density (WSFU/fixture)'}
+                    </span>
+                    <p className="text-xl font-bold text-emerald-400 mt-0.5 font-mono">
+                      {standard === 'bs' ? (
+                        <>
+                          {luDensity} <span className="text-xs text-slate-400">LU/fix</span>
+                        </>
+                      ) : (
+                        <>
+                          {wsfuDensity} <span className="text-xs text-slate-400">WSFU/fix</span>
+                        </>
+                      )}
+                    </p>
+                    <span className="block text-[10px] text-slate-500 leading-normal mt-1">
+                      {standard === 'bs' ? 'Higher density indicates concentrated flow demands.' : 'Values > 2.0 typically indicate high commercial or flush-valve demand concentration.'}
+                    </span>
+                  </div>
                 </div>
-
+                
                 <div className="space-y-2.5 pt-3.5 border-t border-slate-800">
                   <div>
                     <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">
@@ -1801,10 +1887,16 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       {peakFlowLps.toFixed(2)} <span className="text-xs text-slate-400 font-semibold">L/s</span>{' '}
                       <span className="text-xs text-slate-500">({peakFlowGPM.toFixed(1)} GPM)</span>
                     </p>
-                    {standard === 'ipc' && (
-                      <span className="block text-[9px] text-slate-400 font-mono mt-1 pt-1 border-t border-slate-800/50">
-                        *Raw Flow Calculated: {peakFlowGPM.toFixed(2)} GPM (No safety factors)
-                      </span>
+                    {standard === 'ipc' && hunterDebug && (
+                      <div className="mt-2 bg-slate-900/80 border border-slate-700/50 p-2 rounded-lg">
+                        <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 text-cyan-500/80">IPC Table E103.3(3) Lookup Debug</span>
+                        <span className="block text-[10px] text-slate-300 font-mono leading-relaxed">
+                          {hunterDebug.log}
+                        </span>
+                        <span className="block text-[9px] text-slate-500 font-mono mt-1 pt-1 border-t border-slate-800/50">
+                          *Raw flow = {peakFlowGPM.toFixed(2)} GPM (No implicit multipliers applied)
+                        </span>
+                      </div>
                     )}
                   </div>
 

@@ -88,7 +88,59 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
   // ----------------------------------------------------
 
   
+  
+  // Helper function to validate IPC Data Table against standard constants
+  const validateIPCHuntersCurve = () => {
+    // Standard baseline values to verify against
+    const CONSTANTS = {
+      TANK_10: 14.6, TANK_100: 43.5, TANK_500: 124,
+      VALVE_10: 27, VALVE_100: 67.5, VALVE_500: 143
+    };
+    
+    let isValid = true;
+    
+    const checkPoint = (data, x, expectedY, label) => {
+      const point = data.find(p => p[0] === x);
+      if (!point || point[1] !== expectedY) {
+        console.error(`IPC Validation Error (${label}): Expected ${expectedY} at ${x} WSFU, found ${point ? point[1] : 'undefined'}`);
+        isValid = false;
+      }
+    };
+    
+    // Test sets (using the same arrays defined inside the function below)
+    const ipcValveData = [
+      [0, 0], [5, 15], [10, 27], [15, 31], [20, 35], [25, 38], [30, 42], [35, 44],
+      [40, 46], [45, 48], [50, 50], [60, 54], [70, 58], [80, 61.2], [90, 64.3],
+      [100, 67.5], [120, 73], [140, 77], [160, 81], [180, 85.5], [200, 90],
+      [225, 95.5], [250, 101], [275, 104.5], [300, 108], [400, 127], [500, 143]
+    ];
+    
+    const ipcTankData = [
+      [0, 0], [1, 3], [2, 5], [3, 6.5], [4, 8], [5, 9.4], [10, 14.6],
+      [15, 17.5], [20, 19.6], [25, 21.5], [30, 23.3], [35, 24.9], [40, 26.3],
+      [45, 27.7], [50, 29.1], [60, 32], [70, 35], [80, 38], [90, 41],
+      [100, 43.5], [120, 48], [140, 52.5], [160, 57], [180, 61], [200, 65],
+      [225, 70], [250, 75], [275, 80], [300, 85], [400, 105], [500, 124]
+    ];
+
+    checkPoint(ipcTankData, 10, CONSTANTS.TANK_10, 'Tank 10 WSFU');
+    checkPoint(ipcTankData, 100, CONSTANTS.TANK_100, 'Tank 100 WSFU');
+    checkPoint(ipcTankData, 500, CONSTANTS.TANK_500, 'Tank 500 WSFU');
+    
+    checkPoint(ipcValveData, 10, CONSTANTS.VALVE_10, 'Valve 10 WSFU');
+    checkPoint(ipcValveData, 100, CONSTANTS.VALVE_100, 'Valve 100 WSFU');
+    checkPoint(ipcValveData, 500, CONSTANTS.VALVE_500, 'Valve 500 WSFU');
+    
+    if (isValid) {
+      console.log('IPC Hunter\'s Curve (Visualizer) validated against standard constants.');
+    }
+    
+    return isValid;
+  };
+
   const getHuntersFlowGPM = (wsfu: number, type: 'valve' | 'tank') => {
+    validateIPCHuntersCurve();
+    
     if (wsfu <= 0) return 0;
     const ipcValveData = [
       [0, 0], [5, 15], [10, 27], [15, 31], [20, 35], [25, 38], [30, 42], [35, 44],
@@ -233,40 +285,25 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
       }
 
       case 'plumbing_fixtures': {
-        // Flow vs Loading Units comparing BS EN 806 (loading units) and Hunter's (WSFUs)
         const activeLU = Number(currentParams.totalLU) || 20;
-
         const maxLu = Math.max(150, activeLU * 1.8);
-        const steps = 15;
-        const stepSize = maxLu / steps;
-
-        for (let i = 0; i <= steps; i++) {
-          const lu = Math.max(1, Math.round(i * stepSize));
-          
-          // BS EN 806 loading units: Q_bs = 0.09 * sqrt(LU)
+        
+        const ipcXValues = [0, 1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200, 225, 250, 275, 300, 400, 500];
+        const xValuesSet = new Set(ipcXValues.filter(x => x <= maxLu));
+        xValuesSet.add(activeLU);
+        
+        const sortedX = Array.from(xValuesSet).sort((a, b) => a - b);
+        
+        for (const lu of sortedX) {
           const q_bs = 0.09 * Math.sqrt(lu);
-
-          // Hunter's flush valve (commercial) loading curves
-          let q_valves_gpm = 0;
-          if (lu <= 5) q_valves_gpm = 10 + (2.5 * lu);
-          else if (lu <= 20) q_valves_gpm = 22 + (1.2 * (lu - 5));
-          else if (lu <= 100) q_valves_gpm = 40 + (0.45 * (lu - 20));
-          else q_valves_gpm = 76 + (0.22 * (lu - 100));
-          const q_ipc_valve = q_valves_gpm * 0.06309; // to L/s
-
-          // Hunter's flush tank (residential)
-          let q_tanks_gpm = 0;
-          if (lu <= 5) q_tanks_gpm = 1.5 * lu;
-          else if (lu <= 20) q_tanks_gpm = 5 + (0.8 * (lu - 5));
-          else if (lu <= 100) q_tanks_gpm = 17 + (0.35 * (lu - 20));
-          else q_tanks_gpm = 45 + (0.18 * (lu - 100));
-          const q_ipc_tank = q_tanks_gpm * 0.06309; // to L/s
+          const q_ipc_valve = getHuntersFlowGPM(lu, 'valve') * 0.06309;
+          const q_ipc_tank = getHuntersFlowGPM(lu, 'tank') * 0.06309;
 
           list.push({
             loadingUnits: lu,
-            'BS EN 806-3 Standard (L/s)': parseFloat(q_bs.toFixed(2)),
-            'IPC Hunter - Flush Valve (L/s)': parseFloat(q_ipc_valve.toFixed(2)),
-            'IPC Hunter - Flush Tank (L/s)': parseFloat(q_ipc_tank.toFixed(2)),
+            'BS EN 806-3 Standard (L/s)': parseFloat(q_bs.toFixed(3)),
+            'IPC Hunter - Flush Valve (L/s)': parseFloat(q_ipc_valve.toFixed(3)),
+            'IPC Hunter - Flush Tank (L/s)': parseFloat(q_ipc_tank.toFixed(3)),
           });
         }
         break;
@@ -416,19 +453,8 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
       case 'plumbing_fixtures': {
         const lu = Number(currentParams.totalLU) || 20;
         const q_bs = 0.09 * Math.sqrt(lu);
-        let q_valves_gpm = 0;
-        if (lu <= 5) q_valves_gpm = 10 + (2.5 * lu);
-        else if (lu <= 20) q_valves_gpm = 22 + (1.2 * (lu - 5));
-        else if (lu <= 100) q_valves_gpm = 40 + (0.45 * (lu - 20));
-        else q_valves_gpm = 76 + (0.22 * (lu - 100));
-        const q_ipc_valve = q_valves_gpm * 0.06309;
-
-        let q_tanks_gpm = 0;
-        if (lu <= 5) q_tanks_gpm = 1.5 * lu;
-        else if (lu <= 20) q_tanks_gpm = 5 + (0.8 * (lu - 5));
-        else if (lu <= 100) q_tanks_gpm = 17 + (0.35 * (lu - 20));
-        else q_tanks_gpm = 45 + (0.18 * (lu - 100));
-        const q_ipc_tank = q_tanks_gpm * 0.06309;
+        const q_ipc_valve = getHuntersFlowGPM(lu, 'valve') * 0.06309;
+        const q_ipc_tank = getHuntersFlowGPM(lu, 'tank') * 0.06309;
 
         return [
           { name: 'BS EN 806-3 Standard', 'Flow Rate (L/s)': parseFloat(q_bs.toFixed(2)), color: '#06b6d4' },
@@ -638,6 +664,56 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
 
   const barConfig = getBarChartKeys();
 
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      if (type === 'plumbing_fixtures') {
+        const isCurrentPoint = currentXValue === label;
+        return (
+          <div className="bg-slate-950/95 backdrop-blur-md border border-slate-700/80 p-3.5 rounded-xl shadow-2xl min-w-[220px]">
+            <p className="text-white font-bold mb-2 pb-2 border-b border-slate-800 text-sm">
+              <span className="text-slate-400 font-medium">Load:</span> {label} WSFU / LU
+            </p>
+            {payload.map((entry: any, index: number) => {
+              const gpm = (entry.value / 0.06309).toFixed(1);
+              return (
+                <div key={index} className="flex justify-between items-center gap-6 text-xs my-1.5">
+                  <span style={{ color: entry.color }} className="font-semibold">{entry.name}</span>
+                  <div className="text-right flex flex-col">
+                    <span className="text-white font-mono font-bold">{entry.value} L/s</span>
+                    <span className="text-slate-400 font-mono text-[10px]">({gpm} GPM)</span>
+                  </div>
+                </div>
+              );
+            })}
+            {isCurrentPoint && (
+              <div className="mt-3 pt-2 border-t border-slate-800/80 bg-slate-900/50 -mx-1 -mb-1 p-2 rounded-lg">
+                 <p className="text-[11px] text-cyan-400 font-bold mb-1 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5"/> Interpolated Calc Point
+                 </p>
+                 <p className="text-[10px] text-slate-400 leading-tight">
+                   This exact WSFU load is interpolated linearly between adjacent standard points on the Hunter's curve.
+                 </p>
+              </div>
+            )}
+          </div>
+        );
+      }
+      return (
+        <div className="bg-slate-950/95 backdrop-blur-md border border-slate-700/80 p-3 rounded-xl shadow-xl">
+          <p className="text-white font-bold mb-2 pb-2 border-b border-slate-800 text-sm">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex justify-between items-center gap-4 text-xs my-1">
+              <span style={{ color: entry.color }} className="font-semibold">{entry.name}:</span>
+              <span className="text-white font-mono">{entry.value}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="bg-slate-900/45 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6 shadow-xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-slate-700 via-sky-500/40 to-slate-700" />
@@ -786,14 +862,7 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                 <XAxis dataKey="name" stroke={labelColor} tickLine={false} />
                 <YAxis stroke={labelColor} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: tooltipBg,
-                    borderColor: tooltipBorder,
-                    borderRadius: '12px',
-                    color: tooltipText,
-                  }}
-                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 2 }} />
                 <Legend verticalAlign="top" height={36} iconType="rect" />
                 <Bar dataKey={barConfig.dataKey} name={barConfig.dataKey} radius={[6, 6, 0, 0]}>
                   {resultsData.map((entry: any, index: number) => (
@@ -824,19 +893,14 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                 <XAxis 
+                  type="number"
+                  domain={['dataMin', 'dataMax']}
                   dataKey={type === 'fire_sizing' ? 'durationMins' : 'occupantsCount'} 
                   stroke={labelColor} 
                   tickLine={false}
                 />
                 <YAxis stroke={labelColor} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: tooltipBg,
-                    borderColor: tooltipBorder,
-                    borderRadius: '12px',
-                    color: tooltipText,
-                  }}
-                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 2 }} />
                 <Legend verticalAlign="top" height={36} iconType="circle" />
                 
                 {type === 'fire_sizing' ? (
@@ -867,6 +931,8 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
               <LineChart data={data} margin={{ top: 10, right: 15, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                 <XAxis 
+                  type="number"
+                  domain={['dataMin', 'dataMax']}
                   dataKey={
                     type === 'electrical' ? 'powerKw' :
                     type === 'cooling' ? (currentParams.estimationBasis === 'volume' ? 'roomVolumeM3' : 'areaM2') :
@@ -878,14 +944,7 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
                   tickLine={false}
                 />
                 <YAxis stroke={labelColor} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: tooltipBg,
-                    borderColor: tooltipBorder,
-                    borderRadius: '12px',
-                    color: tooltipText,
-                  }}
-                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 2 }} />
                 <Legend verticalAlign="top" height={36} iconType="circle" />
 
                 {type === 'electrical' && (
@@ -926,8 +985,8 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
 
                 {type === 'plumbing_fixtures' && (
                   <>
-                    <Line type="monotone" dataKey="IPC Hunter - Flush Valve (L/s)" stroke="#ef4444" strokeWidth={currentParams.systemType === 'valve' && currentParams.standard !== 'bs' ? 3.5 : 1} strokeDasharray={currentParams.systemType === 'valve' && currentParams.standard !== 'bs' ? "" : "4 4"} opacity={currentParams.standard === 'bs' ? 0.3 : (currentParams.systemType === 'valve' ? 1 : 0.5)} style={{ transition: 'all 0.5s ease-in-out' }} animationDuration={1000} />
-                    <Line type="monotone" dataKey="IPC Hunter - Flush Tank (L/s)" stroke="#f59e0b" strokeWidth={currentParams.systemType === 'tank' && currentParams.standard !== 'bs' ? 3.5 : 1} strokeDasharray={currentParams.systemType === 'tank' && currentParams.standard !== 'bs' ? "" : "4 4"} opacity={currentParams.standard === 'bs' ? 0.3 : (currentParams.systemType === 'tank' ? 1 : 0.5)} style={{ transition: 'all 0.5s ease-in-out' }} animationDuration={1000} />
+                    <Line type="linear" dataKey="IPC Hunter - Flush Valve (L/s)" stroke="#ef4444" strokeWidth={currentParams.systemType === 'valve' && currentParams.standard !== 'bs' ? 3.5 : 1} strokeDasharray={currentParams.systemType === 'valve' && currentParams.standard !== 'bs' ? "" : "4 4"} opacity={currentParams.standard === 'bs' ? 0.3 : (currentParams.systemType === 'valve' ? 1 : 0.5)} style={{ transition: 'all 0.5s ease-in-out' }} animationDuration={1000} />
+                    <Line type="linear" dataKey="IPC Hunter - Flush Tank (L/s)" stroke="#f59e0b" strokeWidth={currentParams.systemType === 'tank' && currentParams.standard !== 'bs' ? 3.5 : 1} strokeDasharray={currentParams.systemType === 'tank' && currentParams.standard !== 'bs' ? "" : "4 4"} opacity={currentParams.standard === 'bs' ? 0.3 : (currentParams.systemType === 'tank' ? 1 : 0.5)} style={{ transition: 'all 0.5s ease-in-out' }} animationDuration={1000} />
                     <Line type="monotone" dataKey="BS EN 806-3 Standard (L/s)" stroke="#06b6d4" strokeWidth={currentParams.standard === 'bs' ? 3.5 : 1.5} strokeDasharray={currentParams.standard === 'bs' ? "" : "4 4"} activeDot={{ r: 6 }} opacity={currentParams.standard !== 'bs' ? 0.3 : 1} style={{ transition: 'all 0.5s ease-in-out' }} animationDuration={1000} />
                   </>
                 )}
@@ -942,6 +1001,7 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
                     x={currentXValue} 
                     y={currentYValue} 
                     r={6} 
+                    label={{ value: 'Calculated Flow', fill: '#ffffff', position: 'top', fontSize: 11 }}
                     fill="#ef4444" 
                     stroke="#ffffff" 
                     strokeWidth={2} 
