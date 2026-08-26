@@ -1515,7 +1515,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">Storage & Tank Parameters</h3>
               </div>
 
-              <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Building Occupants Count</label>
                   <input
@@ -1659,7 +1659,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 {/* Section A: Booster */}
                 <div className="bg-slate-950/30 border border-slate-850 p-4 rounded-xl space-y-3.5">
                   <h4 className="text-[11px] font-bold uppercase text-cyan-400 tracking-wide">1. Domestic Water Booster Pump Set</h4>
-                  <div className="flex flex-col gap-3.5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-[9px] text-slate-400 font-bold uppercase mb-1">Building Static Height (m)</label>
                       <input
@@ -1744,6 +1744,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div className="flex flex-col gap-4">
                   <div className="bg-slate-950/30 border border-slate-850 p-4 rounded-xl space-y-3">
                     <h4 className="text-[11px] font-bold uppercase text-cyan-400 tracking-wide">2. Transfer Pump Sizing</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[9px] text-slate-400 font-bold uppercase mb-1">Roof Sump target fill time (mins)</label>
                       <input
@@ -1780,10 +1781,12 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 1 - 150 m</p>
                       )}
                     </div>
+                    </div>
                   </div>
 
                   <div className="bg-slate-950/30 border border-slate-850 p-4 rounded-xl space-y-3">
                     <h4 className="text-[11px] font-bold uppercase text-cyan-400 tracking-wide">3. Submersible Sump Pump</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[9px] text-slate-400 font-bold uppercase mb-1">Peak Waste Inflow (Lpm)</label>
                       <p className="bg-slate-950 border border-slate-850 text-slate-400 rounded px-2.5 py-1 text-xs font-mono">
@@ -1807,6 +1810,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       {sumpStaticHead !== 0 && (sumpStaticHead < 1 || sumpStaticHead > 50) && (
                         <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 1 - 50 m</p>
                       )}
+                    </div>
                     </div>
                   </div>
                 </div>
