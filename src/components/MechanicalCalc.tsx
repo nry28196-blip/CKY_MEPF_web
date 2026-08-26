@@ -1,7 +1,8 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend, PieChart, Pie } from 'recharts';
 import { Chart } from 'react-google-charts';
 import React, { useState, useEffect } from 'react';
-import { Wind, Layers, Sliders, Thermometer, Info, Bookmark, CheckCircle2, FileSpreadsheet, Mail, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Wind, Layers, Sliders, Thermometer, Info, Bookmark, CheckCircle2, FileSpreadsheet, Mail, Plus, Trash2, ChevronUp, ChevronDown, BookOpen } from 'lucide-react';
+import CoolingLoadReference from './CoolingLoadReference';
 import { motion } from 'motion/react';
 import DuctSizingCalc from './DuctSizingCalc';
 import VentilationCalc from './VentilationCalc';
@@ -25,6 +26,8 @@ interface MechanicalCalcProps {
 export default function MechanicalCalc({ restoredParams, onSaveCalculation, autoCalculate, isDarkMode }: MechanicalCalcProps) {
   const { t } = useLanguage();
   const [subTab, setSubTab] = useState<SubTab>('ductSizing'); // Default to the highly advanced requested module!
+  const [showCoolingRef, setShowCoolingRef] = useState(false);
+  const [projectType, setProjectType] = useState<'Commercial' | 'Residential' | 'Industrial' | 'Healthcare'>('Commercial');
 
   // --- NEW ADVANCED ASHRAE STATE ---
   const [outdoorTemp, setOutdoorTemp] = useState<number>(35);
@@ -301,6 +304,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
   return (
     <div className="space-y-6">
+      <CoolingLoadReference isOpen={showCoolingRef} onClose={() => setShowCoolingRef(false)} />
       
       {/* Sub-tabs toggle */}
       <div className="flex border-b border-slate-800 pb-1 gap-2">
@@ -440,11 +444,37 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 text-slate-100">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-4">
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-md shadow-emerald-500/50" />
-                <h2 className="text-lg font-bold uppercase tracking-tight text-white">{t('mechCoolingTitle')}</h2>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-md shadow-emerald-500/50" />
+                  <h2 className="text-lg font-bold uppercase tracking-tight text-white">{t('mechCoolingTitle')}</h2>
+                </div>
               </div>
-              <p className="text-xs text-slate-400 mt-1">Configure thermal loads for standard rooms or optimize complete VRF systems.</p>
+              <p className="text-xs text-slate-400 mt-1 flex items-center space-x-3">
+                <span>Configure thermal loads for standard rooms or optimize complete VRF systems.</span>
+                <button
+                  type="button"
+                  onClick={() => setShowCoolingRef(true)}
+                  className="flex items-center space-x-1.5 text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded transition-colors border border-emerald-500/20"
+                >
+                  <BookOpen className="h-3 w-3" />
+                  <span className="font-bold tracking-wider uppercase text-[9px]">ASHRAE Guide</span>
+                </button>
+              </p>
+            </div>
+
+            <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-[10px] font-bold uppercase w-fit mb-4">
+              <span className="px-3 py-1.5 text-slate-400">Project Type:</span>
+              <select
+                value={projectType}
+                onChange={(e) => setProjectType(e.target.value as any)}
+                className="bg-slate-950 text-white focus:outline-none focus:text-emerald-400 cursor-pointer"
+              >
+                <option value="Commercial">Commercial</option>
+                <option value="Residential">Residential</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Industrial">Industrial</option>
+              </select>
             </div>
 
             {/* Sizing Mode Toggle */}
@@ -593,6 +623,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     className={`w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm font-mono focus:outline-none transition-colors border ${
                       occupants !== '' && (Number(occupants) < 1 || Number(occupants) > 1000)
                         ? 'border-red-500/70 focus:ring-2 focus:ring-red-500/20 text-red-200'
+                        : occupants !== '' && area !== '' && (
+                          (projectType === 'Residential' && (Number(area) / Number(occupants)) < 30) ||
+                          (projectType === 'Commercial' && (Number(area) / Number(occupants)) < 10) ||
+                          (projectType === 'Healthcare' && (Number(area) / Number(occupants)) < 15) ||
+                          (projectType === 'Industrial' && (Number(area) / Number(occupants)) < 50)
+                        )
+                        ? 'border-amber-500/70 focus:ring-2 focus:ring-amber-500/20 text-amber-200'
                         : 'border-slate-800 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500'
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
@@ -600,6 +637,16 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     <p className="text-[10px] text-red-400 font-mono mt-1 leading-normal">
                       ⚠️ Safe engineering range: 1 to 1,000 people
                     </p>
+                  )}
+                  {occupants !== '' && area !== '' && Number(occupants) >= 1 && Number(occupants) <= 1000 && (
+                    (() => {
+                      const density = Number(area) / Number(occupants);
+                      if (projectType === 'Residential' && density < 30) return <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">⚠️ Density {density.toFixed(1)} m²/person exceeds typical residential bounds (&ge; 30)</p>;
+                      if (projectType === 'Commercial' && density < 10) return <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">⚠️ Density {density.toFixed(1)} m²/person exceeds typical office bounds (&ge; 10)</p>;
+                      if (projectType === 'Healthcare' && density < 15) return <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">⚠️ Density {density.toFixed(1)} m²/person exceeds typical healthcare bounds (&ge; 15)</p>;
+                      if (projectType === 'Industrial' && density < 50) return <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">⚠️ Density {density.toFixed(1)} m²/person exceeds typical industrial bounds (&ge; 50)</p>;
+                      return null;
+                    })()
                   )}
                 </div>
               </div>

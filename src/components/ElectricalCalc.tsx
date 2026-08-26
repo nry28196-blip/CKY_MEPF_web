@@ -30,6 +30,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
     { id: '1', name: 'Main Chiller', power: 15, qty: 1 }
   ]);
   const [subTab, setSubTab] = useState<SubTab>('flc');
+  const [projectType, setProjectType] = useState<'Commercial' | 'Residential' | 'Industrial' | 'Healthcare'>('Commercial');
   const [loadedHistoryId, setLoadedHistoryId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -363,12 +364,21 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
                 className={`w-full bg-slate-950 text-white rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none transition-colors border ${
                   powerFactor !== 0 && (powerFactor < 0.5 || powerFactor > 1.0)
                     ? 'border-red-500/70 focus:ring-2 focus:ring-red-500/20 text-red-200'
+                    : powerFactor !== 0 && ((projectType === 'Residential' && powerFactor < 0.9) || (projectType === 'Industrial' && powerFactor > 0.95) || ((projectType === 'Commercial' || projectType === 'Healthcare') && powerFactor < 0.85))
+                    ? 'border-amber-500/70 focus:ring-2 focus:ring-amber-500/20 text-amber-200'
                     : 'border-slate-800 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500'
                 } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
               />
               {powerFactor !== 0 && (powerFactor < 0.5 || powerFactor > 1.0) && (
                 <p className="text-[10px] text-red-400 font-mono mt-1 leading-normal">
                   ⚠️ Safe range: 0.5 to 1.0
+                </p>
+              )}
+              {powerFactor !== 0 && powerFactor >= 0.5 && powerFactor <= 1.0 && (
+                <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">
+                  {projectType === 'Residential' && powerFactor < 0.9 && '⚠️ Typical residential is ≥ 0.90'}
+                  {projectType === 'Industrial' && powerFactor > 0.95 && '⚠️ Typical industrial is ≤ 0.95 without correction'}
+                  {(projectType === 'Commercial' || projectType === 'Healthcare') && powerFactor < 0.85 && '⚠️ Typical commercial is ≥ 0.85'}
                 </p>
               )}
             </div>

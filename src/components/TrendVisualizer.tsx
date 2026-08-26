@@ -285,12 +285,13 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
       }
 
       case 'plumbing_fixtures': {
-        const activeLU = Number(currentParams.totalLU) || 20;
-        const maxLu = Math.max(150, activeLU * 1.8);
+        const isBS = currentParams.standard === 'bs';
+        const activeLoad = isBS ? (currentParams.totalLU !== undefined ? Number(currentParams.totalLU) : 20) : (currentParams.totalWSFU !== undefined ? Number(currentParams.totalWSFU) : 20);
+        const maxLu = Math.max(150, activeLoad * 1.8);
         
         const ipcXValues = [0, 1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200, 225, 250, 275, 300, 400, 500];
         const xValuesSet = new Set(ipcXValues.filter(x => x <= maxLu));
-        xValuesSet.add(activeLU);
+        xValuesSet.add(activeLoad);
         
         const sortedX = Array.from(xValuesSet).sort((a, b) => a - b);
         
@@ -451,10 +452,11 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
       }
 
       case 'plumbing_fixtures': {
-        const lu = Number(currentParams.totalLU) || 20;
-        const q_bs = 0.09 * Math.sqrt(lu);
-        const q_ipc_valve = getHuntersFlowGPM(lu, 'valve') * 0.06309;
-        const q_ipc_tank = getHuntersFlowGPM(lu, 'tank') * 0.06309;
+        const isBS = currentParams.standard === 'bs';
+        const activeLoad = isBS ? (currentParams.totalLU !== undefined ? Number(currentParams.totalLU) : 20) : (currentParams.totalWSFU !== undefined ? Number(currentParams.totalWSFU) : 20);
+        const q_bs = 0.09 * Math.sqrt(activeLoad);
+        const q_ipc_valve = getHuntersFlowGPM(activeLoad, 'valve') * 0.06309;
+        const q_ipc_tank = getHuntersFlowGPM(activeLoad, 'tank') * 0.06309;
 
         return [
           { name: 'BS EN 806-3 Standard', 'Flow Rate (L/s)': parseFloat(q_bs.toFixed(2)), color: '#06b6d4' },
@@ -547,11 +549,17 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
     currentYValue = parseFloat(de.toFixed(1));
     referenceName = 'Equivalent Diameter (in)';
   } else if (type === 'plumbing_fixtures') {
-    currentXValue = Number(currentParams.totalLU) || 20;
-    currentYValue = Number(currentParams.peakFlowLps) || 0;
     const isBS = currentParams.standard === 'bs';
     const isValve = currentParams.systemType === 'valve';
+    currentXValue = isBS ? (currentParams.totalLU !== undefined ? Number(currentParams.totalLU) : 20) : (currentParams.totalWSFU !== undefined ? Number(currentParams.totalWSFU) : 20);
+    currentYValue = currentParams.peakFlowLps !== undefined ? Number(currentParams.peakFlowLps) : 0;
     referenceName = isBS ? 'BS EN 806-3 Standard (L/s)' : (isValve ? 'IPC Hunter - Flush Valve (L/s)' : 'IPC Hunter - Flush Tank (L/s)');
+    console.log('[TrendVisualizer Debug] plumbing_fixtures');
+    console.log('  isBS:', isBS);
+    console.log('  totalLU:', currentParams.totalLU);
+    console.log('  totalWSFU:', currentParams.totalWSFU);
+    console.log('  currentXValue:', currentXValue);
+    console.log('  currentYValue:', currentYValue);
   } else if (type === 'plumbing_tanks') {
     currentXValue = Number(currentParams.occupants) || 120;
     currentYValue = Number(currentParams.totalWaterStorageLiters || 0) / 1000;

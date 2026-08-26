@@ -66,6 +66,7 @@ interface FixtureRow {
 export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCalculate = true }: PlumbingCalcProps) {
   const { t } = useLanguage();
   const [subTab, setSubTab] = useState<SubTab>('fixtures');
+  const [projectType, setProjectType] = useState<'Commercial' | 'Residential' | 'Industrial' | 'Healthcare'>('Commercial');
   const [isRefModalOpen, setIsRefModalOpen] = useState(false);
   const [isFrictionModalOpen, setIsFrictionModalOpen] = useState(false);
   const [isOptimizerModalOpen, setIsOptimizerModalOpen] = useState(false);
@@ -1150,8 +1151,25 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 ))}
               </div>
 
+              {/* Project Type & Validation */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Project Type</label>
+                  <select
+                    value={projectType}
+                    onChange={(e) => setProjectType(e.target.value as any)}
+                    className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500"
+                  >
+                    <option value="Commercial">Commercial / Office</option>
+                    <option value="Residential">Residential</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Industrial">Industrial</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Dynamic Sizing Constraints */}
-              <div className="flex flex-col gap-4 pt-4 border-t border-slate-800">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">People (Occupants)</label>
                   <input
@@ -1186,12 +1204,23 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     className={`w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono focus:outline-none transition-colors border ${
                       designVelocity !== 0 && (designVelocity < 0.5 || designVelocity > 3.0)
                         ? 'border-red-500/70 focus:ring-1 focus:ring-red-500/20 text-red-200'
+                        : designVelocity !== 0 && ((projectType === 'Residential' && designVelocity > 2.0) || ((projectType === 'Commercial' || projectType === 'Healthcare') && designVelocity > 2.4))
+                        ? 'border-amber-500/70 focus:ring-1 focus:ring-amber-500/20 text-amber-200'
                         : 'border-slate-800 focus:border-cyan-500'
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
+
                   {designVelocity !== 0 && (designVelocity < 0.5 || designVelocity > 3.0) && (
                     <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 0.5 to 3.0 m/s</p>
                   )}
+                  {designVelocity !== 0 && designVelocity >= 0.5 && designVelocity <= 3.0 && (
+                    (projectType === 'Residential' && designVelocity > 2.0) ||
+                    (projectType === 'Commercial' && designVelocity > 2.4) ||
+                    (projectType === 'Healthcare' && designVelocity > 2.4)
+                  ) && (
+                    <p className="text-[9px] text-amber-500 font-mono mt-1">⚠️ Exceeds typical {projectType} standard (≤ {(projectType === 'Residential' ? '2.0' : '2.4')} m/s)</p>
+                  )}
+
                 </div>
                 <div>
                   <TooltipLabel 
@@ -2347,6 +2376,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         type={subTab === 'fixtures' ? 'plumbing_fixtures' : subTab === 'tanks' ? 'plumbing_tanks' : 'plumbing_pumps'} 
         currentParams={{
           totalLU: totalLU,
+          totalWSFU: totalWSFU,
           peakFlowLps: peakFlowLps,
           standard: appliedStandard,
           systemType: systemType,
