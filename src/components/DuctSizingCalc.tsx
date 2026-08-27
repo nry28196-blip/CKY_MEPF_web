@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import TrendVisualizer from './TrendVisualizer';
 import TooltipLabel from './TooltipLabel';
+import StaticPressureCalc from './StaticPressureCalc';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { useUnitValue } from '../lib/useUnitValue';
@@ -43,6 +44,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
   const [airflow, setAirflow] = useState<number>(2500); // CFM
   const [frictionRate, setFrictionRate] = useState<number>(0.1); // in. wg/100 ft
   const [velocityLimit, setVelocityLimit] = useState<number>(1200); // FPM
+  const [sizingMode, setSizingMode] = useState<'equal-friction' | 'static-pressure'>('equal-friction');
   const [ductType, setDuctType] = useState<'supply' | 'return' | 'exhaust'>('supply');
   const [ductHeight, setDuctHeight] = useState<number>(12); // inches (default fixed height)
 
@@ -359,6 +361,26 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
         </div>
       )}
 
+      {/* Top Toggle */}
+      <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-[10px] font-bold uppercase w-fit mb-2">
+        <button
+          onClick={() => setSizingMode('equal-friction')}
+          className={`px-4 py-2 rounded-lg transition-all ${sizingMode === 'equal-friction' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+        >
+          Duct Sizing (Equal Friction)
+        </button>
+        <button
+          onClick={() => setSizingMode('static-pressure')}
+          className={`px-4 py-2 rounded-lg transition-all ${sizingMode === 'static-pressure' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+        >
+          System Static Pressure
+        </button>
+      </div>
+
+      {sizingMode === 'static-pressure' ? (
+        <StaticPressureCalc />
+      ) : (
+        <>
       {/* Header section with Emerald accent */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
@@ -1173,6 +1195,8 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
           velocityLimit: appliedVelocityLimit
         }}
       />
+      </>
+      )}
     </div>
   );
 }

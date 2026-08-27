@@ -6,6 +6,7 @@ import { useUnit } from '../lib/UnitContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import TooltipLabel from './TooltipLabel';
 import KitchenVentilationCalc from './KitchenVentilationCalc';
+import ResidentialVentilationCalc from './ResidentialVentilationCalc';
 
 interface SpaceType {
   id: string;
@@ -41,7 +42,7 @@ export default function VentilationCalc() {
   const [zoneEzId, setZoneEzId] = useState<string>('cooling_ceiling'); // Zone air distribution effectiveness ID
   const [airTemp, setAirTemp] = useState<number>(isMetric ? 20 : 70);
   const [useTempAdj, setUseTempAdj] = useState<boolean>(false);
-  const [ventMode, setVentMode] = useState<'standard' | 'kitchen'>('standard');
+  const [ventMode, setVentMode] = useState<'standard' | 'kitchen' | 'residential'>('standard');
   
   useEffect(() => {
     setAirTemp(isMetric ? 20 : 70);
@@ -169,10 +170,21 @@ export default function VentilationCalc() {
         >
           Kitchen Hood
         </button>
+        <button
+          type="button"
+          onClick={() => setVentMode('residential')}
+          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            ventMode === 'residential' ? 'bg-indigo-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Residential (62.2)
+        </button>
       </div>
 
       {ventMode === 'kitchen' ? (
         <KitchenVentilationCalc />
+      ) : ventMode === 'residential' ? (
+        <ResidentialVentilationCalc />
       ) : (
       <div className="space-y-6">
         

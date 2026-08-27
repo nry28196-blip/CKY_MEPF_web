@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wind, Activity, CheckCircle2, AlertTriangle, ChefHat } from 'lucide-react';
+import { Wind, Activity, CheckCircle2, AlertTriangle, ChefHat, BookOpen } from 'lucide-react';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import TooltipLabel from './TooltipLabel';
