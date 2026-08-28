@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Wind, Users, Square, Info, FileSpreadsheet, CheckCircle2, ChevronRight, Activity, AlertTriangle, ArrowDown, Thermometer, Bookmark, Layers, Settings } from 'lucide-react';
+import { BookOpen, Wind, Users, Square, Info, FileSpreadsheet, CheckCircle2, ChevronRight, Activity, AlertTriangle, ArrowDown, Thermometer, Bookmark, Layers, Settings } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import TooltipLabel from './TooltipLabel';
 import KitchenVentilationCalc from './KitchenVentilationCalc';
+import VentilationReferenceModal from './VentilationReferenceModal';
 import ResidentialVentilationCalc from './ResidentialVentilationCalc';
 
 interface SpaceType {
@@ -43,6 +44,7 @@ export default function VentilationCalc() {
   const [airTemp, setAirTemp] = useState<number>(isMetric ? 20 : 70);
   const [useTempAdj, setUseTempAdj] = useState<boolean>(false);
   const [ventMode, setVentMode] = useState<'standard' | 'kitchen' | 'residential'>('standard');
+  const [isRefModalOpen, setIsRefModalOpen] = useState(false);
   
   useEffect(() => {
     setAirTemp(isMetric ? 20 : 70);
@@ -150,8 +152,11 @@ export default function VentilationCalc() {
 
   return (
     <div className="space-y-6">
+      <VentilationReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} />
+      
       {/* Sub-modes for Ventilation */}
-      <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-[10px] font-bold uppercase w-fit">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-[10px] font-bold uppercase w-fit">
         <button
           type="button"
           onClick={() => setVentMode('standard')}
@@ -161,6 +166,7 @@ export default function VentilationCalc() {
         >
           Zone (ASHRAE 62.1)
         </button>
+
         <button
           type="button"
           onClick={() => setVentMode('kitchen')}
@@ -178,6 +184,14 @@ export default function VentilationCalc() {
           }`}
         >
           Residential (62.2)
+        </button>
+        </div>
+        <button
+          onClick={() => setIsRefModalOpen(true)}
+          className="flex items-center space-x-2 bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors"
+        >
+          <BookOpen className="w-3.5 h-3.5 text-sky-400" />
+          <span>Reference</span>
         </button>
       </div>
 
@@ -199,8 +213,10 @@ export default function VentilationCalc() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               
               {/* Space Application Group */}
-              <div className="bg-slate-950/40 border border-slate-800/60 rounded-xl p-4 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-sky-500/50" />
+              <div className="bg-slate-950/40 border border-slate-800/60 rounded-xl p-4 relative">
+                <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-sky-500/50" />
+                </div>
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
                   <Bookmark className="w-3 h-3 mr-1.5 text-sky-400" /> Space Profile
                 </h4>
@@ -258,8 +274,10 @@ export default function VentilationCalc() {
               </div>
 
               {/* Geometry & Load Group */}
-              <div className="bg-slate-950/40 border border-slate-800/60 rounded-xl p-4 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/50" />
+              <div className="bg-slate-950/40 border border-slate-800/60 rounded-xl p-4 relative">
+                <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/50" />
+                </div>
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
                   <Layers className="w-3 h-3 mr-1.5 text-emerald-400" /> Dimensions & Occupancy
                 </h4>
@@ -326,8 +344,10 @@ export default function VentilationCalc() {
               </div>
 
               {/* System Configuration Group */}
-              <div className="bg-slate-950/40 border border-slate-800/60 rounded-xl p-4 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50" />
+              <div className="bg-slate-950/40 border border-slate-800/60 rounded-xl p-4 relative">
+                <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50" />
+                </div>
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
                   <Settings className="w-3 h-3 mr-1.5 text-amber-400" /> System Variables
                 </h4>
@@ -419,7 +439,7 @@ export default function VentilationCalc() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
               
               <div className="flex flex-col justify-center space-y-6">
-                <div className={`bg-slate-950/50 border ${borderClass} rounded-xl p-4 relative overflow-hidden transition-colors duration-300`}>
+                <div className={`bg-slate-950/50 border ${borderClass} rounded-xl p-4 relative transition-colors duration-300`}>
                   <div className="flex justify-between items-start mb-1">
                     <TooltipLabel label="Breathing Zone Outdoor Air (Vbz)" tooltip="ASHRAE 62.1-2019 Sec 6.2.2.1: Vbz represents the ventilation required directly in the breathing zone for occupants, before accounting for distribution losses." className="text-slate-400 text-xs font-medium mb-0" />
                     {!useDefaultDensity && (
@@ -441,8 +461,10 @@ export default function VentilationCalc() {
                   </div>
                 </div>
 
-                <div className={`bg-slate-950 border ${vozBorderClass} rounded-xl p-4 relative overflow-hidden group transition-colors duration-300`}>
-                  <div className={`absolute top-0 right-0 w-16 h-16 ${vozBgDeco} rounded-bl-full transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-all duration-300`} />
+                <div className={`bg-slate-950 border ${vozBorderClass} rounded-xl p-4 relative group transition-colors duration-300`}>
+                  <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                    <div className={`absolute top-0 right-0 w-16 h-16 ${vozBgDeco} rounded-bl-full transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-all duration-300`} />
+                  </div>
                   <TooltipLabel label={useTempAdj ? "Required Zone Outdoor Air (Actual Voz)" : "Required Zone Outdoor Air (Standard Voz)"} tooltip="ASHRAE 62.1-2019 Sec 6.2.2.3: Voz represents the total ventilation that must be provided to the zone by the supply system to ensure Vbz is satisfied, accounting for mixing effectiveness (Ez)." className={`${vozLabelColor} text-xs font-bold uppercase tracking-wider mb-0 transition-colors duration-300`} />
                   <div className="flex items-baseline space-x-2">
                     <span className={`text-4xl font-black ${vozNumberColor} tracking-tight transition-colors duration-300`}>{Math.ceil(voz).toLocaleString()}</span>
