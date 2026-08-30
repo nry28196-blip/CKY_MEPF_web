@@ -11,6 +11,7 @@ import {
 import { motion } from 'motion/react';
 import TrendVisualizer from './TrendVisualizer';
 import TooltipLabel from './TooltipLabel';
+import InputAlert from './InputAlert';
 import { useLanguage } from '../lib/translations';
 import { exportFireToCsv } from '../lib/exportCsv';
 import FireReferenceModal from "./FireReferenceModal";
@@ -725,7 +726,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {sprinklersCount > 10000 && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Recommended max density: 10,000 heads</p>
+                    <InputAlert type="warning" message="Recommended max density: 10,000 heads" />
                   )}
                 </div>
                 <div>
@@ -747,7 +748,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {hoseReelsCount > 200 && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Max standard: 200 hose reels</p>
+                    <InputAlert type="error" message="Max standard: 200 hose reels" />
                   )}
                 </div>
                 <div>
@@ -765,7 +766,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {hydrantsCount > 100 && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Max standard: 100 outlets</p>
+                    <InputAlert type="error" message="Max standard: 100 outlets" />
                   )}
                 </div>
                 <div>
@@ -781,7 +782,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {breechingInletsCount > 50 && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Max standard: 50 inlets</p>
+                    <InputAlert type="error" message="Max standard: 50 inlets" />
                   )}
                 </div>
               </div>
@@ -845,9 +846,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                         ? (residualPressure < 0.35 || residualPressure > 12.0)
                         : (residualPressure < 5 || residualPressure > 175)
                     ) && (
-                      <p className="text-[8px] text-red-400 font-mono mt-1 leading-tight">
-                        ⚠️ Safe range: {standard === 'bs' ? '0.35 - 12.0 bar' : '5 - 175 psi'}
-                      </p>
+                      <InputAlert type="error" message={`Safe range: ${standard === 'bs' ? '0.35 - 12.0 bar' : '5 - 175 psi'}`} />
                     )}
                   </div>
                   <div>
@@ -865,7 +864,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                       } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                     />
                     {activeHeadsInDesignArea !== 0 && (activeHeadsInDesignArea < 1 || activeHeadsInDesignArea > 100) && (
-                      <p className="text-[8px] text-red-400 font-mono mt-1 leading-tight">⚠️ Safe range: 1 - 100</p>
+                      <InputAlert type="error" message="Safe range: 1 - 100" />
                     )}
                   </div>
                 </div>
@@ -955,7 +954,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {flowDuration !== 0 && (flowDuration < 10 || flowDuration > 240) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 10 to 240 minutes</p>
+                    <InputAlert type="error" message="Safe range: 10 to 240 minutes" />
                   )}
                   <span className="text-[9px] text-slate-500 leading-normal mt-1 block">
                     {standard === 'bs' 
@@ -989,9 +988,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                       ? (hoseStreamAllowance < 50 || hoseStreamAllowance > 4000)
                       : (hoseStreamAllowance < 10 || hoseStreamAllowance > 1000)
                   ) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">
-                      ⚠️ Safe range: {standard === 'bs' ? '50 to 4,000 Lpm' : '10 to 1,000 GPM'}
-                    </p>
+                    <InputAlert type="error" message={`Safe range: ${standard === 'bs' ? '50 to 4,000 Lpm' : '10 to 1,000 GPM'}`} />
                   )}
                   <span className="text-[9px] text-slate-500 leading-normal mt-1 block">
                     {standard === 'bs'
@@ -1047,7 +1044,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {buildingHeight !== 0 && (buildingHeight < 1 || buildingHeight > 300) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 1 to 300 meters</p>
+                    <InputAlert type="error" message="Safe range: 1 to 300 meters" />
                   )}
                 </div>
                 <div>
@@ -1089,7 +1086,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {pipeFrictionPercent !== 0 && (pipeFrictionPercent < 5 || pipeFrictionPercent > 50) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 5% to 50%</p>
+                    <InputAlert type="error" message="Safe range: 5% to 50%" />
                   )}
                 </div>
                 <div>
@@ -1111,7 +1108,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {pumpEfficiency !== 0 && (pumpEfficiency < 30 || pumpEfficiency > 95) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 30% to 95%</p>
+                    <InputAlert type="error" message="Safe range: 30% to 95%" />
                   )}
                 </div>
               </div>

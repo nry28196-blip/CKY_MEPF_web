@@ -5,6 +5,8 @@ import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import TooltipLabel from './TooltipLabel';
+import InputAlert from './InputAlert';
+import ValidationBanner, { ValidationItem } from './ValidationBanner';
 import KitchenVentilationCalc from './KitchenVentilationCalc';
 import VentilationReferenceModal from './VentilationReferenceModal';
 import ResidentialVentilationCalc from './ResidentialVentilationCalc';
@@ -43,6 +45,8 @@ export default function VentilationCalc() {
   const [zoneEzId, setZoneEzId] = useState<string>('cooling_ceiling'); // Zone air distribution effectiveness ID
   const [airTemp, setAirTemp] = useState<number>(isMetric ? 20 : 70);
   const [useTempAdj, setUseTempAdj] = useState<boolean>(false);
+  const [altitude, setAltitude] = useState<number>(0); // m or ft
+  const [useAltitudeAdj, setUseAltitudeAdj] = useState<boolean>(false);
   const [ventMode, setVentMode] = useState<'standard' | 'kitchen' | 'residential'>('standard');
   const [isRefModalOpen, setIsRefModalOpen] = useState(false);
   
@@ -129,11 +133,20 @@ export default function VentilationCalc() {
     vozBgDeco = 'bg-rose-500/10';
   }
 
-  // Air Density Adjustment
+  // Air Density Adjustment (Psychrometrics & Altitude)
   const tempUnit = isMetric ? '°C' : '°F';
+  const altUnit = isMetric ? 'm' : 'ft';
   const stdTempAbs = isMetric ? 20 + 273.15 : 70 + 459.67;
   const actualTempAbs = isMetric ? airTemp + 273.15 : airTemp + 459.67;
-  const densityRatio = useTempAdj ? actualTempAbs / stdTempAbs : 1.0;
+  const tempRatio = useTempAdj ? (actualTempAbs / stdTempAbs) : 1.0; 
+  
+  // P = P0 * (1 - 2.25577e-5 * h)^5.2559
+  const altMeters = isMetric ? altitude : altitude * 0.3048;
+  // Lower pressure at altitude means lower density, which means larger volume required for the same mass flow.
+  // The volume ratio multiplier is P_sea_level / P_local
+  const pressRatio = useAltitudeAdj ? (1.0 / Math.pow(1 - 2.25577e-5 * altMeters, 5.2559)) : 1.0;
+  
+  const densityRatio = tempRatio * pressRatio; 
   
   const voz = vozBase * densityRatio; // Adjusted zone outdoor airflow
 
@@ -149,6 +162,65 @@ export default function VentilationCalc() {
   ];
 
   const COLORS = ['#38bdf8', '#34d399'];
+
+  
+  const validations: ValidationItem[] = [];
+
+  if (ventMode === 'standard') {
+    if (zoneEz < 1.0) {
+      validations.push({
+        id: 'ez_low',
+        severity: 'warning',
+        message: `Ventilation effectiveness (Ez = ${zoneEz}) is below 1.0. This imposes a penalty on outdoor air requirements per ASHRAE 62.1.`
+      });
+    }
+
+    if (!useDefaultDensity && area > 0) {
+      const defaultDensity = isMetric ? spaceType.defaultDensityMet : spaceType.defaultDensityImp;
+      if (defaultDensity > 0) {
+        const ratio = actualDensity / defaultDensity;
+        if (ratio > 2.0) {
+          validations.push({
+            id: 'density_high',
+            severity: 'warning',
+            message: `Occupant density is significantly higher (>2x) than the ASHRAE default for ${spaceType.name}. Ensure peak capacity is correct.`
+          });
+        } else if (ratio < 0.2) {
+          validations.push({
+            id: 'density_low',
+            severity: 'info',
+            message: `Occupant density is very low compared to the ASHRAE default for ${spaceType.name}. Check if space utilization has changed.`
+          });
+        }
+      }
+    }
+
+    if (useAltitudeAdj && altitude > (isMetric ? 1000 : 3280)) {
+      validations.push({
+        id: 'altitude_high',
+        severity: 'warning',
+        message: `High altitude (${altitude} ${isMetric ? 'm' : 'ft'}) reduces air density. Select fans for actual volumetric flow rate (CFM/L/s), not standard.`
+      });
+    }
+
+    if (useTempAdj) {
+      if ((isMetric && (airTemp < 10 || airTemp > 40)) || (!isMetric && (airTemp < 50 || airTemp > 104))) {
+        validations.push({
+          id: 'temp_extreme',
+          severity: 'warning',
+          message: `Space temperature (${airTemp}°${isMetric ? 'C' : 'F'}) is outside typical comfort boundaries. Verify standard air density assumptions.`
+        });
+      }
+    }
+    
+    if (isExtremeArea) {
+       validations.push({
+          id: 'area_extreme',
+          severity: 'warning',
+          message: `Unusually large area. Verify value.`
+       });
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -201,7 +273,7 @@ export default function VentilationCalc() {
         <ResidentialVentilationCalc />
       ) : (
       <div className="space-y-6">
-        
+        <ValidationBanner validations={validations} />
         {/* INPUTS PANEL */}
         <div className="w-full">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
@@ -296,11 +368,7 @@ export default function VentilationCalc() {
                       <Square className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
                       <span className="absolute right-3 top-2.5 text-[10px] text-slate-500 select-none font-bold">{areaUnit}</span>
                     </div>
-                    {isExtremeArea && (
-                      <p className="text-[10px] text-amber-400 mt-1.5 flex items-center">
-                        <AlertTriangle className="w-3 h-3 mr-1" /> Unusually large area. Verify value.
-                      </p>
-                    )}
+                    {isExtremeArea && <InputAlert type="warning" message="Unusually large area. Verify value." />}
                   </div>
 
                   <div className="pt-3 border-t border-slate-800/50">
@@ -334,11 +402,7 @@ export default function VentilationCalc() {
                       <Users className={`w-3.5 h-3.5 absolute left-3 top-2.5 ${useDefaultDensity ? 'text-slate-600' : 'text-slate-500'}`} />
                       <span className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-500 select-none uppercase">People</span>
                     </div>
-                    {isExtremeDensity && (
-                      <p className="text-[10px] text-amber-400 mt-1.5 flex items-center">
-                        <AlertTriangle className="w-3 h-3 mr-1" /> High occupant density. Verify value.
-                      </p>
-                    )}
+                    {isExtremeDensity && <InputAlert type="warning" message="High occupant density. Verify value." />}
                   </div>
                 </div>
               </div>
@@ -415,11 +479,7 @@ export default function VentilationCalc() {
                       <Thermometer className={`w-3.5 h-3.5 absolute left-3 top-2.5 ${!useTempAdj ? 'text-slate-600' : 'text-slate-500'}`} />
                       <span className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-500 select-none">{tempUnit}</span>
                     </div>
-                    {isExtremeTemp && (
-                      <p className="text-[10px] text-amber-400 mt-1.5 flex items-center">
-                        <AlertTriangle className="w-3 h-3 mr-1" /> Extreme temperature value. Verify units.
-                      </p>
-                    )}
+                    {isExtremeTemp && <InputAlert type="warning" message="Extreme temperature value. Verify units." />}
                   </div>
                 </div>
               </div>
@@ -551,13 +611,18 @@ export default function VentilationCalc() {
                       </div>
                     </>
                   )}
-                  {useTempAdj && (
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">
-                        {selectedSpaceId === 'restroom' ? 'Eq 2 — Actual Flow (Density Adjusted)' : 'Eq 3 — Actual Flow (Density Adjusted)'}
+                  {(useTempAdj || useAltitudeAdj) && (
+                    <div className="mt-4 bg-slate-950 p-3 rounded border border-slate-800">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        {selectedSpaceId === 'restroom' ? 'Eq 2 — Density Corrected Flow' : 'Eq 3 — Density Corrected Flow'}
                       </p>
-                      <code className="text-emerald-400 text-xs font-mono">
-                        {selectedSpaceId === 'restroom' ? 'Q_exh(actual) = Q_exh × (T_actual / T_std)' : 'Voz(actual) = Voz × (T_actual / T_std)'}
+                      <code className="text-emerald-400 text-[10px] font-mono block">
+                        {selectedSpaceId === 'restroom' 
+                          ? 'Q_exh(actual) = Q_exh × Vol_Ratio' 
+                          : 'Voz(actual) = Voz × Vol_Ratio'}
+                      </code>
+                      <code className="text-sky-400 text-[10px] font-mono block mt-1">
+                        Vol_Ratio = {useTempAdj ? '(T_actual / T_std)' : '1.0'} {useAltitudeAdj ? '× (P_std / P_local)' : ''} = {densityRatio.toFixed(3)}
                       </code>
                     </div>
                   )}
@@ -582,10 +647,12 @@ export default function VentilationCalc() {
                       <li><span className="font-mono text-slate-300">Ez</span> = Zone air distribution effectiveness</li>
                     </>
                   )}
-                  {useTempAdj && (
+                  {(useTempAdj || useAltitudeAdj) && (
                     <>
-                      <li><span className="font-mono text-slate-300">T_actual</span> = Actual absolute air temperature</li>
-                      <li><span className="font-mono text-slate-300">T_std</span> = Standard absolute air temperature</li>
+                      {useTempAdj && <li><span className="font-mono text-slate-300">T_actual</span> = Actual absolute air temperature</li>}
+                      {useTempAdj && <li><span className="font-mono text-slate-300">T_std</span> = Standard absolute air temperature</li>}
+                      {useAltitudeAdj && <li><span className="font-mono text-slate-300">P_local</span> = Local barometric pressure at altitude</li>}
+                      {useAltitudeAdj && <li><span className="font-mono text-slate-300">P_std</span> = Standard sea-level pressure</li>}
                     </>
                   )}
                 </ul>

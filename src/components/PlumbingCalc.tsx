@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import ValidationBanner, { ValidationItem } from './ValidationBanner';
 import { 
   Droplet, AlertTriangle, CheckCircle2, Compass, Bookmark, 
   Plus, Trash2, Layers, ShieldCheck, Activity, Info, HelpCircle, FileSpreadsheet, Mail
@@ -11,6 +12,7 @@ import {
 import { motion } from 'motion/react';
 import TrendVisualizer from './TrendVisualizer';
 import TooltipLabel from './TooltipLabel';
+import InputAlert from './InputAlert';
 import { useLanguage } from '../lib/translations';
 import { exportPlumbingToCsv } from '../lib/exportCsv';
 import { IPC_FIXTURES, getFixtureById } from '../lib/plumbingFixtures';
@@ -778,6 +780,52 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
   const transferDischargePipe = getNominalPipeSize(calcDiameter(transferFlowLps, 1.8));
 
   const sumpDischargePipe = getNominalPipeSize(calcDiameter(sumpFlowLps, 1.8));
+  // Validation Engine
+  const validations: ValidationItem[] = [];
+  if (subTab === 'fixtures') {
+    if (designVelocity > 2.4) {
+      validations.push({
+        id: 'vel-high',
+        severity: 'error',
+        message: `Design velocity (${designVelocity} m/s) exceeds the standard maximum limit of 2.4 m/s. This can cause severe pipe erosion, cavitation, and water hammer.`,
+      });
+    } else if (designVelocity > 1.8) {
+      validations.push({
+        id: 'vel-warn',
+        severity: 'warning',
+        message: `Design velocity (${designVelocity} m/s) is high. Ensure proper pipe supports and consider water hammer arrestors.`,
+      });
+    }
+
+    if (slope < 1) {
+      validations.push({
+        id: 'slope-low',
+        severity: 'error',
+        message: `Sewage pipe slope (${slope}%) is below the absolute minimum of 1.0%. This will lead to solid waste blockages.`,
+      });
+    } else if (slope < 2 && (totalWSFU <= 20 || totalDU <= 20)) {
+      validations.push({
+        id: 'slope-warn',
+        severity: 'warning',
+        message: `A minimum slope of 2.0% is typically recommended for branches with low fixture unit loads to maintain self-cleansing velocity.`,
+      });
+    }
+  } else if (subTab === 'tanks') {
+    if (storageDays < 1) {
+      validations.push({
+        id: 'storage-low',
+        severity: 'warning',
+        message: `Storage days (${storageDays}) is below 1. Ensure the municipal water supply is highly reliable, or increase storage capacity.`,
+      });
+    }
+    if (septicDesludgeInterval > 5) {
+      validations.push({
+        id: 'desludge-high',
+        severity: 'warning',
+        message: `Septic desludge interval (${septicDesludgeInterval} years) is unusually long. Standard intervals are typically 1 to 5 years. This significantly inflates tank volume.`,
+      });
+    }
+  }
 
   const handleSave = () => {
     if (onSaveCalculation) {
@@ -1185,7 +1233,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {occupants !== 0 && (occupants < 1 || occupants > 5000) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 1 to 5,000</p>
+                    <InputAlert type="error" message="Safe range: 1 to 5,000" />
                   )}
                 </div>
                 <div>
@@ -1211,14 +1259,14 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   />
 
                   {designVelocity !== 0 && (designVelocity < 0.5 || designVelocity > 3.0) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 0.5 to 3.0 m/s</p>
+                    <InputAlert type="error" message="Safe range: 0.5 to 3.0 m/s" />
                   )}
                   {designVelocity !== 0 && designVelocity >= 0.5 && designVelocity <= 3.0 && (
                     (projectType === 'Residential' && designVelocity > 2.0) ||
                     (projectType === 'Commercial' && designVelocity > 2.4) ||
                     (projectType === 'Healthcare' && designVelocity > 2.4)
                   ) && (
-                    <p className="text-[9px] text-amber-500 font-mono mt-1">⚠️ Exceeds typical {projectType} standard (≤ {(projectType === 'Residential' ? '2.0' : '2.4')} m/s)</p>
+                    <InputAlert type="warning" message={`Exceeds typical ${projectType} standard (≤ ${projectType === 'Residential' ? '2.0' : '2.4'} m/s)`} />
                   )}
 
                 </div>
@@ -1531,9 +1579,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {occupants !== 0 && (occupants < 1 || occupants > 5000) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">
-                      ⚠️ Safe range: 1 to 5,000 occupants
-                    </p>
+                    <InputAlert type="error" message="Safe range: 1 to 5,000 occupants" />
                   )}
                 </div>
                 <div>
@@ -1555,9 +1601,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {consumptionRate !== 0 && (consumptionRate < 20 || consumptionRate > 500) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">
-                      ⚠️ Standard range: 20 to 500 L/p/d
-                    </p>
+                    <InputAlert type="warning" message="Standard range: 20 to 500 L/p/d" />
                   )}
                 </div>
                 <div>
@@ -1575,9 +1619,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {storageDays !== 0 && (storageDays < 1 || storageDays > 7) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">
-                      ⚠️ Safe range: 1 to 7 days
-                    </p>
+                    <InputAlert type="error" message="Safe range: 1 to 7 days" />
                   )}
                 </div>
                 <div>
@@ -1599,9 +1641,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {septicDischarge !== 0 && (septicDischarge < 20 || septicDischarge > 400) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">
-                      ⚠️ Safe range: 20 to 400 L/p/d
-                    </p>
+                    <InputAlert type="error" message="Safe range: 20 to 400 L/p/d" />
                   )}
                 </div>
                 <div>
@@ -1619,9 +1659,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {septicDesludgeInterval !== 0 && (septicDesludgeInterval < 1 || septicDesludgeInterval > 10) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">
-                      ⚠️ Safe range: 1 to 10 years
-                    </p>
+                    <InputAlert type="error" message="Safe range: 1 to 10 years" />
                   )}
                 </div>
                 <div>
@@ -1639,9 +1677,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {sumpInflow !== 0 && (sumpInflow < 10 || sumpInflow > 1000) && (
-                    <p className="text-[9px] text-red-400 font-mono mt-1">
-                      ⚠️ Safe range: 10 to 1,000 L/min
-                    </p>
+                    <InputAlert type="error" message="Safe range: 10 to 1,000 L/min" />
                   )}
                 </div>
               </div>
@@ -1675,7 +1711,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                       />
                       {boosterStaticHead !== 0 && (boosterStaticHead < 1 || boosterStaticHead > 250) && (
-                        <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 1 - 250 m</p>
+                        <InputAlert type="error" message="Safe range: 1 - 250 m" />
                       )}
                     </div>
                     <div>
@@ -1698,7 +1734,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                       />
                       {boosterResidualPress !== 0 && (boosterResidualPress < 1.0 || boosterResidualPress > 6.0) && (
-                        <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 1.0 - 6.0 bar</p>
+                        <InputAlert type="error" message="Safe range: 1.0 - 6.0 bar" />
                       )}
                     </div>
                     <div>
@@ -1716,7 +1752,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                       />
                       {boosterFrictionPercent !== 0 && (boosterFrictionPercent < 5 || boosterFrictionPercent > 45) && (
-                        <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 5% - 45%</p>
+                        <InputAlert type="error" message="Safe range: 5% - 45%" />
                       )}
                     </div>
                     <div>
@@ -1734,7 +1770,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                       />
                       {boosterEfficiency !== 0 && (boosterEfficiency < 40 || boosterEfficiency > 95) && (
-                        <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 40% - 95%</p>
+                        <InputAlert type="error" message="Safe range: 40% - 95%" />
                       )}
                     </div>
                   </div>
@@ -1760,7 +1796,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                       />
                       {transferFillTime !== 0 && (transferFillTime < 10 || transferFillTime > 180) && (
-                        <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 10 - 180 mins</p>
+                        <InputAlert type="error" message="Safe range: 10 - 180 mins" />
                       )}
                     </div>
                     <div>
@@ -1778,7 +1814,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                       />
                       {transferStaticHead !== 0 && (transferStaticHead < 1 || transferStaticHead > 150) && (
-                        <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 1 - 150 m</p>
+                        <InputAlert type="error" message="Safe range: 1 - 150 m" />
                       )}
                     </div>
                     </div>
@@ -1808,7 +1844,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                       />
                       {sumpStaticHead !== 0 && (sumpStaticHead < 1 || sumpStaticHead > 50) && (
-                        <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe range: 1 - 50 m</p>
+                        <InputAlert type="error" message="Safe range: 1 - 50 m" />
                       )}
                     </div>
                     </div>
@@ -2302,7 +2338,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
             )}
 
           </div>
-
+          <ValidationBanner validations={validations} />
+          
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={() => setIsRefModalOpen(true)}

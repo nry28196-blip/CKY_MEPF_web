@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+
+const content = `import React, { useState, useEffect } from 'react';
 import { Wind, Activity, CheckCircle2, AlertTriangle, ChefHat, BookOpen, Calculator, Info, ThermometerSun, Maximize } from 'lucide-react';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
@@ -113,8 +115,9 @@ export default function KitchenVentilationCalc() {
   const muaInternalFlow = exhaustAirflow * (muaInternal / 100);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
+      <div className="lg:col-span-1 space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
           <h3 className="text-sm font-semibold text-white mb-5 flex items-center">
             <ChefHat className="w-4 h-4 mr-2 text-rose-400" />
             Kitchen Hood Parameters
@@ -123,19 +126,19 @@ export default function KitchenVentilationCalc() {
           <div className="flex bg-slate-950 p-1 rounded-lg mb-6 border border-slate-800">
             <button 
               onClick={() => setHoodStandard('unlisted')}
-              className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded ${hoodStandard === 'unlisted' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-500 hover:text-slate-300'}`}
+              className={\`flex-1 py-1.5 text-[10px] font-bold uppercase rounded \${hoodStandard === 'unlisted' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-500 hover:text-slate-300'}\`}
             >
               Unlisted (IMC)
             </button>
             <button 
               onClick={() => setHoodStandard('listed')}
-              className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded ${hoodStandard === 'listed' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-500 hover:text-slate-300'}`}
+              className={\`flex-1 py-1.5 text-[10px] font-bold uppercase rounded \${hoodStandard === 'listed' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-500 hover:text-slate-300'}\`}
             >
               Listed
             </button>
             <button 
               onClick={() => setHoodStandard('performance')}
-              className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded ${hoodStandard === 'performance' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-500 hover:text-slate-300'}`}
+              className={\`flex-1 py-1.5 text-[10px] font-bold uppercase rounded \${hoodStandard === 'performance' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-500 hover:text-slate-300'}\`}
             >
               C&C (F1704)
             </button>
@@ -175,7 +178,7 @@ export default function KitchenVentilationCalc() {
             
             {hoodStandard === 'listed' && (
               <div className="pt-2 border-t border-slate-800/60">
-                 <TooltipLabel label={`Listed Extraction Rate (${isMetric ? 'L/s per m' : 'CFM per ft'})`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
+                 <TooltipLabel label={\`Listed Extraction Rate (\${isMetric ? 'L/s per m' : 'CFM per ft'})\`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
                  <input 
                    type="number" min="0" step="10" 
                    value={listedFlowPerLength} 
@@ -188,7 +191,7 @@ export default function KitchenVentilationCalc() {
 
             {hoodStandard === 'performance' && (
               <div className="pt-2 border-t border-slate-800/60">
-                 <TooltipLabel label={`Target Capture Velocity (${velUnit})`} className="block text-[10px] font-bold text-rose-400 mb-1.5 uppercase" />
+                 <TooltipLabel label={\`Target Capture Velocity (\${velUnit})\`} className="block text-[10px] font-bold text-rose-400 mb-1.5 uppercase" />
                  <input 
                    type="number" min="0" step={isMetric ? 0.05 : 10} 
                    value={captureVelocity} 
@@ -201,7 +204,7 @@ export default function KitchenVentilationCalc() {
             
             <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/60">
               <div>
-                <TooltipLabel label={`Eq. Length (${lenUnit})`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
+                <TooltipLabel label={\`Eq. Length (\${lenUnit})\`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
                 <input 
                   type="number" min="0.1" step="0.1" 
                   value={equipmentLength} 
@@ -210,7 +213,7 @@ export default function KitchenVentilationCalc() {
                 />
               </div>
               <div>
-                <TooltipLabel label={`Side Overhang (${lenUnit})`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
+                <TooltipLabel label={\`Side Overhang (\${lenUnit})\`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
                 <input 
                   type="number" min="0" step="0.05" 
                   value={overhang} 
@@ -219,7 +222,7 @@ export default function KitchenVentilationCalc() {
                 />
               </div>
               <div className="col-span-2">
-                <TooltipLabel label={`Hood Depth (${lenUnit})`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
+                <TooltipLabel label={\`Hood Depth (\${lenUnit})\`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
                 <input 
                   type="number" min="0.1" step="0.1" 
                   value={hoodDepth} 
@@ -230,7 +233,8 @@ export default function KitchenVentilationCalc() {
             </div>
           </div>
         </div>
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+        
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
           <h3 className="text-sm font-semibold text-white mb-5 flex items-center">
              <Wind className="w-4 h-4 mr-2 text-sky-400" />
              Localized Make-Up Air (MUA)
@@ -238,7 +242,7 @@ export default function KitchenVentilationCalc() {
           <div className="space-y-4">
             <div className="flex justify-between items-end mb-2">
                <span className="text-[10px] font-bold text-slate-400 uppercase">Total MUA Ratio</span>
-               <span className={`text-xs font-bold font-mono ${totalMuaRatio > 95 ? 'text-red-400' : totalMuaRatio < 75 ? 'text-amber-400' : 'text-sky-400'}`}>
+               <span className={\`text-xs font-bold font-mono \${totalMuaRatio > 95 ? 'text-red-400' : totalMuaRatio < 75 ? 'text-amber-400' : 'text-sky-400'}\`}>
                  {totalMuaRatio}%
                </span>
             </div>
@@ -298,7 +302,7 @@ export default function KitchenVentilationCalc() {
             </div>
             
             <div className="pt-4 border-t border-slate-800/60">
-              <TooltipLabel label={`Target Duct Velocity (${velUnit})`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
+              <TooltipLabel label={\`Target Duct Velocity (\${velUnit})\`} className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" />
               <input 
                 type="number" min="1" step={isMetric ? 0.1 : 50} 
                 value={ductVelocity} 
@@ -307,9 +311,12 @@ export default function KitchenVentilationCalc() {
               />
             </div>
           </div>
-              </div>
-<div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg h-full">
-        
+        </div>
+      </div>
+      
+      {/* RESULTS */}
+      <div className="lg:col-span-2 space-y-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg h-full">
           <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
             <h3 className="text-sm font-semibold text-white flex items-center">
               <Activity className="w-4 h-4 mr-2 text-rose-400" />
@@ -324,7 +331,7 @@ export default function KitchenVentilationCalc() {
               </span>
             </div>
           </div>
- 
+          
           {notAllowed ? (
             <div className="bg-red-950/20 border border-red-900/50 p-6 rounded-xl flex flex-col items-center justify-center text-center">
                <AlertTriangle className="w-10 h-10 text-red-500 mb-4" />
@@ -343,17 +350,27 @@ export default function KitchenVentilationCalc() {
                     {Math.ceil(exhaustAirflow).toLocaleString()}
                   </p>
                   <p className="text-sm font-bold text-rose-400 uppercase tracking-widest mt-1 z-10">{flowUnit}</p>
+                  
+                  <div className="mt-4 flex items-center justify-between w-full px-4 text-[10px] font-mono z-10 border-t border-slate-800 pt-3">
+                     <div className="text-slate-500">
+                        {hoodStandard === 'unlisted' && \`Base Rate: \${imcRates[hoodType][duty]} \${isMetric ? 'L/s/m' : 'CFM/ft'}\`}
+                        {hoodStandard === 'listed' && \`Listed Rate: \${listedFlowPerLength} \${isMetric ? 'L/s/m' : 'CFM/ft'}\`}
+                        {hoodStandard === 'performance' && \`Target C&C: \${captureVelocity} \${velUnit}\`}
+                     </div>
+                     <div className="text-rose-300/80">
+                        Face Vel: {faceVelocity.toFixed(0)} {velUnit}
+                     </div>
+                  </div>
                 </div>
                 
-                <div className="bg-slate-950/50 rounded-xl border border-slate-800 flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="bg-slate-950/50 p-6 rounded-xl border border-sky-900/30 relative overflow-hidden group flex flex-col">
                   <div className="absolute inset-0 bg-gradient-to-bl from-sky-500/5 to-transparent" />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 z-10 text-center pt-6">Make-Up Air ({totalMuaRatio}%)</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 z-10 text-center">Make-Up Air ({totalMuaRatio}%)</p>
                   <p className="text-4xl font-black text-white font-mono tracking-tight drop-shadow-md z-10 text-center mb-4">
-                    {Math.round(muaTotalFlow).toLocaleString()}
-                    <span className="text-xs font-bold text-sky-400 uppercase tracking-widest ml-1">{flowUnit}</span>
+                    {Math.ceil(muaTotalFlow).toLocaleString()} <span className="text-sm font-bold text-sky-400 uppercase tracking-widest">{flowUnit}</span>
                   </p>
                   
-                  <div className="flex-grow flex flex-col justify-end space-y-2 z-10 text-[10px] font-mono w-full px-4 pb-4">
+                  <div className="flex-grow flex flex-col justify-end space-y-2 z-10 text-[10px] font-mono w-full px-2">
                      <div className="flex justify-between items-center border-b border-slate-800/60 pb-1">
                         <span className="text-slate-500">Transfer ({muaTransfer}%)</span>
                         <span className="text-slate-300">{Math.round(muaTransferFlow).toLocaleString()}</span>
@@ -396,6 +413,11 @@ export default function KitchenVentilationCalc() {
             </>
           )}
         </div>
+      </div>
     </div>
   );
 }
+`
+
+fs.writeFileSync('src/components/KitchenVentilationCalc.tsx', content);
+console.log('Replaced KitchenVentilationCalc');

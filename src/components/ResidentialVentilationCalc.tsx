@@ -2,15 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Home, Wind, CheckCircle2, AlertTriangle, Droplets, ChefHat } from 'lucide-react';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
+import TooltipLabel from './TooltipLabel';
 
 export default function ResidentialVentilationCalc() {
   const { t } = useLanguage();
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
+
   const [floorArea, setFloorArea] = useState<number>(isMetric ? 150 : 1500);
   const [bedrooms, setBedrooms] = useState<number>(3);
   const [kitchenVolume, setKitchenVolume] = useState<number>(isMetric ? 30 : 1000);
+  
   const [totalAirflow, setTotalAirflow] = useState<number>(0);
+  
+  const [kitchenMode, setKitchenMode] = useState<'intermittent'|'continuous'>('intermittent');
+  const [bathrooms, setBathrooms] = useState<number>(2);
 
   useEffect(() => {
     // ASHRAE 62.2 Whole-Dwelling Ventilation
@@ -25,158 +31,86 @@ export default function ResidentialVentilationCalc() {
 
   const flowUnit = isMetric ? 'L/s' : 'CFM';
   const areaUnit = isMetric ? 'm²' : 'ft²';
+  const volUnit = isMetric ? 'm³' : 'ft³';
+
+  // 62.2 Local Exhaust
+  const kitchenExhaust = kitchenMode === 'intermittent' 
+    ? (isMetric ? 50 : 100)
+    : (isMetric ? (kitchenVolume * 5 / 3.6) : (kitchenVolume * 5 / 60)); // 5 ACH
+
+  const bathroomInt = isMetric ? 25 : 50;
+  const bathroomCont = isMetric ? 10 : 20;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-slate-950 border border-slate-850 p-5 rounded-2xl shadow-lg">
-            <div className="flex items-center space-x-2 border-b border-slate-800 pb-3 mb-5">
-              <Home className="h-5 w-5 text-indigo-400" />
-              <h3 className="text-sm font-bold text-slate-200 tracking-wide">Whole-Dwelling Ventilation (ASHRAE 62.2)</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Dwelling Floor Area ({areaUnit})</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={floorArea || ''}
-                  onChange={(e) => setFloorArea(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-900 text-white rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500/50 border border-slate-800 focus:border-indigo-500 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Number of Bedrooms</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={bedrooms || ''}
-                  onChange={(e) => setBedrooms(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-900 text-white rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500/50 border border-slate-800 focus:border-indigo-500 transition-colors"
-                />
-              </div>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-emerald-900/30 space-y-6">
+          <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+            <Home className="h-5 w-5 text-emerald-400" />
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">ASHRAE 62.2 Whole-Building</h3>
           </div>
-
-          <div className="bg-slate-950 border border-slate-850 p-5 rounded-2xl shadow-lg">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-5">
-              <div className="flex items-center space-x-2">
-                <Wind className="h-5 w-5 text-sky-400" />
-                <h3 className="text-sm font-bold text-slate-200 tracking-wide">Local Source Exhaust (ASHRAE 62.2)</h3>
-              </div>
+          
+          <div className="space-y-4">
+            <div>
+              <TooltipLabel label={`Floor Area (${areaUnit})`} className="text-xs font-bold text-slate-400 uppercase" />
+              <input type="number" min="0" value={floorArea} onChange={(e) => setFloorArea(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 font-mono border border-slate-800 focus:border-emerald-500" />
+            </div>
+            <div>
+              <TooltipLabel label="Bedrooms" className="text-xs font-bold text-slate-400 uppercase" />
+              <input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 font-mono border border-slate-800 focus:border-emerald-500" />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Kitchen Exhaust Calculator */}
-              <div className="bg-slate-900/50 border border-slate-800/60 p-4 rounded-xl flex flex-col justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center">
-                    <ChefHat className="w-4 h-4 mr-1.5 text-amber-500" /> Kitchens
-                  </h4>
-                  <div className="space-y-4">
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase block mb-1">Intermittent (Vented Hood)</span>
-                      <p className="text-lg font-bold text-white font-mono">
-                        {isMetric ? '50' : '100'} <span className="text-[10px] font-normal text-slate-400 normal-case">{flowUnit}</span>
-                      </p>
-                    </div>
-                    <div className="pt-3 border-t border-slate-800/50">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] text-slate-500 uppercase">Continuous (5 ACH)</span>
-                      </div>
-                      <div className="flex items-center space-x-2 mt-2">
-                        <div className="flex-1">
-                          <label className="text-[9px] text-slate-400 uppercase">Volume ({isMetric ? 'm³' : 'ft³'})</label>
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="Volume"
-                            value={kitchenVolume || ''}
-                            onChange={(e) => setKitchenVolume(Number(e.target.value) || 0)}
-                            className="w-full bg-slate-950 text-white rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/50 border border-slate-800"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-[9px] text-slate-400 uppercase">Req. ({flowUnit})</label>
-                          <div className="w-full bg-slate-900 text-amber-400 rounded-lg px-2 py-1.5 text-xs font-mono border border-slate-800 flex items-center">
-                            {kitchenVolume ? (isMetric ? (kitchenVolume * 5 / 3.6).toFixed(1) : (kitchenVolume * 5 / 60).toFixed(1)) : '0.0'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bathroom Exhaust */}
-              <div className="bg-slate-900/50 border border-slate-800/60 p-4 rounded-xl flex flex-col justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center">
-                    <Droplets className="w-4 h-4 mr-1.5 text-cyan-500" /> Bathrooms
-                  </h4>
-                  <div className="space-y-4">
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase block mb-1">Intermittent Exhaust</span>
-                      <p className="text-lg font-bold text-white font-mono">
-                        {isMetric ? '25' : '50'} <span className="text-[10px] font-normal text-slate-400 normal-case">{flowUnit}</span>
-                      </p>
-                    </div>
-                    <div className="pt-3 border-t border-slate-800/50">
-                      <span className="text-[10px] text-slate-500 uppercase block mb-1">Continuous Exhaust</span>
-                      <p className="text-lg font-bold text-white font-mono">
-                        {isMetric ? '10' : '20'} <span className="text-[10px] font-normal text-slate-400 normal-case">{flowUnit}</span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-800/50">
-                  <p className="text-[9px] text-slate-500 leading-tight">
-                    * Rates apply per bathroom. Local exhaust removes air directly from pollutant/moisture sources, separate from whole-dwelling ventilation.
-                  </p>
-                </div>
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center mt-6">
+              <span className="text-xs font-bold text-slate-400 uppercase">Total Req. Flow</span>
+              <div className="text-right">
+                <span className="text-3xl font-black font-mono text-emerald-400">{Math.ceil(totalAirflow)}</span>
+                <span className="text-emerald-500/50 text-sm ml-2">{flowUnit}</span>
               </div>
             </div>
           </div>
         </div>
-        
-        <div className="space-y-6">
-          <div className="bg-gradient-to-br from-indigo-900/40 to-slate-900 border border-indigo-500/30 p-5 rounded-2xl shadow-xl">
-            <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">Required Whole-Dwelling</h3>
-            <p className="text-[10px] text-slate-400 mb-4">ASHRAE 62.2 Minimum Outdoor Airflow</p>
-            
-            <div className="flex items-end space-x-2">
-              <span className="text-5xl font-black text-white font-mono tracking-tighter">
-                {Math.ceil(totalAirflow)}
-              </span>
-              <span className="text-lg font-bold text-indigo-300 mb-1">{flowUnit}</span>
-            </div>
-            
-            <div className="mt-5 pt-4 border-t border-indigo-500/20">
-              <p className="text-[10px] text-indigo-200/60 leading-relaxed flex items-start">
-                <AlertTriangle className="w-3 h-3 mr-1.5 mt-0.5 flex-shrink-0 text-amber-500/70" />
-                This airflow is intended to dilute the unavoidable contaminant emissions from people, materials, and background processes.
-              </p>
-            </div>
-          </div>
 
-          <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl">
-            <h4 className="font-semibold text-slate-300 mb-2 text-xs flex items-center">
-              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
-              Calculation Formula
-            </h4>
-            <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-              <code className="text-indigo-400 text-xs font-mono block mb-2">
-                {isMetric 
-                  ? 'Q_tot = 0.15 × A_floor + 3.5 × (N_br + 1)'
-                  : 'Q_tot = 0.03 × A_floor + 7.5 × (N_br + 1)'}
-              </code>
-              <ul className="text-[10px] text-slate-400 space-y-1">
-                <li><span className="font-mono text-slate-300">Q_tot</span> = Total required ventilation rate ({flowUnit})</li>
-                <li><span className="font-mono text-slate-300">A_floor</span> = Dwelling floor area ({areaUnit})</li>
-                <li><span className="font-mono text-slate-300">N_br</span> = Number of bedrooms</li>
-              </ul>
+        <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-sky-900/30 space-y-6">
+          <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+            <Wind className="h-5 w-5 text-sky-400" />
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">ASHRAE 62.2 Local Exhaust</h3>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800/50">
+              <h4 className="text-[10px] font-bold text-sky-400 uppercase mb-3 flex items-center"><ChefHat className="w-3 h-3 mr-1" /> Kitchen Exhaust</h4>
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <button onClick={() => setKitchenMode('intermittent')} className={`py-1.5 text-[10px] font-bold uppercase rounded border ${kitchenMode === 'intermittent' ? 'bg-sky-500/20 text-sky-400 border-sky-500/30' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>Intermittent</button>
+                <button onClick={() => setKitchenMode('continuous')} className={`py-1.5 text-[10px] font-bold uppercase rounded border ${kitchenMode === 'continuous' ? 'bg-sky-500/20 text-sky-400 border-sky-500/30' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>Continuous (5 ACH)</button>
+              </div>
+              {kitchenMode === 'continuous' && (
+                <div className="mb-3">
+                  <TooltipLabel label={`Kitchen Volume (${volUnit})`} className="text-[10px] font-bold text-slate-400 uppercase" />
+                  <input type="number" min="0" value={kitchenVolume} onChange={(e) => setKitchenVolume(Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-3 py-1.5 font-mono text-sm border border-slate-800" />
+                </div>
+              )}
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-400">Required:</span>
+                <span className="font-mono text-sky-300 font-bold">{Math.ceil(kitchenExhaust)} {flowUnit}</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800/50">
+              <h4 className="text-[10px] font-bold text-sky-400 uppercase mb-3 flex items-center"><Droplets className="w-3 h-3 mr-1" /> Bathrooms</h4>
+              <div className="mb-3">
+                <TooltipLabel label="Number of Bathrooms" className="text-[10px] font-bold text-slate-400 uppercase" />
+                <input type="number" min="0" value={bathrooms} onChange={(e) => setBathrooms(Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-3 py-1.5 font-mono text-sm border border-slate-800" />
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="bg-slate-900 p-2 rounded text-center">
+                  <span className="block text-slate-500 mb-1">Intermittent</span>
+                  <span className="font-mono text-sky-300 font-bold">{bathroomInt} {flowUnit}</span> <span className="text-[10px] text-slate-600">/ each</span>
+                </div>
+                <div className="bg-slate-900 p-2 rounded text-center">
+                  <span className="block text-slate-500 mb-1">Continuous</span>
+                  <span className="font-mono text-sky-300 font-bold">{bathroomCont} {flowUnit}</span> <span className="text-[10px] text-slate-600">/ each</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

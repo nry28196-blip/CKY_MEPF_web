@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import ValidationBanner, { ValidationItem } from './ValidationBanner';
 import { Wind, Copy, FileSpreadsheet, AlertTriangle, CheckCircle2, Sliders, Settings, Layers, HelpCircle, Bookmark, Mail, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import TrendVisualizer from './TrendVisualizer';
 import TooltipLabel from './TooltipLabel';
+import InputAlert from './InputAlert';
 import StaticPressureCalc from './StaticPressureCalc';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
@@ -346,6 +348,40 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
       setToastMessage(null);
     }, 3000);
   };
+  // Validation Engine
+  const validations: ValidationItem[] = [];
+  if (velRectMain > appliedVelocityLimit) {
+    validations.push({
+      id: 'vel-main',
+      severity: 'error',
+      message: `Main duct velocity (${Math.round(velRectMain)} FPM) exceeds the design limit (${appliedVelocityLimit} FPM). Increase duct size or reduce airflow.`,
+    });
+  }
+  if (appliedFrictionRate > 0.15) {
+    validations.push({
+      id: 'fric-high',
+      severity: 'warning',
+      message: `Friction rate (${appliedFrictionRate} in.wg/100ft) is above the typical maximum for commercial systems (0.15). This may cause high energy consumption and noise.`,
+    });
+  }
+  if (enableSplitting) {
+    const highVelBranches = branches.filter(b => b.status === 'danger');
+    if (highVelBranches.length > 0) {
+       validations.push({
+         id: 'vel-branch-danger',
+         severity: 'error',
+         message: `${highVelBranches.length} branch(es) exceed the velocity limit.`,
+       });
+    }
+    const warnVelBranches = branches.filter(b => b.status === 'warning');
+    if (warnVelBranches.length > 0) {
+       validations.push({
+         id: 'vel-branch-warning',
+         severity: 'warning',
+         message: `${warnVelBranches.length} branch(es) are nearing the velocity limit.`,
+       });
+    }
+  }
 
   // Preset heights standard in duct manufacturing
   const standardHeights = [8, 10, 12, 14, 16, 18, 20, 24];
@@ -447,9 +483,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                 <span>15,000 CFM</span>
               </div>
               {airflow !== 0 && (airflow < 100 || airflow > 50000) && (
-                <div className="text-[10px] text-red-400 font-mono leading-none mt-1 bg-red-950/20 px-2 py-1 rounded border border-red-950/50">
-                  ⚠️ Recommended safe range: 100 to 50,000 CFM (equivalent)
-                </div>
+                <InputAlert type="warning" message="Recommended safe range: 100 to 50,000 CFM (equivalent)" />
               )}
             </div>
 
@@ -488,9 +522,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                 <span>0.40 (High Velocity)</span>
               </div>
               {frictionRate !== 0 && (frictionRate < 0.01 || frictionRate > 1.5) && (
-                <div className="text-[10px] text-red-400 font-mono leading-none mt-1 bg-red-950/20 px-2 py-1 rounded border border-red-950/50">
-                  ⚠️ Recommended safe range: 0.01 to 1.5 in. wg/100 ft
-                </div>
+                <InputAlert type="warning" message="Recommended safe range: 0.01 to 1.5 in. wg/100 ft" />
               )}
             </div>
 
@@ -566,9 +598,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                   <span>2,500 (Ind.)</span>
                 </div>
                 {velocityLimit !== 0 && (velocityLimit < 400 || velocityLimit > 6000) && (
-                  <div className="text-[10px] text-red-400 font-mono leading-none mt-1 bg-red-950/20 px-2 py-1 rounded border border-red-950/50">
-                    ⚠️ Recommended safe range: 400 to 6,000 FPM
-                  </div>
+                  <InputAlert type="warning" message="Recommended safe range: 400 to 6,000 FPM" />
                 )}
               </div>
 
@@ -654,9 +684,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
               </div>
 
               {(ductHeight < 4 || ductHeight > 60) && (
-                <div className="text-[10px] text-red-400 font-mono leading-none mt-1 bg-red-950/20 px-2 py-1 rounded border border-red-950/50">
-                  ⚠️ Recommended safe range: 4 to 60 inches
-                </div>
+                <InputAlert type="warning" message="Recommended safe range: 4 to 60 inches" />
               )}
 
               {/* standard height shortcuts */}
@@ -1118,6 +1146,8 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                   </div>
                 </div>
               )}
+              {/* Validation Engine Banner */}
+              <ValidationBanner validations={validations} />
 
               {/* Bottom utilities */}
               <div className="pt-4 border-t border-slate-850 flex flex-col md:flex-row gap-3">

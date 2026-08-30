@@ -7,6 +7,7 @@ import UpsSizingCalc from './UpsSizingCalc';
 import ElvUpsSizingCalc from './ElvUpsSizingCalc';
 import PowerEquipmentTable, { PowerEquipment } from './PowerEquipmentTable';
 import TooltipLabel from './TooltipLabel';
+import InputAlert from './InputAlert';
 import { useLanguage } from '../lib/translations';
 import { exportElectricalToCsv } from '../lib/exportCsv';
 import FormulaVisualizer from './FormulaVisualizer';
@@ -343,9 +344,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
                 } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
               />
               {voltage !== 0 && (voltage < 100 || voltage > 1000) && (
-                <p className="text-[10px] text-red-400 font-mono mt-1 leading-normal">
-                  ⚠️ Safe range: 100 to 1,000 V
-                </p>
+                <InputAlert type="error" message="Safe range: 100 to 1,000 V" />
               )}
             </div>
             <div>
@@ -370,16 +369,14 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
                 } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
               />
               {powerFactor !== 0 && (powerFactor < 0.5 || powerFactor > 1.0) && (
-                <p className="text-[10px] text-red-400 font-mono mt-1 leading-normal">
-                  ⚠️ Safe range: 0.5 to 1.0
-                </p>
+                <InputAlert type="error" message="Safe range: 0.5 to 1.0" />
               )}
               {powerFactor !== 0 && powerFactor >= 0.5 && powerFactor <= 1.0 && (
-                <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">
-                  {projectType === 'Residential' && powerFactor < 0.9 && '⚠️ Typical residential is ≥ 0.90'}
-                  {projectType === 'Industrial' && powerFactor > 0.95 && '⚠️ Typical industrial is ≤ 0.95 without correction'}
-                  {(projectType === 'Commercial' || projectType === 'Healthcare') && powerFactor < 0.85 && '⚠️ Typical commercial is ≥ 0.85'}
-                </p>
+                <div className="mt-1">
+                  {projectType === 'Residential' && powerFactor < 0.9 && <InputAlert type="warning" message="Typical residential is ≥ 0.90" />}
+                  {projectType === 'Industrial' && powerFactor > 0.95 && <InputAlert type="warning" message="Typical industrial is ≤ 0.95 without correction" />}
+                  {(projectType === 'Commercial' || projectType === 'Healthcare') && powerFactor < 0.85 && <InputAlert type="warning" message="Typical commercial is ≥ 0.85" />}
+                </div>
               )}
             </div>
           </div>

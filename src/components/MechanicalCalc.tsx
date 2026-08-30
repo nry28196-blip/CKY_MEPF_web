@@ -10,8 +10,10 @@ import TrendVisualizer from './TrendVisualizer';
 import VrfTopologyCanvas from './VrfTopologyCanvas';
 import VrfLoadDistributionChart from './VrfLoadDistributionChart';
 import TooltipLabel from './TooltipLabel';
+import InputAlert from './InputAlert';
 import FormulaVisualizer, { FormulaDef } from './FormulaVisualizer';
 import { useLanguage } from '../lib/translations';
+import { useUnit } from '../lib/UnitContext';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
 
 type SubTab = 'cooling' | 'ductSizing' | 'formulas' | 'ventilation';
@@ -25,6 +27,8 @@ interface MechanicalCalcProps {
 
 export default function MechanicalCalc({ restoredParams, onSaveCalculation, autoCalculate, isDarkMode }: MechanicalCalcProps) {
   const { t } = useLanguage();
+  const { unitSystem } = useUnit();
+  const isMetric = unitSystem === 'metric';
   const [subTab, setSubTab] = useState<SubTab>('ductSizing'); // Default to the highly advanced requested module!
   const [showCoolingRef, setShowCoolingRef] = useState(false);
   const [projectType, setProjectType] = useState<'Commercial' | 'Residential' | 'Industrial' | 'Healthcare'>('Commercial');
@@ -47,6 +51,8 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const [ventilationLps, setVentilationLps] = useState<number>(25);
   const [infiltrationACH, setInfiltrationACH] = useState<number>(0.5);
   const [safetyFactor, setSafetyFactor] = useState<number>(10);
+  const [altitude, setAltitude] = useState<number>(0);
+  const [useAltitudeAdj, setUseAltitudeAdj] = useState<boolean>(false);
 
   const [estimationBasis, setEstimationBasis] = useState<'area' | 'volume'>('area');
   const [area, setArea] = useState<number | ''>(50);
@@ -176,16 +182,25 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     const solarSensible = windowArea * windowShgc * solarIrradiance;
     
     // 6. Ventilation (Sensible & Latent)
-    const ventSensible = 1.21 * ventilationLps * dT;
+    // Altitude adjustment for air density
+    const altMeters = isMetric ? altitude : altitude * 0.3048;
+    const densityRatio = useAltitudeAdj ? Math.pow(1 - 2.25577e-5 * altMeters, 5.2559) : 1.0;
+    
+    // Adjusted psychrometric constants for sensible and latent heat based on air density
+    const cpAir = 1.21 * densityRatio; 
+    const hfgAir = 3010 * densityRatio;
+
+    // 6. Ventilation (Sensible & Latent)
+    const ventSensible = cpAir * ventilationLps * dT;
     // Latent assumption: outdoor humidity ratio approx 0.016, indoor 0.009 -> dw = 0.007
     const dw = 0.007; 
-    const ventLatent = 3010 * ventilationLps * dw;
+    const ventLatent = hfgAir * ventilationLps * dw;
     
     // 7. Infiltration
     const numVolume = numArea * height;
     const infiltrationLps = (infiltrationACH * numVolume * 1000) / 3600;
-    const infiltrationSensible = 1.21 * infiltrationLps * dT;
-    const infiltrationLatent = 3010 * infiltrationLps * dw;
+    const infiltrationSensible = cpAir * infiltrationLps * dT;
+    const infiltrationLatent = hfgAir * infiltrationLps * dw;
 
     const totalSensible = peopleSensible + lightingSensible + equipmentSensible + wallSensible + roofSensible + windowCondSensible + solarSensible + ventSensible + infiltrationSensible;
     const totalLatent = peopleLatent + ventLatent + infiltrationLatent;
@@ -541,6 +556,34 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   </div>
                 </div>
                 
+                <TooltipLabel label="Altitude / Air Density" tooltip="Adjust psychrometric equations for non-sea-level air density." className="text-sky-400" />
+                <div className="flex items-center space-x-2 mb-4">
+                  <label className="flex items-center text-[10px] font-medium text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useAltitudeAdj}
+                      onChange={(e) => setUseAltitudeAdj(e.target.checked)}
+                      className="mr-1.5 rounded border-slate-700 text-sky-500 focus:ring-sky-500 bg-slate-900"
+                    />
+                    Enable
+                  </label>
+                  <input
+                    type="number"
+                    disabled={!useAltitudeAdj}
+                    value={altitude === 0 && !useAltitudeAdj ? '' : altitude}
+                    onChange={(e) => {
+                      if (useAltitudeAdj) setAltitude(e.target.value === '' ? 0 : Number(e.target.value));
+                    }}
+                    placeholder="Altitude"
+                    className={`w-full bg-slate-950 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none transition-colors border ${
+                      !useAltitudeAdj 
+                        ? 'text-slate-600 border-slate-800' 
+                        : 'text-white border-slate-700 focus:border-sky-500'
+                    }`}
+                  />
+                  <span className="text-xs text-slate-500">{isMetric ? 'm' : 'ft'}</span>
+                </div>
+
                 {estimationBasis === 'area' ? (
                   <div>
                     <TooltipLabel 
@@ -568,9 +611,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                     />
                     {area !== '' && (Number(area) < 5 || Number(area) > 2000) && (
-                      <p className="text-[10px] text-red-400 font-mono mt-1 leading-normal">
-                        ⚠️ Safe engineering range: 5 to 2,000 m²
-                      </p>
+                      <InputAlert type="error" message="Safe engineering range: 5 to 2,000 m²" />
                     )}
                   </div>
                 ) : (
@@ -600,9 +641,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                     />
                     {volume !== '' && (Number(volume) < 15 || Number(volume) > 6000) && (
-                      <p className="text-[10px] text-red-400 font-mono mt-1 leading-normal">
-                        ⚠️ Safe engineering range: 15 to 6,000 m³
-                      </p>
+                      <InputAlert type="error" message="Safe engineering range: 15 to 6,000 m³" />
                     )}
                   </div>
                 )}
@@ -634,17 +673,15 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {occupants !== '' && (Number(occupants) < 1 || Number(occupants) > 1000) && (
-                    <p className="text-[10px] text-red-400 font-mono mt-1 leading-normal">
-                      ⚠️ Safe engineering range: 1 to 1,000 people
-                    </p>
+                    <InputAlert type="error" message="Safe engineering range: 1 to 1,000 people" />
                   )}
                   {occupants !== '' && area !== '' && Number(occupants) >= 1 && Number(occupants) <= 1000 && (
                     (() => {
                       const density = Number(area) / Number(occupants);
-                      if (projectType === 'Residential' && density < 30) return <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">⚠️ Density {density.toFixed(1)} m²/person exceeds typical residential bounds (&ge; 30)</p>;
-                      if (projectType === 'Commercial' && density < 10) return <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">⚠️ Density {density.toFixed(1)} m²/person exceeds typical office bounds (&ge; 10)</p>;
-                      if (projectType === 'Healthcare' && density < 15) return <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">⚠️ Density {density.toFixed(1)} m²/person exceeds typical healthcare bounds (&ge; 15)</p>;
-                      if (projectType === 'Industrial' && density < 50) return <p className="text-[10px] text-amber-500 font-mono mt-1 leading-normal">⚠️ Density {density.toFixed(1)} m²/person exceeds typical industrial bounds (&ge; 50)</p>;
+                      if (projectType === 'Residential' && density < 30) return <InputAlert type="warning" message={`Density ${density.toFixed(1)} m²/person exceeds typical residential bounds (≥ 30)`} />;
+                      if (projectType === 'Commercial' && density < 10) return <InputAlert type="warning" message={`Density ${density.toFixed(1)} m²/person exceeds typical office bounds (≥ 10)`} />;
+                      if (projectType === 'Healthcare' && density < 15) return <InputAlert type="warning" message={`Density ${density.toFixed(1)} m²/person exceeds typical healthcare bounds (≥ 15)`} />;
+                      if (projectType === 'Industrial' && density < 50) return <InputAlert type="warning" message={`Density ${density.toFixed(1)} m²/person exceeds typical industrial bounds (≥ 50)`} />;
                       return null;
                     })()
                   )}
@@ -1051,7 +1088,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                           />
                           {pipingLength !== '' && (Number(pipingLength) < 5 || Number(pipingLength) > 1000) && (
-                            <p className="text-[9px] text-red-400 font-mono mt-1">⚠️ Safe engineering range: 5 to 1,000 meters</p>
+                            <InputAlert type="error" message="Safe engineering range: 5 to 1,000 meters" />
                           )}
                         </div>
                       )}
@@ -1619,9 +1656,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             ? (Number(newRoomSize) < 5 || Number(newRoomSize) > 2000)
                             : (Number(newRoomSize) < 15 || Number(newRoomSize) > 6000)
                         ) && (
-                          <p className="absolute left-0 top-full text-[8px] text-red-400 font-mono mt-0.5 whitespace-nowrap z-10 bg-slate-950 px-1.5 py-0.5 rounded border border-red-500/20">
-                            ⚠️ Out of bounds ({newRoomBasis === 'area' ? '5-2000 m²' : '15-6000 m³'})
-                          </p>
+                          <div className="absolute left-0 top-full z-10 mt-0.5"><InputAlert type="error" message={`Out of bounds (${newRoomBasis === 'area' ? '5-2000 m²' : '15-6000 m³'})`} /></div>
                         )}
                       </div>
 
@@ -1640,9 +1675,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                         />
                         {newRoomOccupants !== '' && (Number(newRoomOccupants) < 0 || Number(newRoomOccupants) > 1000) && (
-                          <p className="absolute left-0 top-full text-[8px] text-red-400 font-mono mt-0.5 whitespace-nowrap z-10 bg-slate-950 px-1.5 py-0.5 rounded border border-red-500/20">
-                            ⚠️ Out of bounds (0-1000)
-                          </p>
+                          <div className="absolute left-0 top-full z-10 mt-0.5"><InputAlert type="error" message="Out of bounds (0-1000)" /></div>
                         )}
                       </div>
                     </div>
