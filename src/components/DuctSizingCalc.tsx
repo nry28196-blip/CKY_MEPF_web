@@ -416,7 +416,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
             {/* Parameter 1: Airflow */}
             <div className="space-y-2 mb-6">
               <div className="flex justify-between items-center text-xs">
-                <TooltipLabel label="Main Airflow (Q)" tooltip="Total air volume flow rate entering the main duct branch." className="text-slate-400 font-medium" />
+                <TooltipLabel label="Main Airflow (Q)" tooltip={t("mainAirflowTooltip")} className="text-slate-400 font-medium" />
                 <div className="flex items-center space-x-1.5">
                   <input
                     type="number"
@@ -456,7 +456,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
             {/* Parameter 2: Friction rate */}
             <div className="space-y-2 mb-6">
               <div className="flex justify-between items-center text-xs">
-                <TooltipLabel label="Friction Loss Rate (F)" tooltip="Target pressure drop per unit length. Typical design range: 0.08 to 0.12 in. wg/100 ft (0.8 - 1.2 Pa/m) for standard low-pressure systems." className="text-slate-400 font-medium" />
+                <TooltipLabel label="Friction Loss Rate (F)" tooltip={t("frictionLossTooltip")} className="text-slate-400 font-medium" />
                 <div className="flex items-center space-x-1.5">
                   <input
                     type="number"
@@ -497,7 +497,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
             {/* Parameter 3: Duct Type & Velocity Limit */}
             <div className="space-y-4 mb-6">
               <div className="space-y-2">
-                <div><TooltipLabel label="System / Duct Type" tooltip="Determines the target reference velocity ranges based on the application." className="text-xs text-slate-400 font-medium mb-1" />
+                <div><TooltipLabel label="System / Duct Type" tooltip={t("ductTypeTooltip")} className="text-xs text-slate-400 font-medium mb-1" />
                   <span className="text-[10px] text-slate-500 font-normal">For reference guidelines</span></div>
                 <div className="flex gap-2">
                   <button
@@ -535,7 +535,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <TooltipLabel label="Max Velocity Limit" tooltip={ductType === 'supply' ? "Maximum allowable air velocity. Typical Supply Range: 1000 - 2000 FPM (5 - 10 m/s)." : ductType === 'return' ? "Maximum allowable air velocity. Typical Return Range: 800 - 1500 FPM (4 - 7.5 m/s)." : "Maximum allowable air velocity. Typical Exhaust Range: 1500 - 2500 FPM (7.5 - 12.5 m/s)."} className="text-slate-400 font-medium" />
+                  <TooltipLabel label="Max Velocity Limit" tooltip={ductType === 'supply' ? t("maxVelSupply") : ductType === 'return' ? t("maxVelReturn") : t("maxVelExhaust")} className="text-slate-400 font-medium" />
                   <div className="flex items-center space-x-1.5">
                     <input
                       type="number"
@@ -636,7 +636,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
             {/* Parameter 4: Assigned Height */}
             <div className="space-y-3 mb-6 pt-2 border-t border-slate-800">
               <div className="flex justify-between items-center">
-                <TooltipLabel label="Assigned Duct Height (H)" tooltip="Fixed vertical dimension of rectangular duct. Width will be calculated." className="text-xs text-slate-400 font-medium" />
+                <TooltipLabel label="Assigned Duct Height (H)" tooltip={t("ductHeightTooltip")} className="text-xs text-slate-400 font-medium" />
                 <div className="flex items-center space-x-1">
                   <input
                     type="number"

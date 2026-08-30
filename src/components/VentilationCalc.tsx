@@ -284,7 +284,7 @@ export default function VentilationCalc() {
                 
                 <div className="space-y-4">
                   <div>
-                    <TooltipLabel label={`Floor Area (${areaUnit})`} tooltip="Total occupiable floor area of the zone." status={area > 0 && !isExtremeArea ? 'success' : isExtremeArea ? 'warning' : 'error'} />
+                    <TooltipLabel label={`Floor Area (${areaUnit})`} tooltip={t("floorAreaVentTooltip")} status={area > 0 && !isExtremeArea ? 'success' : isExtremeArea ? 'warning' : 'error'} />
                     <div className="relative">
                       <input
                         type="number"
@@ -305,7 +305,7 @@ export default function VentilationCalc() {
 
                   <div className="pt-3 border-t border-slate-800/50">
                     <div className="flex items-center justify-between mb-2">
-                      <TooltipLabel label="Occupants" tooltip="Number of people in the zone." status={occupants > 0 ? (isExtremeDensity ? 'warning' : 'success') : 'error'} />
+                      <TooltipLabel label="Occupants" tooltip={t("occupantsTooltip")} status={occupants > 0 ? (isExtremeDensity ? 'warning' : 'success') : 'error'} />
                       <label className="flex items-center text-[10px] font-medium text-slate-400 cursor-pointer hover:text-slate-300">
                         <input
                           type="checkbox"
@@ -354,7 +354,7 @@ export default function VentilationCalc() {
                 
                 <div className="space-y-4">
                   <div>
-                    <TooltipLabel label="Air Distribution Effectiveness (Ez)" tooltip="Table 6.2.2.2 typical design limits: 1.0 (Ceiling cooling), 0.8 (Ceiling heating, T_sup > T_room + 15°F), 1.2 (Floor supply)." status="success" />
+                    <TooltipLabel label="Air Distribution Effectiveness (Ez)" tooltip={t("ezTooltip")} status="success" />
                     <select
                       value={zoneEzId}
                       onChange={(e) => setZoneEzId(e.target.value)}
@@ -387,7 +387,7 @@ export default function VentilationCalc() {
 
                   <div className="pt-3 border-t border-slate-800/50">
                     <div className="flex items-center justify-between mb-2">
-                      <TooltipLabel label={`Air Temperature (${tempUnit})`} tooltip="Adjust calculations to reflect actual air density based on temperature, converting Standard volume to Actual volume." status={useTempAdj ? (isExtremeTemp ? 'warning' : 'success') : null} />
+                      <TooltipLabel label={`Air Temperature (${tempUnit})`} tooltip={t("airTempTooltip")} status={useTempAdj ? (isExtremeTemp ? 'warning' : 'success') : null} />
                       <label className="flex items-center text-[10px] font-medium text-slate-400 cursor-pointer hover:text-slate-300">
                         <input
                           type="checkbox"
@@ -441,7 +441,7 @@ export default function VentilationCalc() {
               <div className="flex flex-col justify-center space-y-6">
                 <div className={`bg-slate-950/50 border ${borderClass} rounded-xl p-4 relative transition-colors duration-300`}>
                   <div className="flex justify-between items-start mb-1">
-                    <TooltipLabel label="Breathing Zone Outdoor Air (Vbz)" tooltip="ASHRAE 62.1-2019 Sec 6.2.2.1: Vbz represents the ventilation required directly in the breathing zone for occupants, before accounting for distribution losses." className="text-slate-400 text-xs font-medium mb-0" />
+                    <TooltipLabel label="Breathing Zone Outdoor Air (Vbz)" tooltip={t("vbzTooltip")} className="text-slate-400 text-xs font-medium mb-0" />
                     {!useDefaultDensity && (
                       <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeColor} transition-colors duration-300`}>
                         {badgeText}
@@ -465,7 +465,7 @@ export default function VentilationCalc() {
                   <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
                     <div className={`absolute top-0 right-0 w-16 h-16 ${vozBgDeco} rounded-bl-full transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-all duration-300`} />
                   </div>
-                  <TooltipLabel label={useTempAdj ? "Required Zone Outdoor Air (Actual Voz)" : "Required Zone Outdoor Air (Standard Voz)"} tooltip="ASHRAE 62.1-2019 Sec 6.2.2.3: Voz represents the total ventilation that must be provided to the zone by the supply system to ensure Vbz is satisfied, accounting for mixing effectiveness (Ez)." className={`${vozLabelColor} text-xs font-bold uppercase tracking-wider mb-0 transition-colors duration-300`} />
+                  <TooltipLabel label={useTempAdj ? "Required Zone Outdoor Air (Actual Voz)" : "Required Zone Outdoor Air (Standard Voz)"} tooltip={t("vozTooltip")} className={`${vozLabelColor} text-xs font-bold uppercase tracking-wider mb-0 transition-colors duration-300`} />
                   <div className="flex items-baseline space-x-2">
                     <span className={`text-4xl font-black ${vozNumberColor} tracking-tight transition-colors duration-300`}>{Math.ceil(voz).toLocaleString()}</span>
                     <span className={`${vozLabelColor} font-semibold transition-colors duration-300`}>{flowUnit}</span>

@@ -191,7 +191,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
               <div>
                 <TooltipLabel 
                   label="Load Power Factor"
-                  tooltip="Influences the total Apparent Power (kVA). Typical design range for server/IT loads: 0.90 to 0.99."
+                  tooltip={t("powerFactorTooltip")}
                   className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1" 
                 />
                 <div className="relative">
@@ -210,7 +210,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
               <div>
                 <TooltipLabel 
                   label="Design Margin (e.g. 1.25 for 25%)"
-                  tooltip="Safety factor applied to the total load. Typical design range: 1.2 to 1.3 (20% to 30% margin) to accommodate future expansion."
+                  tooltip={t("safetyFactorTooltip")}
                   className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1" 
                 />
                 <div className="relative">
@@ -237,7 +237,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
               <div>
                 <TooltipLabel 
                   label="Backup Time (Minutes)"
-                  tooltip="Required autonomy time. Determines the total Ampere-hour (Ah) capacity required from the battery string."
+                  tooltip={t("autonomyTooltip")}
                   className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1" 
                 />
                 <div className="relative">

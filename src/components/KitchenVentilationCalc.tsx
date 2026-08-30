@@ -146,7 +146,7 @@ export default function KitchenVentilationCalc() {
             <div>
               <TooltipLabel
                 label="Hood Configuration"
-                tooltip="Wall-mounted canopies require less airflow than island canopies due to the wall preventing cross-drafts."
+                tooltip={t("wallMountedTooltip")}
                 className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase"
                 status="success"
               />
@@ -179,7 +179,7 @@ export default function KitchenVentilationCalc() {
             <div>
               <TooltipLabel
                 label="Cooking Duty"
-                tooltip="Light (ovens, steamers), Medium (griddles, fryers), Heavy (charbroilers), Extra Heavy (solid fuel)."
+                tooltip={t("dutyLevelTooltip")}
                 className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase"
                 status="success"
               />
@@ -198,7 +198,7 @@ export default function KitchenVentilationCalc() {
             <div>
               <TooltipLabel
                 label={`Equipment Bank Length (${isMetric ? 'm' : 'ft'})`}
-                tooltip="Total length of the cooking equipment line."
+                tooltip={t("cookLineTooltip")}
                 className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase"
                 status={equipmentLength > 0 ? 'success' : 'error'}
               />
@@ -215,7 +215,7 @@ export default function KitchenVentilationCalc() {
             <div>
               <TooltipLabel
                 label={`Side Overhang (${isMetric ? 'm' : 'ft'})`}
-                tooltip="Hood extension beyond the equipment on each side (Standard minimum is 6 inches or 0.15m)."
+                tooltip={t("hoodExtTooltip")}
                 className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase"
                 status={isOverhangWarning ? 'warning' : 'success'}
               />
@@ -232,7 +232,7 @@ export default function KitchenVentilationCalc() {
             <div className="pt-4 border-t border-slate-800/60">
               <TooltipLabel
                 label={`Target Duct Velocity (${isMetric ? 'm/s' : 'FPM'})`}
-                tooltip="Code typically requires a minimum grease duct velocity of 500 FPM (2.5 m/s). Typical design range: 1500 - 2200 FPM (7.6 - 11 m/s) to keep grease particulates entrained."
+                tooltip={t("ductVelTooltip")}
                 className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase"
                 status={isVelocityWarning ? 'warning' : 'success'}
               />

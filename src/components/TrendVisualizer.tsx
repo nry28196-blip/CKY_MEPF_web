@@ -863,7 +863,7 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
             </div>
           </div>
         ) : (
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={260}>
           {viewType === 'results' ? (
             type === 'cooling' ? null : (
               <BarChart data={resultsData} margin={{ top: 15, right: 15, left: -15, bottom: 5 }}>

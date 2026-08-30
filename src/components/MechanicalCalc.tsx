@@ -506,13 +506,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
               <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-4 google-pro-border-emerald">
                 <div className="flex items-center space-x-2 mb-2 border-b border-slate-800 pb-3">
                   <Thermometer className="h-4.5 w-4.5 text-emerald-400" />
-                  <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">Thermal Inputs</h3>
+                  <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">{t("thermalInputs")}</h3>
                 </div>
 
                 <div>
                   <TooltipLabel 
                     label={t('estimationBasis')} 
-                    tooltip="Estimation basis logic per ASHRAE Fundamentals Chapter 18 (Non-residential Cooling and Heating Load Calculations)."
+                    tooltip={t("estimationBasisTooltip")}
                     className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider" 
                   />
                   <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-850">
@@ -545,7 +545,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   <div>
                     <TooltipLabel 
                       label={`${t('floorArea')} (m²)`}
-                      tooltip="Total conditioned floor area. Used to estimate generalized sensible cooling loads (W/m²) per ASHRAE 90.1 standard building types."
+                      tooltip={t("floorAreaTooltip")}
                       className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase" 
                     />
                     <input
@@ -577,7 +577,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   <div>
                     <TooltipLabel 
                       label={`${t('roomVolume')} (m³)`}
-                      tooltip="Room volumetric footprint used for psychrometric air change rates (ACH) and precise infiltration load estimations."
+                      tooltip={t("roomVolumeTooltip")}
                       className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase" 
                     />
                     <input
@@ -610,7 +610,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 <div>
                   <TooltipLabel 
                     label={t('occupantDensity')}
-                    tooltip="ASHRAE Standard 62.1 dictates breathing zone outdoor air per person. Adjust to calculate precise sensible and latent human loads."
+                    tooltip={t("occupantTooltip")}
                     className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase" 
                   />
                   <input
@@ -941,7 +941,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <div className="flex justify-between text-xs font-semibold mb-1">
                         <TooltipLabel
                           label="Diversity / Coincidence Factor"
-                          tooltip="Accounts for non-coincidence of peak loads across multiple zones (Standard: 1.1 - 1.25)." 
+                          tooltip={t("vrfDiversityTooltip")} 
                           className="text-slate-400 uppercase"
                         />
                         <span className="font-mono text-emerald-400 font-bold">{diversityFactor.toFixed(2)}x</span>
@@ -965,7 +965,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <div>
                         <TooltipLabel 
                           label="Refrigerant Chemistry"
-                          tooltip="Select refrigerant fluid type to adjust density and global warming potential (GWP) thresholds based on modern compliance standards."
+                          tooltip={t("refrigerantTooltip")}
                           className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
                         />
                         <div className="grid grid-cols-2 gap-2 p-0.5 bg-slate-950 rounded-lg border border-slate-850 text-[10px] font-bold uppercase">
@@ -992,7 +992,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <div>
                         <TooltipLabel 
                           label="Pipe Material"
-                          tooltip="Type of piping material. Determines internal roughness coefficient for pressure drop calculations and refrigerant friction losses."
+                          tooltip={t("pipingMatTooltip")}
                           className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
                         />
                         <select
@@ -1012,7 +1012,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                      <div className="flex justify-between items-center text-xs font-semibold mb-1">
                        <TooltipLabel
                          label="Total Liquid Piping Length (m)"
-                         tooltip="Physical length of the main refrigerant liquid line. Impacts additional refrigerant charge." 
+                         tooltip={t("pipeLenTooltip")} 
                          className="text-slate-400 uppercase"
                        />
                        <div className="flex items-center space-x-1.5 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
@@ -1025,7 +1025,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                          />
                          <TooltipLabel
                            label={<label htmlFor="auto-calc-piping-toggle" className="cursor-pointer">Auto-Calculate from Canvas</label>}
-                           tooltip="Automatically sync piping length from the drawn 2D topology canvas diagram." 
+                           tooltip={t("syncTopologyTooltip")} 
                            className="text-[9px] text-emerald-400 font-bold uppercase select-none"
                          />
                        </div>
@@ -1069,7 +1069,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     <div>
                       <TooltipLabel 
                         label="ODU Sizing Selection"
-                        tooltip="Auto-sized logic applies standard diversity factoring. Manual override lets you specify exact HP condensing unit hardware."
+                        tooltip={t("autoSizeTooltip")}
                         className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
                       />
                       <div className="grid grid-cols-2 gap-2 p-0.5 bg-slate-950 rounded-lg border border-slate-850 text-[10px] font-bold uppercase">
@@ -1102,7 +1102,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <div>
                         <TooltipLabel 
                           label="Manual ODU HP Override"
-                          tooltip="Standard industry capacities for variable refrigerant flow condensing units. Overriding may trigger capacity ratio warnings."
+                          tooltip={t("unitCapTooltip")}
                           className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
                         />
                         <select
@@ -1123,7 +1123,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <div className="flex justify-between text-xs font-semibold mb-1">
                           <TooltipLabel
                           label="Max allowed CR limit"
-                          tooltip="Capacity Ratio limit. 130% is standard for VRF to prevent compressor short-cycling and ensure adequate part-load efficiency." 
+                          tooltip={t("capRatioTooltip")} 
                           className="text-slate-400 uppercase text-[10px]"
                         />
                           <span className="font-mono text-emerald-400 font-bold">{maxAllowedCr}%</span>
@@ -1149,7 +1149,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <div className="flex justify-between text-xs font-semibold mb-1">
                         <TooltipLabel
                           label="Max allowed CR limit"
-                          tooltip="Capacity Ratio limit. 130% is standard for VRF to prevent compressor short-cycling and ensure adequate part-load efficiency." 
+                          tooltip={t("capRatioTooltip")} 
                           className="text-slate-400 uppercase text-[10px]"
                         />
                         <span className="font-mono text-emerald-400 font-bold">{maxAllowedCr}%</span>
@@ -1563,7 +1563,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-850 space-y-3">
                     <TooltipLabel
                       label="Add Custom Indoor Unit Zone"
-                      tooltip="Manually define an indoor unit capacity and location for the VRF circuit." 
+                      tooltip={t("manualUnitTooltip")} 
                       className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block"
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">

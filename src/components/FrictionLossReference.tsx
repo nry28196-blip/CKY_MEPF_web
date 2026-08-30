@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../lib/translations';
 import { X, Droplets, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -21,6 +22,7 @@ const MATERIAL_DATA = [
 ];
 
 export default function FrictionLossReference({ isOpen, onClose }: FrictionLossReferenceProps) {
+  const { isKhmer, setLanguage, language } = useLanguage();
   if (!isOpen) return null;
 
   return (

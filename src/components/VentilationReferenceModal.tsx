@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../lib/translations';
 import { X, BookOpen, Wind, Home, ChefHat } from 'lucide-react';
 
 interface VentilationReferenceModalProps {
@@ -8,6 +9,7 @@ interface VentilationReferenceModalProps {
 
 export default function VentilationReferenceModal({ isOpen, onClose }: VentilationReferenceModalProps) {
   const [activeTab, setActiveTab] = useState<'62.1' | '62.2' | '154'>('62.1');
+  const { isKhmer, setLanguage, language } = useLanguage();
 
   if (!isOpen) return null;
 
@@ -19,14 +21,22 @@ export default function VentilationReferenceModal({ isOpen, onClose }: Ventilati
         <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/50">
           <div className="flex items-center space-x-2">
             <BookOpen className="w-5 h-5 text-sky-400" />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider">ASHRAE Reference Tables</h2>
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider">{isKhmer ? 'ឯកសារយោង ASHRAE' : 'ASHRAE Reference Tables'}</h2>
           </div>
-          <button 
-            onClick={onClose}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setLanguage(language === 'en' ? 'km' : 'en')}
+              className="px-3 py-1.5 text-[10px] font-bold text-sky-400 bg-sky-950/40 border border-sky-900/50 hover:bg-sky-900/30 hover:border-sky-500/30 rounded-lg transition-all cursor-pointer uppercase tracking-wider"
+            >
+              {isKhmer ? 'English' : 'ភាសាខ្មែរ'}
+            </button>
+            <button 
+              onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
@@ -72,10 +82,10 @@ export default function VentilationReferenceModal({ isOpen, onClose }: Ventilati
                 <table className="w-full text-left text-xs text-slate-300">
                   <thead className="bg-slate-950/50 text-slate-400 uppercase font-bold text-[10px]">
                     <tr>
-                      <th className="px-4 py-3 border-b border-slate-800">Occupancy Category</th>
-                      <th className="px-4 py-3 border-b border-slate-800 text-center text-sky-400">Rp (CFM/person)</th>
+                      <th className="px-4 py-3 border-b border-slate-800">{isKhmer ? "ប្រភេទបន្ទប់ (Occupancy)" : "Occupancy Category"}</th>
+                      <th className="px-4 py-3 border-b border-slate-800 text-center text-sky-400">Rp {isKhmer ? "(CFM/មនុស្ស)" : "(CFM/person)"}</th>
                       <th className="px-4 py-3 border-b border-slate-800 text-center text-emerald-400">Ra (CFM/ft²)</th>
-                      <th className="px-4 py-3 border-b border-slate-800 text-center">Default Density (#/1000 ft²)</th>
+                      <th className="px-4 py-3 border-b border-slate-800 text-center">{isKhmer ? "ដង់ស៊ីតេ (Density)" : "Default Density"} (#/1000 ft²)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">

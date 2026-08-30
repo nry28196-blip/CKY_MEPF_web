@@ -244,7 +244,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
           <div>
             <TooltipLabel 
               label="System Phase"
-              tooltip="Electrical phase distribution. Three-phase formulas include the square root of 3 (1.732) in standard power calculations."
+              tooltip={t("phaseTooltip")}
               className="block text-xs font-semibold text-slate-400 mb-2 uppercase" 
             />
             <div className="grid grid-cols-2 gap-3">
@@ -277,7 +277,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
             <div className="flex items-center justify-between mb-2">
               <TooltipLabel 
                 label="Load Power Input"
-                tooltip="Apparent Power (kVA) or Real Power (kW) input requirement of the mechanical or electrical equipment."
+                tooltip={t("loadPowerTooltip")}
                 className="block text-xs font-semibold text-slate-400 uppercase" 
               />
               <div className="flex bg-slate-950 border border-slate-800 p-0.5 rounded text-[10px] font-bold uppercase w-fit">
@@ -327,7 +327,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
             <div>
               <TooltipLabel 
                 label="Voltage (V)"
-                tooltip={phase === 'three' ? "Line-to-Line voltage for 3-phase systems. Typical design range: 400V (EU/UK/Asia/ME) or 480V (US)." : "Line-to-Neutral voltage for single-phase systems. Typical design range: 230V (EU/UK/Asia/ME) or 120V (US)."}
+                tooltip={phase === 'three' ? t("voltageTooltipThree") : t("voltageTooltipSingle")}
                 className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase" 
               />
               <input
@@ -351,7 +351,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
             <div>
               <TooltipLabel 
                 label="Power Factor (cos φ)"
-                tooltip="Ratio of real working power to apparent power. Typical values: 0.85 (motors), 0.95 (lighting), 1.0 (resistive heating)."
+                tooltip={t("pfTooltip")}
                 className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase" 
               />
               <input

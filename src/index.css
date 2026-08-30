@@ -3,8 +3,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Bahnschrift", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Bahnschrift", ui-monospace, SFMono-Regular, monospace;
   --font-khmer: "Battambang", "Khmer OS Battambang", sans-serif;
 }
 

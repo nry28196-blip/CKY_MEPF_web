@@ -6,13 +6,14 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Flame, AlertTriangle, ShieldCheck, Award, Bookmark, 
-  CheckCircle2, Compass, Activity, Info, Layers, RefreshCw, FileSpreadsheet, Mail
+  CheckCircle2, Compass, Activity, Info, Layers, RefreshCw, FileSpreadsheet, Mail, BookOpen
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import TrendVisualizer from './TrendVisualizer';
 import TooltipLabel from './TooltipLabel';
 import { useLanguage } from '../lib/translations';
 import { exportFireToCsv } from '../lib/exportCsv';
+import FireReferenceModal from "./FireReferenceModal";
 import FormulaVisualizer from './FormulaVisualizer';
 
 type HazardClass = 'light' | 'ordinary' | 'extra';
@@ -26,6 +27,7 @@ interface FireCalcProps {
 
 export default function FireCalc({ restoredParams, onSaveCalculation, autoCalculate = true }: FireCalcProps) {
   const { t } = useLanguage();
+  const [isRefModalOpen, setIsRefModalOpen] = useState(false);
   const [subTab, setSubTab] = useState<SubTab>('equipment');
   const [standard, setStandard] = useState<'nfpa' | 'bs'>('nfpa');
   const [hazard, setHazard] = useState<HazardClass>('ordinary');
@@ -526,6 +528,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 text-slate-100">
       
+      <FireReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} />
       {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed top-20 right-6 z-50 bg-slate-900 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg shadow-xl shadow-red-950/20 flex items-center space-x-2 animate-bounce">
@@ -549,7 +552,15 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
               : 'Engineered compliance matching the NFPA Handbook for sprinklers, wet standpipes, fire water storage, and hydraulic pumping systems.'}
           </p>
         </div>
-        <div className="flex items-center space-x-1 bg-slate-950 p-1.5 rounded-xl border border-slate-850">
+                <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsRefModalOpen(true)}
+            className="flex items-center space-x-2 bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-red-400" />
+            <span>Reference</span>
+          </button>
+          <div className="flex items-center space-x-1 bg-slate-950 p-1.5 rounded-xl border border-slate-850">
           <button
             onClick={() => toggleStandard('nfpa')}
             className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded-lg transition-all cursor-pointer ${
@@ -570,6 +581,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
           >
             BS STANDARD
           </button>
+        </div>
         </div>
       </div>
 
@@ -609,10 +621,10 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         
-        {/* LEFT COLUMN: HAZARDS & SPECIFIC INPUTS (7 cols) */}
-        <div className={`lg:col-span-${subTab === 'formulas' ? '12' : '7'} bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-6 google-pro-border-red`}>
+        {/* LEFT COLUMN: HAZARDS & SPECIFIC INPUTS */}
+        <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-6 google-pro-border-red">
           
           {subTab === 'formulas' && (
             <FormulaVisualizer
@@ -697,7 +709,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                 <div>
                   <TooltipLabel 
                     label="Installed Sprinklers Count"
-                    tooltip="Total facility sprinkler heads. Used to estimate total system volume and secondary water reserve mandates."
+                    tooltip={t("totalHeadsTooltip")}
                     className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" 
                   />
                   <input
@@ -719,7 +731,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                 <div>
                   <TooltipLabel 
                     label="Fire Hose Reels Count"
-                    tooltip="Class II/III standpipe hose reels. Adds supplemental concurrent flow demands per NFPA 14."
+                    tooltip={t("hoseReelsTooltip")}
                     className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" 
                   />
                   <input
@@ -857,6 +869,61 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     )}
                   </div>
                 </div>
+
+              <div className="mt-8 pt-6 border-t border-slate-800/80">
+                <h3 className="text-xs font-bold text-red-400 uppercase tracking-widest mb-4">Hydraulic Audit Report</h3>
+
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl flex flex-col justify-center">
+                  <span className="block text-[9px] text-slate-500 uppercase font-semibold">Single Sprinkler Performance</span>
+                  <p className="text-xl font-bold text-white mt-1.5 font-mono">
+                    {singleSprinklerFlowLpm.toFixed(1)} <span className="text-xs text-slate-400">Lpm</span>{' '}
+                    <span className="text-xs text-slate-500">({singleSprinklerFlowGPM.toFixed(1)} GPM)</span>
+                  </p>
+                  <span className="block text-[9px] text-slate-500 leading-normal mt-2">
+                    * Evaluated at K={kFactor} and residual pressure P={residualPressure} {standard === 'bs' ? 'bar' : 'psi'}.
+                  </span>
+                </div>
+                
+                <div className="lg:col-span-3 bg-slate-950/20 border border-slate-850 p-4 rounded-xl">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+                    <div className="flex flex-col justify-center">
+                      <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Design Area Sprinkler Flow</span>
+                      <p className="text-lg font-extrabold text-red-400 font-mono mt-0.5">
+                        {designAreaSprinklerFlowLpm.toLocaleString(undefined, {maximumFractionDigits:0})} <span className="text-xs text-slate-400">Lpm</span>{' '}
+                        <span className="text-xs text-slate-500">({designAreaSprinklerFlowGPM.toFixed(0)} GPM)</span>
+                      </p>
+                      <span className="block text-[9px] text-slate-500 mt-1">
+                        (Flow demand of {activeHeadsInDesignArea} simultaneously active heads)
+                      </span>
+                    </div>
+                    <div className="md:border-l border-t md:border-t-0 border-slate-800 md:pl-4 pt-3 md:pt-0 flex flex-col justify-center">
+                      <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Hose Stream Allowance</span>
+                      <p className="text-sm font-bold text-white mt-0.5">
+                        {standard === 'bs' ? (
+                          <>
+                            {hoseStreamAllowance} Lpm <span className="text-[10px] text-slate-500 font-mono">({(hoseStreamAllowance / 3.7854).toFixed(0)} GPM)</span>
+                          </>
+                        ) : (
+                          <>
+                            {(hoseStreamAllowance * 3.7854).toFixed(0)} Lpm <span className="text-[10px] text-slate-500 font-mono">({hoseStreamAllowance} GPM)</span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <div className="md:border-l border-t md:border-t-0 border-slate-800 md:pl-4 pt-3 md:pt-0 flex flex-col justify-center">
+                      <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Combined Peak System Demand</span>
+                      <p className="text-base font-extrabold text-red-400 mt-0.5 font-mono">
+                        {totalWaterDemandLpm.toLocaleString(undefined, {maximumFractionDigits:0})} Lpm <span className="text-xs text-slate-500">({totalWaterDemandGPM.toFixed(0)} GPM)</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            
+
+            
+              </div>
               </div>
             </div>
           )}
@@ -964,7 +1031,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                 <div>
                   <TooltipLabel 
                     label="Building Static Height (meters)"
-                    tooltip="Vertical distance from the fire pump to the highest hydraulic sprinkler or hose connection. Determines minimum static pressure."
+                    tooltip={t("staticHeadTooltip")}
                     className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
                   />
                   <input
@@ -1028,7 +1095,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                 <div>
                   <TooltipLabel 
                     label="Fire Pump Hydraulic Efficiency (%)"
-                    tooltip="Pump mechanical efficiency factor (typically 65-75% for horizontal split-case pumps) used to calculate motor brake horsepower."
+                    tooltip={t("pumpEffTooltip")}
                     className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
                   />
                   <input
@@ -1069,14 +1136,14 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
 
         </div>
 
-        {/* RIGHT COLUMN: REVIEWS & CALCULATIONS SUMMARY (5 cols) */}
+        {/* RIGHT COLUMN: REVIEWS & CALCULATIONS SUMMARY */}
         {subTab !== 'formulas' && (
           <motion.div
             key={`${subTab}-${totalWaterDemandLpm.toFixed(2)}-${storageTankVolumeLiters.toFixed(2)}`}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="lg:col-span-5 bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl flex flex-col justify-between space-y-6 relative overflow-hidden google-pro-border-red"
+            className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl flex flex-col justify-between space-y-6 relative overflow-hidden google-pro-border-red"
           >
             <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-2xl pointer-events-none" />
           
@@ -1085,248 +1152,41 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
               <span>Hydraulic Audit Report</span>
               <span className="text-[9px] text-slate-500 font-mono">Active Run</span>
             </h3>
-
-            {subTab === 'equipment' && (
-              <div className="space-y-4">
-                <div className="bg-slate-950/40 border border-slate-850 p-3.5 rounded-xl">
-                  <span className="block text-[9px] text-slate-500 uppercase font-semibold">Single Sprinkler Performance</span>
-                  <p className="text-xl font-bold text-white mt-1.5 font-mono">
-                    {singleSprinklerFlowLpm.toFixed(1)} <span className="text-xs text-slate-400">Lpm</span>{' '}
-                    <span className="text-xs text-slate-500">({singleSprinklerFlowGPM.toFixed(1)} GPM)</span>
-                  </p>
-                  <span className="block text-[9px] text-slate-500 leading-normal mt-1">
-                    * Evaluated at K={kFactor} and residual pressure P={residualPressure} {standard === 'bs' ? 'bar' : 'psi'}.
-                  </span>
-                </div>
-
-                <div className="space-y-3.5 pt-3.5 border-t border-slate-800">
-                  <div>
-                    <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Design Area Sprinkler Flow</span>
-                    <p className="text-lg font-extrabold text-red-400 font-mono mt-0.5">
-                      {designAreaSprinklerFlowLpm.toLocaleString(undefined, {maximumFractionDigits:0})} <span className="text-xs text-slate-400">Lpm</span>{' '}
-                      <span className="text-xs text-slate-500">({designAreaSprinklerFlowGPM.toFixed(0)} GPM)</span>
-                    </p>
-                    <span className="block text-[9px] text-slate-500">
-                      (Flow demand of {activeHeadsInDesignArea} simultaneously active heads)
-                    </span>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-850">
-                    <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Hose Stream Allowance</span>
-                    <p className="text-sm font-bold text-white mt-0.5">
-                      {standard === 'bs' ? (
-                        <>
-                          {hoseStreamAllowance} Lpm <span className="text-[10px] text-slate-500 font-mono">({(hoseStreamAllowance / 3.7854).toFixed(0)} GPM)</span>
-                        </>
-                      ) : (
-                        <>
-                          {(hoseStreamAllowance * 3.7854).toFixed(0)} Lpm <span className="text-[10px] text-slate-500 font-mono">({hoseStreamAllowance} GPM)</span>
-                        </>
-                      )}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-850">
-                    <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Combined Peak System Demand</span>
-                    <p className="text-base font-extrabold text-red-400 mt-0.5 font-mono">
-                      {totalWaterDemandLpm.toLocaleString(undefined, {maximumFractionDigits:0})} Lpm <span className="text-xs text-slate-500">({totalWaterDemandGPM.toFixed(0)} GPM)</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {subTab === 'sizing' && (
-              <div className="space-y-4">
-                <div>
-                  <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">
-                    {standard === 'bs' ? 'BS EN 12845 Water Reservoir' : 'NFPA Fire Protection Reservoir'}
-                  </span>
-                  <p className="text-3xl font-black text-red-400 font-mono mt-1">
-                    {storageTankVolumeM3.toFixed(1)} <span className="text-base font-normal text-slate-400">m³</span>
-                  </p>
-                  <span className="block text-[10px] text-slate-400 font-mono mt-1">
-                    ({Math.round(storageTankVolumeGallons).toLocaleString()} Gallons required)
-                  </span>
-                </div>
-
-                <div className="bg-slate-950/40 p-3.5 rounded-xl border border-slate-850 space-y-2">
-                  <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">
-                    {standard === 'bs' ? 'BS Duration Requirement' : 'NFPA Duration Requirement'}
-                  </span>
-                  <div className="text-xs font-mono font-bold text-white">
-                    {flowDuration} minutes <span className="text-slate-400">at</span> {standard === 'bs' ? `${totalWaterDemandLpm.toFixed(0)} Lpm` : `${totalWaterDemandGPM.toFixed(0)} GPM`}
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-slate-800 space-y-2.5">
-                  <div>
-                    <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Hydrant Sizing Check</span>
-                    <p className="text-xs font-bold text-slate-300 mt-1">
-                      Min. {hydrantRequiredOutlets} hydrant connection outlets/valves needed on-site.
-                    </p>
-                    <span className="block text-[9px] text-slate-500 leading-normal mt-0.5">
-                      {standard === 'bs'
-                        ? '* Assumes BS 9990 standard flow of 750 Lpm per wet-riser active landing valve.'
-                        : '* Assumes NFPA standard flow of 250 GPM (946 Lpm) per active outlet.'}
-                    </span>
-                  </div>
-
-                  <div className="pt-2.5 border-t border-slate-850">
-                    <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Breeching Inlet Configuration</span>
-                    <p className="text-xs font-extrabold text-red-400 mt-1">
-                      {suggestedBreechingType}
-                    </p>
-                    <span className="block text-[9px] text-slate-500 leading-normal mt-0.5">
-                      * Sized to withstand municipal backup feeds of {minBreechingInletsNeeded} input connection(s).
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {subTab === 'pump' && (
-              <div className="space-y-4">
-                <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-850 space-y-3">
-                  <div>
-                    <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Main Fire Pump Motor Rating</span>
-                    <p className="text-xl font-extrabold text-red-400 font-mono mt-0.5">
-                      {pumpHP.toFixed(1)} <span className="text-xs text-slate-400">HP</span>{' '}
-                      <span className="text-xs text-slate-500">({pumpKW.toFixed(1)} kW)</span>
-                    </p>
-                    <div className="text-[9px] text-slate-400 font-mono mt-1.5 space-y-0.5">
-                      <div>• Sump Peak Flow: {totalWaterDemandLpm.toLocaleString(undefined, {maximumFractionDigits:0})} Lpm ({totalWaterDemandGPM.toFixed(0)} GPM)</div>
-                      <div>• Total Calc Head: {totalPumpHeadMeters.toFixed(1)} meters ({standard === 'bs' ? `${totalPumpHeadBar.toFixed(1)} bar` : `${totalPumpHeadPsi.toFixed(0)} psi`})</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-950/40 p-3 rounded-lg border border-slate-850 space-y-2">
-                  <span className="block text-[9px] text-slate-500 font-bold uppercase">
-                    {standard === 'bs' ? 'BS EN 12845 System Pressures' : 'NFPA 20 System Pressures'}
-                  </span>
-                  <div className="text-[10px] text-slate-400 font-mono space-y-1">
-                    {standard === 'bs' ? (
-                      <>
-                        <div>• Static Pressure: {staticHeadBar.toFixed(2)} bar</div>
-                        <div>• Pipe Friction Loss: {frictionLossBar.toFixed(2)} bar</div>
-                        <div>• Required Residual pressure: {requiredResidualBar.toFixed(1)} bar</div>
-                      </>
-                    ) : (
-                      <>
-                        <div>• Static Pressure: {staticHeadPsi.toFixed(1)} psi</div>
-                        <div>• Pipe Friction Loss: {frictionLossPsi.toFixed(1)} psi</div>
-                        <div>• Required Residual pressure: {requiredResidualPsi.toFixed(0)} psi</div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-slate-950/40 p-3 rounded-lg border border-slate-850 space-y-1.5">
-                  <span className="block text-[9px] text-slate-500 font-bold uppercase">Maintained Jockey Pump Sizing</span>
-                  <div className="text-[10px] font-mono text-slate-300">
-                    {standard === 'bs' ? (
-                      <>
-                        Flow Rate: <span className="text-red-400 font-bold">{jockeyFlowLpm} Lpm</span> | Head Pressure: <span className="text-red-400 font-bold">{jockeyHeadBar} bar</span>
-                      </>
-                    ) : (
-                      <>
-                        Flow Rate: <span className="text-red-400 font-bold">{jockeyFlowGPM} GPM</span> | Head Pressure: <span className="text-red-400 font-bold">{jockeyHeadPsi} psi</span>
-                      </>
-                    )}
-                  </div>
-                  <span className="block text-[9px] text-slate-500">
-                    * Keeps loop pressurized, preventing main fire pump dry-start cycles.
-                  </span>
-                </div>
-
-                <div className="bg-slate-950/40 p-3.5 rounded-xl border border-slate-850 space-y-2.5">
-                  <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Pump-to-Service Recommended Main Pipes</span>
-                  <div className="space-y-1.5 text-[10px] text-slate-300 font-mono">
-                    <div className="flex justify-between items-center border-b border-slate-850/60 pb-1.5">
-                      <span className="text-slate-400 font-medium">Suction Line ({standard === 'bs' ? 'BS EN 12845' : 'NFPA 20'}):</span>
-                      <span className="text-white font-bold">{firePumpPipes.suction}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-slate-850/60 pb-1.5">
-                      <span className="text-slate-400 font-medium">Discharge Line ({standard === 'bs' ? 'BS EN 12845' : 'NFPA 20'}):</span>
-                      <span className="text-white font-bold">{firePumpPipes.discharge}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 font-medium">Main Service Riser:</span>
-                      <span className="text-white font-bold">{recommendedRiserPipe}</span>
-                    </div>
-                  </div>
-                  <span className="block text-[8px] text-slate-500 italic mt-1 leading-normal">
-                    {standard === 'bs'
-                      ? '* Sized per BS EN 12845 Standard for Fire Pump Suction/Discharge connections, and BS 9990 wet/dry riser criteria.'
-                      : '* Sized per NFPA 20 Standard for Fire Pump Suction/Discharge connections, and NFPA 14 riser criteria.'}
-                  </span>
-                </div>
-              </div>
-            )}
-
+            
+            <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-850">
+                <pre className="text-[10px] text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
+                  {(() => {
+                    let summaryText = '';
+                    if (subTab === 'equipment') {
+                      summaryText = `- Standard: ${standard.toUpperCase()}\n` +
+                        `- Hazard Class: ${hazard.toUpperCase()}\n\n` +
+                        `- Single Sprinkler Flow: ${singleSprinklerFlowLpm.toFixed(1)} Lpm (${singleSprinklerFlowGPM.toFixed(1)} GPM)\n` +
+                        `- Design Area Sprinkler Flow: ${designAreaSprinklerFlowLpm.toFixed(1)} Lpm\n` +
+                        `- Hose Stream Allowance: ${standard === 'bs' ? hoseStreamAllowance : (hoseStreamAllowance * 3.7854).toFixed(1)} Lpm\n\n` +
+                        `- COMBINED PEAK SYSTEM DEMAND: ${totalWaterDemandLpm.toFixed(1)} Lpm (${totalWaterDemandGPM.toFixed(1)} GPM)`;
+                    } else if (subTab === 'sizing') {
+                      summaryText = `- Standard: ${standard.toUpperCase()}\n` +
+                        `- Min Flow Duration: ${flowDuration} mins\n` +
+                        `- Combined Peak Demand: ${totalWaterDemandLpm.toFixed(1)} Lpm\n\n` +
+                        `- RESERVOIR STORAGE REQ: ${storageTankVolumeM3.toFixed(1)} m³\n` +
+                        `  (${storageTankVolumeLiters.toFixed(1)} Liters)\n\n` +
+                        `- Hydrant Connections Needed: ${hydrantRequiredOutlets}\n` +
+                        `- Breeching Inlets: ${minBreechingInletsNeeded} (${suggestedBreechingType})`;
+                    } else if (subTab === 'pump') {
+                      summaryText = `- Fire Pump Rating: ${totalWaterDemandGPM.toFixed(1)} GPM @ ${totalPumpHeadPsi.toFixed(1)} psi\n` +
+                        `- Estimated Motor Power: ${pumpHP.toFixed(1)} HP (${pumpKW.toFixed(1)} kW)\n\n` +
+                        `- Jockey Pump Rating: ${jockeyFlowGPM.toFixed(1)} GPM @ ${jockeyHeadPsi.toFixed(1)} psi\n\n` +
+                        `- Recommended Pipe Sizes:\n` +
+                        `  * Suction: ${firePumpPipes.suction}\n` +
+                        `  * Discharge: ${firePumpPipes.discharge}\n` +
+                        `  * Riser: ${recommendedRiserPipe}`;
+                    }
+                    return summaryText;
+                  })()}
+                </pre>
+            </div>
           </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button
-              onClick={handleSave}
-              className="flex-1 flex items-center justify-center space-x-2 bg-red-950/40 hover:bg-red-900/40 text-red-300 border border-red-500/30 hover:border-red-500/50 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
-            >
-              <Bookmark className="h-4 w-4" />
-              <span>{t('saveIteration')}</span>
-            </button>
-            <button
-              onClick={handleExportCSV}
-              className="flex-1 flex items-center justify-center space-x-2 bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-950/20 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 border border-red-500/50 cursor-pointer"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              <span>{t('exportCsv')}</span>
-            </button>
-            <button
-              onClick={() => {
-                const subject = encodeURIComponent(`CKY_MEPF - Fire Protection Sizing Estimate Report`);
-                let summaryText = '';
-                if (subTab === 'equipment') {
-                  summaryText = `- Standard: ${standard.toUpperCase()}\n` +
-                    `- Hazard Level: ${hazard.toUpperCase()}\n` +
-                    `- Sprinklers Count: ${sprinklersCount}\n` +
-                    `- Hose Reels Count: ${hoseReelsCount}\n` +
-                    `- Hydrants Count: ${hydrantsCount}\n` +
-                    `- K-Factor: ${kFactor}\n` +
-                    `- Residual Pressure: ${residualPressure} ${standard === 'bs' ? 'bar' : 'psi'}\n` +
-                    `- Design Area Active Heads: ${activeHeadsInDesignArea}\n` +
-                    `- Single Head Flow: ${singleSprinklerFlowLpm.toFixed(1)} Lpm (${singleSprinklerFlowGPM.toFixed(1)} GPM)\n` +
-                    `- Total Flow Demand: ${totalWaterDemandLpm.toFixed(0)} Lpm (${totalWaterDemandGPM.toFixed(0)} GPM)`;
-                } else if (subTab === 'sizing') {
-                  summaryText = `- Flow Duration: ${flowDuration} minutes\n` +
-                    `- Hose Stream Allowance: ${hoseStreamAllowance} ${standard === 'bs' ? 'Lpm' : 'GPM'}\n` +
-                    `- Total Fire Water Storage Required: ${storageTankVolumeM3.toFixed(1)} m³ (${storageTankVolumeLiters.toLocaleString()} Liters / ${storageTankVolumeGallons.toLocaleString()} Gallons)\n` +
-                    `- Min Breeching Inlets Needed: ${minBreechingInletsNeeded} (${suggestedBreechingType})`;
-                } else {
-                  summaryText = `- Building Static Height: ${buildingHeight} m\n` +
-                    `- Standpipe Category: ${standpipeSystem}\n` +
-                    `- Friction Loss Allowance: ${pipeFrictionPercent}%\n` +
-                    `- Calculated Pump TDH: ${totalPumpHeadMeters.toFixed(1)} meters (${totalPumpHeadBar.toFixed(1)} bar / ${totalPumpHeadPsi.toFixed(0)} psi)\n` +
-                    `- Required Pump Power: ${pumpHP.toFixed(2)} HP (${pumpKW.toFixed(2)} kW)\n` +
-                    `- Jockey Pump Flow: ${standard === 'bs' ? jockeyFlowLpm + ' Lpm' : jockeyFlowGPM + ' GPM'}\n` +
-                    `- Jockey Head: ${standard === 'bs' ? jockeyHeadBar + ' bar' : jockeyHeadPsi + ' psi'}`;
-                }
-                const body = encodeURIComponent(
-                  `Dear Team,\n\nHere is the Fire Protection Sizing Estimate Report (${subTab === 'equipment' ? 'Hazard & Equipment' : subTab === 'sizing' ? 'Sizing & Sump Checks' : 'Pumping Station Engine'}) generated from CKY_MEPF:\n\n` +
-                  summaryText +
-                  `\n\nGenerated on ${new Date().toLocaleString()}\n` +
-                  `Regards,\n` +
-                  `Design Team`
-                );
-                window.location.href = `mailto:?subject=${subject}&body=${body}`;
-              }}
-              className="flex-1 flex items-center justify-center space-x-2 bg-slate-950 hover:bg-slate-900 text-slate-200 border border-slate-800 hover:border-slate-700 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
-            >
-              <Mail className="h-4 w-4 text-red-400" />
-              <span>{t('shareEmail')}</span>
-            </button>
-          </div>
-        </motion.div>
+</motion.div>
         )}
 
       </div>

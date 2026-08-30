@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../lib/translations';
 import { X, Info, Thermometer, Building, Home, Monitor, Server, Factory, ShoppingCart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -59,6 +60,7 @@ const REFERENCE_DATA = [
 ];
 
 export default function CoolingLoadReference({ isOpen, onClose }: CoolingLoadReferenceProps) {
+  const { isKhmer, setLanguage, language } = useLanguage();
   if (!isOpen) return null;
 
   return (
@@ -105,7 +107,7 @@ export default function CoolingLoadReference({ isOpen, onClose }: CoolingLoadRef
               <Info className="h-5 w-5 text-sky-400 mt-0.5 shrink-0" />
               <div className="text-xs text-slate-300 leading-relaxed space-y-1">
                 <p>
-                  <strong className="text-sky-300">Reference Disclaimer:</strong> These parameters are approximate rule-of-thumb ranges based on standard ASHRAE guidelines for temperate to hot climates. 
+                  {isKhmer ? <><strong className="text-sky-300">កំណត់សម្គាល់៖</strong> ប៉ារ៉ាម៉ែត្រទាំងនេះគឺជាតម្លៃប្រហាក់ប្រហែលផ្អែកលើស្តង់ដារ ASHRAE សម្រាប់អាកាសធាតុក្តៅ។</> : <><strong className="text-sky-300">Reference Disclaimer:</strong> These parameters are approximate rule-of-thumb ranges based on standard ASHRAE guidelines for temperate to hot climates.</>} 
                   Actual cooling loads depend heavily on envelope insulation, window-to-wall ratio, solar orientation, and internal equipment.
                 </p>
               </div>

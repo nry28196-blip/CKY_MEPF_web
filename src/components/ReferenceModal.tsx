@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { useLanguage } from '../lib/translations';
 import { X, BookOpen, Compass, Shield, Wind, Zap, Droplet, Flame, FileText, Check } from 'lucide-react';
 
 interface ReferenceModalProps {
@@ -15,6 +16,7 @@ type RefTab = 'all' | 'mechanical' | 'electrical' | 'plumbing' | 'fire';
 
 export default function ReferenceModal({ isOpen, onClose }: ReferenceModalProps) {
   const [activeTab, setActiveTab] = useState<RefTab>('all');
+  const { isKhmer, setLanguage, language } = useLanguage();
 
   if (!isOpen) return null;
 
@@ -412,16 +414,24 @@ export default function ReferenceModal({ isOpen, onClose }: ReferenceModalProps)
               <BookOpen className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white uppercase tracking-wider">MEP Calculation References & Formulas</h2>
-              <p className="text-[11px] text-slate-400 mt-0.5">Citing official standards and engineering equations for system compliance audits.</p>
+              <h2 className="text-base font-bold text-white uppercase tracking-wider">{isKhmer ? 'ឯកសារយោង និងរូបមន្តវិស្វកម្ម MEP' : 'MEP Calculation References & Formulas'}</h2>
+              <p className="text-[11px] text-slate-400 mt-0.5">{isKhmer ? 'ដកស្រង់ស្ដង់ដារផ្លូវការ និងសមីការវិស្វកម្មសម្រាប់ការត្រួតពិនិត្យប្រព័ន្ធ។' : 'Citing official standards and engineering equations for system compliance audits.'}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setLanguage(language === 'en' ? 'km' : 'en')}
+              className="px-3 py-1.5 text-[10px] font-bold text-sky-400 bg-sky-950/40 border border-sky-900/50 hover:bg-sky-900/30 hover:border-sky-500/30 rounded-lg transition-all cursor-pointer uppercase tracking-wider"
+            >
+              {isKhmer ? 'English' : 'ភាសាខ្មែរ'}
+            </button>
+            <button
+              onClick={onClose}
             className="p-1.5 rounded-lg bg-slate-950 border border-slate-850 text-slate-400 hover:text-white transition-all cursor-pointer hover:border-slate-700"
-          >
-            <X className="h-4.5 w-4.5" />
-          </button>
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+          </div>
         </div>
 
         {/* Discipline Tabs */}

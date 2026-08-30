@@ -1191,7 +1191,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div>
                   <TooltipLabel 
                     label="Water Velocity (m/s)" 
-                    tooltip="Maximum allowable velocity in water distribution pipes to prevent water hammer and excessive noise. Typical range: 1.2 to 2.4 m/s (4 to 8 ft/s)." 
+                    tooltip={t("waterVelTooltip")} 
                     className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" 
                   />
                   <input
@@ -1225,7 +1225,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div>
                   <TooltipLabel 
                     label="Sewage Slope (%)"
-                    tooltip="Minimum slope per IPC to maintain self-cleansing velocity. Typical design range: 1% (1/8 in/ft) for pipes ≥ 3 inches, or 2% (1/4 in/ft) for pipes < 3 inches."
+                    tooltip={t("slopeTooltip")}
                     className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" 
                   />
                   <select
@@ -1539,7 +1539,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div>
                   <TooltipLabel 
                     label="Daily Consump. (Liters/person/day)"
-                    tooltip="Average daily domestic cold water consumption. Values vary by building class (e.g. 150-250 L/p/d for residential)."
+                    tooltip={t("dailyConsumpTooltip")}
                     className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
                   />
                   <input
@@ -1583,7 +1583,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div>
                   <TooltipLabel 
                     label="Septic Discharge Rate (L/p/day)"
-                    tooltip="Soil absorption rate per person. Used to size primary anaerobic breakdown chambers per WHO/local health standards."
+                    tooltip={t("soilAbsTooltip")}
                     className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
                   />
                   <input
@@ -1681,7 +1681,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     <div>
                       <TooltipLabel 
                         label="IPC Target Press. (bar)"
-                        tooltip="Required residual pressure at the highest/most hydraulically remote fixture per IPC (typically 1.0 - 2.0 bar)."
+                        tooltip={t("residualPresTooltip")}
                         className="block text-[9px] text-slate-400 font-bold uppercase mb-1" 
                       />
                       <input
