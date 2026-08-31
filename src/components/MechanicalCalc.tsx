@@ -375,7 +375,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
       {/* Conditional Rendering */}
       {subTab === 'ventilation' ? (
-        <VentilationCalc />
+        <VentilationCalc onVentilationChange={setVentilationLps} />
       ) : subTab === 'formulas' ? (
         <FormulaVisualizer
           category="Mechanical & HVAC"

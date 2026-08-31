@@ -1,664 +1,331 @@
-import React, { useState, useEffect } from 'react';
-import ValidationBanner, { ValidationItem } from './ValidationBanner';
-import { Calculator, Settings2, Plus, Trash2, Wind, AlertCircle, TrendingUp, Info, Thermometer, Mountain } from 'lucide-react';
-import { useLanguage } from '../lib/translations';
+import React, { useState } from 'react';
+import { Settings, Wind, Plus, Trash2, Activity, ShieldAlert, GitBranch } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
+import { CriticalPathService, PathInput, DuctSection } from '../calculations/duct/CriticalPathService';
 import TooltipLabel from './TooltipLabel';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import InputAlert from './InputAlert';
-
-interface FittingType {
-  name: string;
-  cValue: number;
-}
-
-const COMMON_FITTINGS: FittingType[] = [
-  { name: 'Custom / Unknown', cValue: 0.5 },
-  { name: '90° Radius Elbow (R/D=1.5)', cValue: 0.14 },
-  { name: '90° Mitered Elbow (no vanes)', cValue: 1.15 },
-  { name: '90° Mitered Elbow (w/ vanes)', cValue: 0.22 },
-  { name: '45° Radius Elbow', cValue: 0.10 },
-  { name: 'Branch Takeoff (Conical)', cValue: 0.30 },
-  { name: 'Branch Takeoff (Straight)', cValue: 0.85 },
-  { name: 'Transition (Contraction 30°)', cValue: 0.05 },
-  { name: 'Transition (Expansion 30°)', cValue: 0.25 },
-  { name: 'Fire Damper (Fully Open)', cValue: 0.20 },
-];
-
-interface DuctSection {
-  id: string;
-  name: string;
-  airflow: number;
-  width: number;
-  height: number;
-  length: number;
-  fittings: { id: string; typeIndex: number; customC: number; qty: number }[];
-}
 
 export default function StaticPressureCalc() {
-  const { t } = useLanguage();
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
 
-  const lenUnit = isMetric ? 'm' : 'ft';
-  const ductDimUnit = isMetric ? 'mm' : 'in';
   const flowUnit = isMetric ? 'L/s' : 'CFM';
-  const pressUnit = isMetric ? 'Pa' : 'in. wg';
-  const velUnit = isMetric ? 'm/s' : 'FPM';
-
-  // Air Density States
-  const [altitude, setAltitude] = useState<number>(0);
-  const [useAltitudeAdj, setUseAltitudeAdj] = useState<boolean>(false);
-  const [airTemp, setAirTemp] = useState<number>(isMetric ? 20 : 70);
-  const [useTempAdj, setUseTempAdj] = useState<boolean>(false);
-  const [actualDensity, setActualDensity] = useState<number>(0.075);
-  const [densityRatio, setDensityRatio] = useState<number>(1.0);
-
-
-  const [sections, setSections] = useState<DuctSection[]>([
+  const lenUnit = isMetric ? 'm' : 'ft';
+  const dimUnit = isMetric ? 'mm' : 'in';
+  const pressUnit = isMetric ? 'Pa' : 'in.wg';
+  const densityUnit = isMetric ? 'kg/m³' : 'lb/ft³';
+  
+  const [roughness, setRoughness] = useState<number>(isMetric ? 0.09 : 0.0003); // Galv steel
+  const [density, setDensity] = useState<number>(isMetric ? 1.204 : 0.075);
+  const [safetyFactor, setSafetyFactor] = useState<number>(10);
+  
+  const [paths, setPaths] = useState<PathInput[]>([
     {
-      id: '1',
-      name: 'Main Trunk',
-      airflow: isMetric ? 1000 : 2000,
-      width: isMetric ? 600 : 24,
-      height: isMetric ? 400 : 16,
-      length: isMetric ? 15 : 50,
-      fittings: [
-        { id: 'f1', typeIndex: 1, customC: 0.14, qty: 2 }
+      id: 'path-1',
+      name: 'Main Run (Index Path)',
+      sections: [
+        {
+          id: 'sec-1',
+          name: 'Main Supply Duct',
+          airflow: isMetric ? 1000 : 2118,
+          width: isMetric ? 600 : 24,
+          height: isMetric ? 400 : 16,
+          length: isMetric ? 15 : 50,
+          fittingLossCoeff: 1.5,
+          equipmentLoss: isMetric ? 125 : 0.5 // e.g. Coil + Filter
+        },
+        {
+          id: 'sec-2',
+          name: 'Branch to Terminal',
+          airflow: isMetric ? 250 : 530,
+          width: isMetric ? 300 : 12,
+          height: isMetric ? 200 : 8,
+          length: isMetric ? 10 : 33,
+          fittingLossCoeff: 2.2,
+          equipmentLoss: isMetric ? 25 : 0.1 // e.g. Diffuser
+        }
       ]
     }
   ]);
 
-  const [filterDrop, setFilterDrop] = useState<number>(isMetric ? 75 : 0.3);
-  const [coilDrop, setCoilDrop] = useState<number>(isMetric ? 125 : 0.5);
-  const [damperDrop, setDamperDrop] = useState<number>(isMetric ? 25 : 0.1);
-  const [diffuserDrop, setDiffuserDrop] = useState<number>(isMetric ? 25 : 0.1);
-  const [safetyFactor, setSafetyFactor] = useState<number>(10);
-
-  const [results, setResults] = useState({
-    totalStraightLoss: 0,
-    totalFittingLoss: 0,
-    equipmentLoss: 0,
-    totalStaticPressure: 0,
-    designStaticPressure: 0,
-    sectionDetails: [] as any[]
-  });
-
-  const addSection = () => {
-    setSections([...sections, {
-      id: Math.random().toString(),
-      name: `Branch ${sections.length + 1}`,
-      airflow: isMetric ? 250 : 500,
-      width: isMetric ? 300 : 12,
-      height: isMetric ? 300 : 12,
-      length: isMetric ? 5 : 15,
-      fittings: []
-    }]);
+  const addPath = () => {
+    setPaths([
+      ...paths,
+      {
+        id: Math.random().toString(),
+        name: `Path ${paths.length + 1}`,
+        sections: []
+      }
+    ]);
   };
 
-  const updateSection = (id: string, field: keyof DuctSection, value: any) => {
-    setSections(sections.map(s => s.id === id ? { ...s, [field]: value } : s));
+  const removePath = (id: string) => {
+    if (paths.length > 1) {
+      setPaths(paths.filter(p => p.id !== id));
+    }
   };
 
-  const removeSection = (id: string) => {
-    setSections(sections.filter(s => s.id !== id));
-  };
-
-  const addFittingToSection = (sectionId: string) => {
-    setSections(sections.map(s => {
-      if (s.id === sectionId) {
+  const addSection = (pathId: string) => {
+    setPaths(paths.map(p => {
+      if (p.id === pathId) {
         return {
-          ...s,
-          fittings: [...s.fittings, { id: Math.random().toString(), typeIndex: 1, customC: COMMON_FITTINGS[1].cValue, qty: 1 }]
+          ...p,
+          sections: [
+            ...p.sections,
+            {
+              id: Math.random().toString(),
+              name: `Section ${p.sections.length + 1}`,
+              airflow: isMetric ? 500 : 1000,
+              diameter: isMetric ? 300 : 12,
+              length: isMetric ? 10 : 33,
+              fittingLossCoeff: 0,
+              equipmentLoss: 0
+            }
+          ]
         };
       }
-      return s;
+      return p;
     }));
   };
 
-  const updateFitting = (sectionId: string, fittingId: string, field: string, value: any) => {
-    setSections(sections.map(s => {
-      if (s.id === sectionId) {
+  const removeSection = (pathId: string, secId: string) => {
+    setPaths(paths.map(p => {
+      if (p.id === pathId) {
+        return { ...p, sections: p.sections.filter(s => s.id !== secId) };
+      }
+      return p;
+    }));
+  };
+
+  const updateSection = (pathId: string, secId: string, field: keyof DuctSection, value: any) => {
+    setPaths(paths.map(p => {
+      if (p.id === pathId) {
         return {
-          ...s,
-          fittings: s.fittings.map(f => {
-            if (f.id === fittingId) {
-              const updated = { ...f, [field]: value };
-              if (field === 'typeIndex') {
-                updated.customC = COMMON_FITTINGS[value].cValue;
-              }
-              return updated;
+          ...p,
+          sections: p.sections.map(s => {
+            if (s.id === secId) {
+              // If changing to diameter, clear w/h
+              if (field === 'diameter') return { ...s, diameter: value, width: undefined, height: undefined };
+              // If changing w/h, clear diameter
+              if (field === 'width' || field === 'height') return { ...s, [field]: value, diameter: undefined };
+              
+              return { ...s, [field]: value };
             }
-            return f;
+            return s;
           })
         };
       }
-      return s;
+      return p;
     }));
   };
 
-  const removeFitting = (sectionId: string, fittingId: string) => {
-    setSections(sections.map(s => {
-      if (s.id === sectionId) {
-        return { ...s, fittings: s.fittings.filter(f => f.id !== fittingId) };
-      }
-      return s;
-    }));
-  };
-
-  useEffect(() => {
-    // Altitude & Temperature Density Correction
-    const alt_ft = isMetric ? altitude * 3.28084 : altitude;
-    let P_atm = 14.696;
-    if (useAltitudeAdj && alt_ft > 0) {
-      P_atm = 14.696 * Math.pow(1 - 6.8754e-6 * alt_ft, 5.2559);
-    }
-    
-    let T_F = 70;
-    if (useTempAdj) {
-      T_F = isMetric ? (airTemp * 9 / 5) + 32 : airTemp;
-    }
-    const T_R = T_F + 459.67;
-    
-    const standardDensity = 0.075;
-    const calcDensity = standardDensity * (P_atm / 14.696) * (529.67 / T_R);
-    const calcRatio = calcDensity / standardDensity;
-    
-    setActualDensity(isMetric ? calcDensity * 16.0185 : calcDensity);
-    setDensityRatio(calcRatio);
-
-    let totalStraight = 0;
-    let totalFittings = 0;
-    const sectionDetails = [];
-
-    sections.forEach(sec => {
-      // 1. Convert everything to Imperial (CFM, inches, feet) for internal ASHRAE formulas
-      const cfm = isMetric ? sec.airflow * 2.11888 : sec.airflow;
-      const w_in = isMetric ? sec.width / 25.4 : sec.width;
-      const h_in = isMetric ? sec.height / 25.4 : sec.height;
-      const l_ft = isMetric ? sec.length * 3.28084 : sec.length;
-
-      // 2. Equivalent diameter & Velocity
-      const area_sqin = w_in * h_in;
-      const area_sqft = area_sqin / 144;
-      const vel_fpm = area_sqft > 0 ? cfm / area_sqft : 0;
-      
-      const de_in = 1.3 * Math.pow(w_in * h_in, 0.625) / Math.pow(w_in + h_in, 0.25);
-      
-      // 3. Friction Rate (in. wg per 100 ft) - ASHRAE approximation
-      let fr_in_100 = 0;
-      if (vel_fpm > 0 && de_in > 0) {
-        // Friction rate is directly proportional to density ratio
-        fr_in_100 = (0.109136 * Math.pow(vel_fpm, 1.9) / Math.pow(de_in, 1.22)) * calcRatio;
-      }
-      
-      // 4. Straight duct loss (in. wg)
-      const secStraightLoss_in = (l_ft / 100) * fr_in_100;
-      
-      // 5. Velocity Pressure (in. wg)
-      // Pv = rho * (V / 1096.5)^2 -> simplified with density ratio
-      const pv_in = calcRatio * Math.pow(vel_fpm / 4005, 2);
-      
-      // 6. Fittings Loss
-      let secFittingLoss_in = 0;
-      sec.fittings.forEach(fit => {
-        secFittingLoss_in += fit.customC * pv_in * fit.qty;
-      });
-
-      // Convert back to metric if needed
-      const secStraightLoss = isMetric ? secStraightLoss_in * 249.089 : secStraightLoss_in;
-      const secFittingLoss = isMetric ? secFittingLoss_in * 249.089 : secFittingLoss_in;
-      const secPv = isMetric ? pv_in * 249.089 : pv_in;
-      const secVel = isMetric ? vel_fpm * 0.00508 : vel_fpm;
-      
-      totalStraight += secStraightLoss;
-      totalFittings += secFittingLoss;
-
-      sectionDetails.push({
-        id: sec.id,
-        name: sec.name,
-        velocity: secVel,
-        pv: secPv,
-        straightLoss: secStraightLoss,
-        fittingLoss: secFittingLoss,
-        totalLoss: secStraightLoss + secFittingLoss
-      });
-    });
-
-    const equipLoss = filterDrop + coilDrop + damperDrop + diffuserDrop;
-    const totalSP = totalStraight + totalFittings + equipLoss;
-    const designSP = totalSP * (1 + (safetyFactor / 100));
-
-    setResults({
-      totalStraightLoss: totalStraight,
-      totalFittingLoss: totalFittings,
-      equipmentLoss: equipLoss,
-      totalStaticPressure: totalSP,
-      designStaticPressure: designSP,
-      sectionDetails
-    });
-  }, [sections, filterDrop, coilDrop, damperDrop, diffuserDrop, safetyFactor, isMetric, altitude, useAltitudeAdj, airTemp, useTempAdj]);
-  // Validation Engine
-  const validations: ValidationItem[] = [];
-
-  if (useAltitudeAdj && altitude > (isMetric ? 1000 : 3280)) {
-    validations.push({
-      id: 'altitude-high',
-      severity: 'info',
-      message: `High altitude (${altitude} ${isMetric ? 'm' : 'ft'}) significantly reduces air density. System static pressure will be lower than at sea level for the same actual volumetric flow rate.`,
-    });
-  }
-
-  if (useTempAdj && ((isMetric && airTemp > 40) || (!isMetric && airTemp > 104))) {
-    validations.push({
-      id: 'temp-high',
-      severity: 'warning',
-      message: `Elevated airstream temperature (${airTemp}°${isMetric ? 'C' : 'F'}) reduces density. This lowers static pressure for a given actual volume, but decreases mass flow.`,
-    });
-  }
-  if (results.designStaticPressure > (isMetric ? 750 : 3.0)) {
-    validations.push({
-      id: 'sp-high',
-      severity: 'error',
-      message: `Total Design Static Pressure (${results.designStaticPressure.toFixed(isMetric ? 0 : 2)} ${isMetric ? 'Pa' : 'in.wg'}) exceeds typical commercial limits. Fan motor power will be excessively high. Optimize duct sizing or equipment selection.`,
-    });
-  } else if (results.designStaticPressure > (isMetric ? 500 : 2.0)) {
-    validations.push({
-      id: 'sp-warn',
-      severity: 'warning',
-      message: `Total Design Static Pressure (${results.designStaticPressure.toFixed(isMetric ? 0 : 2)} ${isMetric ? 'Pa' : 'in.wg'}) is high. Verify if a medium or high-pressure class duct system is required.`,
-    });
-  }
+  const result = CriticalPathService.calculatePaths(paths, roughness, density, isMetric);
+  const criticalPath = result.paths.find(p => p.pathId === result.criticalPathId);
+  const designPressure = result.maxPressure * (1 + safetyFactor / 100);
   
-  if (safetyFactor < 10) {
-    validations.push({
-      id: 'sf-low',
-      severity: 'warning',
-      message: `Safety factor (${safetyFactor}%) is low. Standard practice recommends 10% to 15% to account for installation variations.`,
+  // Design airflow is the sum of airflow leaving the fan, which typically is the airflow in the very first section of the critical path (if it's a trunk).
+  // But for simple calc, we'll just ask the user or take the max airflow in any section.
+  const designAirflow = criticalPath && criticalPath.sections.length > 0 ? criticalPath.sections[0].friction.airflow : 0;
+  // Actually, the section input has the airflow, let's just find the max airflow across all sections in the critical path.
+  let maxPathAirflow = 0;
+  if (criticalPath) {
+    criticalPath.sections.forEach(s => {
+       // Wait, we didn't store airflow in the result. It's in the input.
+       const secInput = paths.find(p => p.id === criticalPath.pathId)?.sections.find(sx => sx.id === s.sectionId);
+       if (secInput && secInput.airflow > maxPathAirflow) maxPathAirflow = secInput.airflow;
     });
-  }
-  
-  // Find sections with very high velocity or friction
-  results.sectionDetails.forEach(det => {
-    if (det.velocity > (isMetric ? 12.7 : 2500)) {
-      validations.push({
-        id: `sec-${det.id}-vel`,
-        severity: 'error',
-        message: `Section "${det.name}" velocity (${det.velocity.toFixed(0)} ${isMetric ? 'm/s' : 'FPM'}) is dangerously high and will cause severe acoustic issues.`,
-      });
-    }
-  });
-
-  
-  // Compute Chart Data
-  const chartData: any[] = [];
-  let cum = 0;
-  chartData.push({ name: 'Start', SP: 0 });
-  
-  results.sectionDetails.forEach(sec => {
-    if (sec.straightLoss > 0) {
-      cum += sec.straightLoss;
-      chartData.push({ name: `${sec.name} (Duct)`, SP: cum });
-    }
-    if (sec.fittingLoss > 0) {
-      cum += sec.fittingLoss;
-      chartData.push({ name: `${sec.name} (Fittings)`, SP: cum });
-    }
-  });
-  
-  if (results.equipmentLoss > 0) {
-    cum += results.equipmentLoss;
-    chartData.push({ name: 'Equipment Drops', SP: cum });
-  }
-
-  // Final point matches total unadjusted SP (design SP is just a safety factor)
-  // Or we can add Safety factor
-  if (safetyFactor > 0) {
-    cum += results.designStaticPressure - results.totalStaticPressure;
-    chartData.push({ name: 'Safety Margin', SP: cum });
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <ValidationBanner validations={validations} />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Col: Inputs */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-slate-800 mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-slate-800 pb-3 gap-3">
-              <div className="flex items-center space-x-2">
-                <Mountain className="h-4.5 w-4.5 text-sky-400" />
-                <h3 className="text-sm font-semibold text-slate-300 tracking-wider uppercase">Air Density Adjustments</h3>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-[10px] text-slate-400 font-mono flex flex-col text-right leading-tight bg-slate-950 px-2 py-1 rounded border border-slate-800/50">
-                  <span>Actual: <strong className="text-sky-400">{actualDensity.toFixed(4)}</strong> {isMetric ? 'kg/m³' : 'lb/ft³'}</span>
-                  <span>Ratio: <strong className="text-sky-400">{densityRatio.toFixed(3)}</strong></span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Altitude Correction */}
-              <div>
-                <TooltipLabel label="Altitude / Air Density" tooltip="Adjust air density based on non-sea-level altitude." className="text-sky-400 mb-2" />
-                <div className="flex items-center space-x-2">
-                  <label className="flex items-center text-[10px] font-medium text-slate-400 cursor-pointer w-20 shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={useAltitudeAdj}
-                      onChange={(e) => setUseAltitudeAdj(e.target.checked)}
-                      className="mr-1.5 rounded border-slate-700 text-sky-500 focus:ring-sky-500 bg-slate-900"
-                    />
-                    Enable
-                  </label>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      disabled={!useAltitudeAdj}
-                      value={altitude === 0 && !useAltitudeAdj ? '' : altitude}
-                      onChange={(e) => {
-                        if (useAltitudeAdj) setAltitude(e.target.value === '' ? 0 : Number(e.target.value));
-                      }}
-                      placeholder="Altitude"
-                      className={`w-full bg-slate-950 rounded-lg pl-9 pr-8 py-1.5 text-sm font-mono focus:outline-none transition-colors border ${
-                        !useAltitudeAdj ? 'text-slate-600 border-slate-800' : 'text-white border-slate-700 focus:border-sky-500'
-                      }`}
-                    />
-                    <Mountain className={`w-3.5 h-3.5 absolute left-3 top-2 ${!useAltitudeAdj ? 'text-slate-700' : 'text-slate-500'}`} />
-                    <span className="absolute right-3 top-2 text-[10px] font-bold text-slate-500 select-none uppercase">{isMetric ? 'm' : 'ft'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Temperature Correction */}
-              <div>
-                <TooltipLabel label="Air Temperature" tooltip="Adjust air density based on actual air stream temperature (e.g. heated makeup air or hot exhaust)." className="text-sky-400 mb-2" />
-                <div className="flex items-center space-x-2">
-                  <label className="flex items-center text-[10px] font-medium text-slate-400 cursor-pointer w-20 shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={useTempAdj}
-                      onChange={(e) => setUseTempAdj(e.target.checked)}
-                      className="mr-1.5 rounded border-slate-700 text-sky-500 focus:ring-sky-500 bg-slate-900"
-                    />
-                    Enable
-                  </label>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      disabled={!useTempAdj}
-                      value={airTemp}
-                      onChange={(e) => {
-                        if (useTempAdj) setAirTemp(e.target.value === '' ? 0 : Number(e.target.value));
-                      }}
-                      className={`w-full bg-slate-950 rounded-lg pl-9 pr-8 py-1.5 text-sm font-mono focus:outline-none transition-colors border ${
-                        !useTempAdj ? 'text-slate-600 border-slate-800' : 'text-white border-slate-700 focus:border-sky-500'
-                      }`}
-                    />
-                    <Thermometer className={`w-3.5 h-3.5 absolute left-3 top-2 ${!useTempAdj ? 'text-slate-700' : 'text-slate-500'}`} />
-                    <span className="absolute right-3 top-2 text-[10px] font-bold text-slate-500 select-none uppercase">°{isMetric ? 'C' : 'F'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div className="bg-amber-950/20 border border-amber-900/50 p-4 rounded-xl flex items-start text-xs text-amber-400">
+         <ShieldAlert className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5" />
+         <p>
+           <strong>Engineering Calculation Aid:</strong> Uses Darcy-Weisbach and Colebrook-White equations for accurate duct friction based on actual air density. 
+           Do not add pressure drops of parallel branches. Identify the critical (highest pressure drop) path to size the fan.
+         </p>
+      </div>
+      
+      {/* Settings */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+        <h3 className="text-sm font-semibold text-white mb-5 flex items-center">
+          <Settings className="w-4 h-4 mr-2 text-indigo-400" />
+          System Parameters
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <TooltipLabel label={`Air Density (${densityUnit})`} className="text-[10px] font-bold text-slate-400 uppercase mb-1.5" />
+            <input type="number" min="0" step="0.01" value={density} onChange={(e) => setDensity(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-indigo-500" />
           </div>
-
-          <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-slate-800">
-            <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <Calculator className="h-4.5 w-4.5 text-indigo-400" />
-                <h3 className="text-sm font-semibold text-slate-300 tracking-wider uppercase">Duct Index Run (Critical Path)</h3>
-              </div>
-              <button 
-                onClick={addSection}
-                className="bg-indigo-900/30 text-indigo-400 hover:bg-indigo-800/40 px-3 py-1.5 rounded-lg flex items-center text-xs font-bold uppercase transition-colors"
-              >
-                <Plus className="w-4 h-4 mr-1" /> Add Section
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              {sections.map((sec, index) => {
-                const det = results.sectionDetails.find(d => d.id === sec.id);
-                return (
-                  <div key={sec.id} className="bg-slate-950/50 rounded-xl border border-slate-850 p-4">
-                    <div className="flex justify-between items-center mb-4 border-b border-slate-800/60 pb-2">
-                      <input
-                        type="text"
-                        value={sec.name}
-                        onChange={e => updateSection(sec.id, 'name', e.target.value)}
-                        className="bg-transparent text-sm font-bold text-slate-200 focus:outline-none focus:text-indigo-400 w-1/2"
-                      />
-                      <div className="flex items-center space-x-4">
-                        {det && (
-                          <div className="flex space-x-3 text-[10px] font-mono text-slate-500">
-                            <span>V: <strong className="text-indigo-400">{det.velocity.toFixed(1)}</strong> {velUnit}</span>
-                            <span>Pv: <strong className="text-indigo-400">{det.pv.toFixed(isMetric ? 1 : 3)}</strong> {pressUnit}</span>
-                          </div>
-                        )}
-                        {sections.length > 1 && (
-                          <button onClick={() => removeSection(sec.id)} className="text-slate-500 hover:text-red-400 p-1">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div>
-                        <TooltipLabel label={`Airflow (${flowUnit})`} className="text-[10px] text-slate-400 uppercase font-bold mb-1 block" />
-                        <input
-                          type="number" min="1"
-                          value={sec.airflow || ''}
-                          onChange={e => updateSection(sec.id, 'airflow', Number(e.target.value) || 0)}
-                          className="w-full bg-slate-900 text-white rounded px-3 py-1.5 text-xs font-mono focus:outline-none border border-slate-800 focus:border-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <TooltipLabel label={`Width/Dia (${ductDimUnit})`} className="text-[10px] text-slate-400 uppercase font-bold mb-1 block" />
-                        <input
-                          type="number" min="1"
-                          value={sec.width || ''}
-                          onChange={e => updateSection(sec.id, 'width', Number(e.target.value) || 0)}
-                          className="w-full bg-slate-900 text-white rounded px-3 py-1.5 text-xs font-mono focus:outline-none border border-slate-800 focus:border-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <TooltipLabel label={`Height (${ductDimUnit})`} className="text-[10px] text-slate-400 uppercase font-bold mb-1 block" />
-                        <input
-                          type="number" min="1"
-                          value={sec.height || ''}
-                          onChange={e => updateSection(sec.id, 'height', Number(e.target.value) || 0)}
-                          className="w-full bg-slate-900 text-white rounded px-3 py-1.5 text-xs font-mono focus:outline-none border border-slate-800 focus:border-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <TooltipLabel label={`Length (${lenUnit})`} className="text-[10px] text-slate-400 uppercase font-bold mb-1 block" />
-                        <input
-                          type="number" min="0" step="0.1"
-                          value={sec.length || ''}
-                          onChange={e => updateSection(sec.id, 'length', Number(e.target.value) || 0)}
-                          className="w-full bg-slate-900 text-white rounded px-3 py-1.5 text-xs font-mono focus:outline-none border border-slate-800 focus:border-indigo-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-900/80 rounded-lg p-3">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Fittings (Loss = C × Pv)</span>
-                        <button 
-                          onClick={() => addFittingToSection(sec.id)}
-                          className="text-[10px] text-cyan-400 hover:text-cyan-300 uppercase font-bold flex items-center"
-                        >
-                          <Plus className="w-3 h-3 mr-1" /> Add Fitting
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        {sec.fittings.map(fit => (
-                          <div key={fit.id} className="flex flex-wrap md:flex-nowrap gap-2 items-center">
-                            <select
-                              value={fit.typeIndex}
-                              onChange={e => updateFitting(sec.id, fit.id, 'typeIndex', Number(e.target.value))}
-                              className="flex-grow bg-slate-950 text-slate-200 text-xs px-2 py-1.5 rounded border border-slate-800 focus:outline-none min-w-[150px]"
-                            >
-                              {COMMON_FITTINGS.map((f, i) => (
-                                <option key={i} value={i}>{f.name}</option>
-                              ))}
-                            </select>
-                            
-                            <div className="flex items-center space-x-2 w-full md:w-auto">
-                              <div className="w-16">
-                                <TooltipLabel label="C-Val" className="text-[8px] text-slate-500 uppercase block ml-1" />
-                                <input
-                                  type="number" step="0.01"
-                                  value={fit.customC}
-                                  onChange={e => updateFitting(sec.id, fit.id, 'customC', Number(e.target.value) || 0)}
-                                  className="w-full bg-slate-950 text-slate-200 text-xs px-2 py-1.5 rounded border border-slate-800 focus:outline-none font-mono text-center"
-                                />
-                              </div>
-                              <div className="w-12">
-                                <TooltipLabel label="Qty" className="text-[8px] text-slate-500 uppercase block ml-1" />
-                                <input
-                                  type="number" min="1"
-                                  value={fit.qty || ''}
-                                  onChange={e => updateFitting(sec.id, fit.id, 'qty', Number(e.target.value) || 0)}
-                                  className="w-full bg-slate-950 text-slate-200 text-xs px-2 py-1.5 rounded border border-slate-800 focus:outline-none font-mono text-center"
-                                />
-                              </div>
-                              <button onClick={() => removeFitting(sec.id, fit.id)} className="text-slate-500 hover:text-red-400 mt-3 p-1">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        {sec.fittings.length === 0 && (
-                          <span className="text-[10px] text-slate-500 italic block mt-1">No fittings in this section.</span>
-                        )}
-                      </div>
-                    </div>
-
-                  </div>
-                );
-              })}
-            </div>
+          <div>
+            <TooltipLabel label={`Duct Roughness (${isMetric ? 'mm' : 'ft'})`} className="text-[10px] font-bold text-slate-400 uppercase mb-1.5" />
+            <input type="number" min="0" step="0.001" value={roughness} onChange={(e) => setRoughness(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-indigo-500" />
           </div>
-
-          <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-slate-800">
-            <div className="flex items-center space-x-2 mb-6 border-b border-slate-800 pb-3">
-              <Wind className="h-4.5 w-4.5 text-rose-400" />
-              <h3 className="text-sm font-semibold text-slate-300 tracking-wider uppercase">Equipment Pressure Drops</h3>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Filters ({pressUnit})</label>
-                <input
-                  type="number" step="0.01" min="0"
-                  value={filterDrop || ''}
-                  onChange={(e) => setFilterDrop(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-950 text-white rounded-lg px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/50 border border-slate-800"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Coils ({pressUnit})</label>
-                <input
-                  type="number" step="0.01" min="0"
-                  value={coilDrop || ''}
-                  onChange={(e) => setCoilDrop(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-950 text-white rounded-lg px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/50 border border-slate-800"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Dampers ({pressUnit})</label>
-                <input
-                  type="number" step="0.01" min="0"
-                  value={damperDrop || ''}
-                  onChange={(e) => setDamperDrop(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-950 text-white rounded-lg px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/50 border border-slate-800"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Diffusers ({pressUnit})</label>
-                <input
-                  type="number" step="0.01" min="0"
-                  value={diffuserDrop || ''}
-                  onChange={(e) => setDiffuserDrop(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-950 text-white rounded-lg px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/50 border border-slate-800"
-                />
-              </div>
-            </div>
+          <div>
+            <TooltipLabel label="Safety Factor (%)" className="text-[10px] font-bold text-slate-400 uppercase mb-1.5" />
+            <input type="number" min="0" value={safetyFactor} onChange={(e) => setSafetyFactor(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-indigo-500" />
           </div>
-
         </div>
+      </div>
 
-        {/* Right Col: Results */}
-        <div className="space-y-6">
-          <div className="bg-gradient-to-b from-slate-900 to-indigo-950/40 border border-indigo-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-            
-            <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-6 border-b border-indigo-500/20 pb-3">
-              Total System Static Pressure
-            </h3>
-            <div className="space-y-5">
-              
-              <div className="flex justify-between items-end border-b border-slate-800/60 pb-2">
-                <span className="text-xs text-slate-400">Total Straight Loss</span>
-                <span className="text-sm font-mono text-slate-200">{results.totalStraightLoss.toFixed(isMetric ? 0 : 3)} <span className="text-[10px] text-slate-500">{pressUnit}</span></span>
-              </div>
-              
-              <div className="flex justify-between items-end border-b border-slate-800/60 pb-2">
-                <span className="text-xs text-slate-400">Total Fittings Loss</span>
-                <span className="text-sm font-mono text-slate-200">{results.totalFittingLoss.toFixed(isMetric ? 0 : 3)} <span className="text-[10px] text-slate-500">{pressUnit}</span></span>
-              </div>
-              
-              <div className="flex justify-between items-end border-b border-slate-800/60 pb-2">
-                <span className="text-xs text-slate-400">Equipment Drops</span>
-                <span className="text-sm font-mono text-rose-300">{results.equipmentLoss.toFixed(isMetric ? 0 : 3)} <span className="text-[10px] text-rose-500/60">{pressUnit}</span></span>
-              </div>
-
-            </div>
-
-            <div className="mt-8 pt-5 border-t border-indigo-500/30">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-bold text-slate-300 uppercase">System Static Pressure</span>
-                <span className="text-[10px] text-slate-500">Unadjusted</span>
-              </div>
-              <div className="flex items-baseline space-x-2 text-indigo-100">
-                <span className="text-3xl font-black font-mono tracking-tighter shadow-indigo-500/20">{results.totalStaticPressure.toFixed(isMetric ? 0 : 2)}</span>
-                <span className="text-sm font-bold text-indigo-400">{pressUnit}</span>
-              </div>
-            </div>
-
-            <div className="mt-6 p-4 bg-indigo-950/50 border border-indigo-900/50 rounded-xl">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-[11px] font-bold text-indigo-300 uppercase">Design / Fan Selection SP</span>
-                <div className="flex items-center space-x-2">
-                  <span className="text-[10px] text-indigo-400/60">+ Safety Factor</span>
-                  <input
-                    type="number" min="0" max="100"
-                    value={safetyFactor || ''}
-                    onChange={(e) => setSafetyFactor(Number(e.target.value) || 0)}
-                    className="w-12 bg-slate-900 text-indigo-300 rounded px-1.5 py-1 text-xs font-mono focus:outline-none border border-indigo-800 text-center"
+      {/* Paths */}
+      <div className="space-y-6">
+        {paths.map((path, pIdx) => {
+          const isCritical = path.id === result.criticalPathId;
+          const pathRes = result.paths.find(r => r.pathId === path.id);
+          
+          return (
+            <div key={path.id} className={`bg-slate-900 border rounded-xl p-5 shadow-lg ${isCritical ? 'border-indigo-500/50 shadow-indigo-900/20' : 'border-slate-800'}`}>
+              <div className="flex justify-between items-center mb-5 border-b border-slate-800/60 pb-3">
+                <div className="flex items-center">
+                  <GitBranch className={`w-4 h-4 mr-2 ${isCritical ? 'text-indigo-400' : 'text-slate-500'}`} />
+                  <input 
+                    type="text" 
+                    value={path.name}
+                    onChange={(e) => setPaths(paths.map(p => p.id === path.id ? { ...p, name: e.target.value } : p))}
+                    className="bg-transparent text-white font-semibold text-sm border-none focus:ring-0 p-0 w-64"
                   />
-                  <span className="text-[10px] text-indigo-400/60">%</span>
+                  {isCritical && <span className="ml-3 px-2 py-0.5 bg-indigo-500/20 text-indigo-400 text-[10px] uppercase font-bold rounded">Critical Path</span>}
                 </div>
+                <button onClick={() => removePath(path.id)} className="text-slate-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
               </div>
-              
-              <div className="flex items-baseline space-x-2 text-white drop-shadow-md">
-                <span className="text-4xl font-black font-mono tracking-tighter">{results.designStaticPressure.toFixed(isMetric ? 0 : 2)}</span>
-                <span className="text-sm font-bold text-indigo-400">{pressUnit}</span>
-              </div>
-            </div>
-            
-            <div className="mt-4 flex items-start space-x-2 text-[10px] text-indigo-200/60 leading-relaxed">
-              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-indigo-400/80" />
-              <p>ASHRAE Dynamic Pressure method. Pressure losses are calculated via velocity pressure ($P_v$) and loss coefficients ($C$).</p>
-            </div>
 
+              <div className="space-y-4">
+                {path.sections.map((sec, sIdx) => {
+                  const secRes = pathRes?.sections.find(s => s.sectionId === sec.id);
+                  
+                  return (
+                    <div key={sec.id} className="bg-slate-950/50 border border-slate-800/50 p-4 rounded-lg relative">
+                      <button onClick={() => removeSection(path.id, sec.id)} className="absolute top-3 right-3 text-slate-600 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                      
+                      <input 
+                        type="text" 
+                        value={sec.name}
+                        onChange={(e) => updateSection(path.id, sec.id, 'name', e.target.value)}
+                        className="bg-transparent text-white text-xs font-bold border-none focus:ring-0 p-0 mb-3 w-48"
+                      />
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                        <div>
+                          <label className="block text-[9px] text-slate-500 uppercase">Flow ({flowUnit})</label>
+                          <input type="number" min="0" value={sec.airflow} onChange={(e) => updateSection(path.id, sec.id, 'airflow', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-slate-500 uppercase">Shape</label>
+                          <select 
+                            value={sec.diameter !== undefined ? 'round' : 'rect'}
+                            onChange={(e) => {
+                              if (e.target.value === 'round') updateSection(path.id, sec.id, 'diameter', isMetric ? 300 : 12);
+                              else { updateSection(path.id, sec.id, 'width', isMetric ? 400 : 16); updateSection(path.id, sec.id, 'height', isMetric ? 300 : 12); }
+                            }}
+                            className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700"
+                          >
+                            <option value="rect">Rect</option>
+                            <option value="round">Round</option>
+                          </select>
+                        </div>
+                        {sec.diameter !== undefined ? (
+                          <div className="col-span-2">
+                            <label className="block text-[9px] text-slate-500 uppercase">Diameter ({dimUnit})</label>
+                            <input type="number" min="0" value={sec.diameter} onChange={(e) => updateSection(path.id, sec.id, 'diameter', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <label className="block text-[9px] text-slate-500 uppercase">W ({dimUnit})</label>
+                              <input type="number" min="0" value={sec.width} onChange={(e) => updateSection(path.id, sec.id, 'width', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] text-slate-500 uppercase">H ({dimUnit})</label>
+                              <input type="number" min="0" value={sec.height} onChange={(e) => updateSection(path.id, sec.id, 'height', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                            </div>
+                          </>
+                        )}
+                        <div>
+                          <label className="block text-[9px] text-slate-500 uppercase">Len ({lenUnit})</label>
+                          <input type="number" min="0" value={sec.length} onChange={(e) => updateSection(path.id, sec.id, 'length', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-slate-500 uppercase">Fittings (ΣC)</label>
+                          <input type="number" min="0" step="0.1" value={sec.fittingLossCoeff} onChange={(e) => updateSection(path.id, sec.id, 'fittingLossCoeff', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-slate-500 uppercase">Equip ({pressUnit})</label>
+                          <input type="number" min="0" step="1" value={sec.equipmentLoss} onChange={(e) => updateSection(path.id, sec.id, 'equipmentLoss', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                        </div>
+                      </div>
+
+                      {secRes && (
+                        <div className="mt-3 pt-3 border-t border-slate-800/60 flex flex-wrap gap-4 text-[10px] font-mono text-slate-400">
+                          <span>Vel: {Math.round(secRes.friction.velocity)} {isMetric ? 'm/s' : 'FPM'}</span>
+                          <span>Pv: {secRes.friction.velocityPressure.toFixed(2)} {pressUnit}</span>
+                          <span>ΔP Str: {secRes.friction.pressureDrop.toFixed(2)} {pressUnit}</span>
+                          <span>ΔP Fit: {secRes.fittingLoss.toFixed(2)} {pressUnit}</span>
+                          <span className="text-white font-bold">Total: {secRes.total.toFixed(2)} {pressUnit}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                
+                <button onClick={() => addSection(path.id)} className="text-xs text-sky-400 hover:text-sky-300 flex items-center px-2 py-1">
+                  <Plus className="w-3 h-3 mr-1" /> Add Section
+                </button>
+              </div>
+
+              {pathRes && (
+                <div className="mt-4 bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Path Total Pressure</span>
+                  <span className={`text-lg font-mono font-bold ${isCritical ? 'text-indigo-400' : 'text-slate-300'}`}>
+                    {pathRes.totalPressure.toFixed(2)} <span className="text-[10px]">{pressUnit}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <button onClick={addPath} className="w-full py-3 border border-dashed border-slate-700 rounded-xl text-sm text-slate-400 hover:text-white hover:border-slate-500 transition-all flex items-center justify-center">
+          <Plus className="w-4 h-4 mr-2" /> Add Parallel Path
+        </button>
+      </div>
+
+      {/* Results */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg">
+        <h3 className="text-sm font-semibold text-white mb-5 flex items-center">
+          <Activity className="w-4 h-4 mr-2 text-emerald-400" />
+          Fan Duty Selection
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-slate-950/50 p-6 rounded-xl border border-emerald-900/30 flex flex-col justify-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent" />
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 z-10">Design Static Pressure</p>
+            <p className="text-5xl font-black text-white font-mono tracking-tight drop-shadow-md z-10">
+              {designPressure.toFixed(2)}
+            </p>
+            <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest mt-1 z-10">{pressUnit}</p>
+            
+            <div className="mt-4 pt-4 border-t border-slate-800/60 z-10 space-y-1 text-[10px]">
+              <div className="flex justify-between text-slate-400">
+                <span>Critical Path SP</span>
+                <span className="font-mono">{result.maxPressure.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Safety Allowance</span>
+                <span className="font-mono">+ {safetyFactor}%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-slate-950/50 p-6 rounded-xl border border-slate-800/50 flex flex-col justify-center">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Design Airflow (Max Path Flow)</p>
+            <p className="text-4xl font-black text-white font-mono tracking-tight drop-shadow-md">
+              {Math.ceil(maxPathAirflow).toLocaleString()}
+              <span className="text-sm font-bold text-slate-500 ml-2">{flowUnit}</span>
+            </p>
+            <p className="text-[10px] text-amber-400 mt-4 leading-relaxed">
+              Final fan selection must be checked against the manufacturer's fan curve at actual density conditions.
+            </p>
           </div>
         </div>
       </div>
