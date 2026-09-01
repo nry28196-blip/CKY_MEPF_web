@@ -8,6 +8,7 @@ import ResidentialVentilationCalc from './ResidentialVentilationCalc';
 import Ashrae621VentilationCalc from './Ashrae621VentilationCalc';
 import CommercialLocalExhaustCalc from './CommercialLocalExhaustCalc';
 import AirBalanceCalc from './AirBalanceCalc';
+import SystemPerformanceCalc from './SystemPerformanceCalc';
 
 export default function VentilationCalc({ onVentilationChange }: { onVentilationChange?: (flow: number) => void }) {
   const { t } = useLanguage();

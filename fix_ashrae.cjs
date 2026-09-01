@@ -1,4 +1,17 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/calculations/ventilation/Ashrae621Service.ts', 'utf8');
-code = code.replace(/const vbz = vbp \+ vba;/, "// Vbz = Rp*Pz + Ra*Az calculation\n    const vbz = vbp + vba;");
-fs.writeFileSync('src/calculations/ventilation/Ashrae621Service.ts', code);
+
+let file = fs.readFileSync('src/components/Ashrae621VentilationCalc.tsx', 'utf8');
+
+file = file.replace(
+  /<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">/g,
+  '<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">'
+);
+
+file = file.replace(
+  /          <\/div>\n        <\/div>\n          <div>\n            <label className="block text-\[10px\] font-bold text-slate-400 mb-1\.5 uppercase">System Type<\/label>/,
+  `          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">System Type</label>`
+);
+
+fs.writeFileSync('src/components/Ashrae621VentilationCalc.tsx', file);

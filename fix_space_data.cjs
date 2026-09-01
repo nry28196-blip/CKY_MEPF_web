@@ -1,4 +1,6 @@
-import { VentilationSpaceType } from '../../../models/VentilationModels';
+const fs = require('fs');
+
+const spaceCode = `import { VentilationSpaceType } from '../../../models/VentilationModels';
 
 export const ASHRAE_62_1_2022_SPACES: VentilationSpaceType[] = [
   { id: 'office', name: 'Office Space', standard: 'ASHRAE 62.1', edition: '2022', category: 'Office Buildings', rpImp: 5, raImp: 0.06, rpMetric: 2.5, raMetric: 0.3, defaultOccupancyImp: 5, defaultOccupancyMetric: 5.4, exhaustRequired: false, reference: 'Table 6.2.2.1' },
@@ -33,3 +35,6 @@ export const ASHRAE_62_1_2025_SPACES: VentilationSpaceType[] = [
   { id: 'beauty_salon', name: 'Beauty and Nail Salons', standard: 'ASHRAE 62.1', edition: '2025', category: 'Retail', rpImp: 20, raImp: 0.12, rpMetric: 10, raMetric: 0.6, defaultOccupancyImp: 25, defaultOccupancyMetric: 27, exhaustRequired: true, exhaustCategory: 'salon', reference: 'Table 6.2.2.1' },
   { id: 'healthcare', name: 'Outpatient Healthcare', standard: 'ASHRAE 62.1', edition: '2025', category: 'Healthcare', rpImp: 10, raImp: 0.18, rpMetric: 5, raMetric: 0.9, defaultOccupancyImp: 20, defaultOccupancyMetric: 22, exhaustRequired: false, reference: 'Table 6.2.2.1' }
 ];
+`;
+
+fs.writeFileSync('src/calculations/data/ashrae621/SpaceTypes.ts', spaceCode);

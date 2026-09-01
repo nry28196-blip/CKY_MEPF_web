@@ -2,17 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Wind, Users, Activity, Settings, Info, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 
-import { ASHRAE_62_1_2022_EZ } from '../calculations/data/ashrae621/AirDistributionData';
+
 import { Ashrae621Service, ZoneVentilationInput, ZoneVentilationResult } from '../calculations/ventilation/Ashrae621Service';
 import { MultiZoneVentilationService, MultiZoneInput, MultiZoneSystemResult } from '../calculations/ventilation/MultiZoneVentilationService';
-import { AirDensityService } from '../calculations/ventilation/AirDensityService';
 
 export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVentilationChange?: (flow: number) => void }) {
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
 
   const [systemType, setSystemType] = useState<'single' | 'multi'>('single');
-  const [altitude, setAltitude] = useState<number>(0);
+      const [altitude, setAltitude] = useState<number>(0);
   const [airTemp, setAirTemp] = useState<number>(isMetric ? 20 : 70);
   const [edition, setEdition] = useState<'2019' | '2022' | '2025'>('2022');
   
@@ -71,15 +70,14 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
   const flowUnit = isMetric ? 'L/s' : 'CFM';
 
   // Density logic
-  const elevationM = isMetric ? altitude : altitude * 0.3048;
-  const tempC = isMetric ? airTemp : (airTemp - 32) * 5 / 9;
-  const airProps = AirDensityService.getAirProperties(elevationM, tempC);
+  const densityRatio = Ashrae621Service.getDensityRatio(altitude, airTemp, isMetric);
 
   // Calculate results for each zone
   const zoneResults: { input: ZoneState; result: ZoneVentilationResult }[] = zones.map(z => {
     const spaces = Ashrae621Service.getSpacesByEdition(edition);
     const spaceType = spaces.find(s => s.id === z.spaceTypeId) || spaces[0];
-    const ezConfig = ASHRAE_62_1_2022_EZ.find(e => e.id === z.ezId) || ASHRAE_62_1_2022_EZ[0];
+    const ezList = Ashrae621Service.getEzByEdition(edition);
+    const ezConfig = ezList.find(e => e.id === z.ezId) || ezList[0];
     
     const input: ZoneVentilationInput = {
       spaceType,
@@ -87,7 +85,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
       designOccupancy: z.occupants,
       useDefaultOccupancy: z.useDefaultOccupancy,
       ezConfig,
-      isMetric
+      isMetric,
+      densityRatio
     };
     
     return {
@@ -107,7 +106,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
       primaryAirflow: zr.input.primaryAirflow
     }));
     
-    systemResult = MultiZoneVentilationService.calculateMultiZoneSystem(multiInputs);
+    systemResult = MultiZoneVentilationService.calculateMultiZoneSystem(multiInputs, 1.0, densityRatio);
   }
 
 
@@ -115,16 +114,47 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
     if (onVentilationChange) {
       if (systemType === 'single') {
         // Just sum the zones
-        const total = zoneResults.reduce((sum, z) => sum + z.result.voz, 0) / airProps.densityRatio;
+        const total = zoneResults.reduce((sum, z) => sum + (z.result.vozActual || z.result.voz), 0);
         onVentilationChange(total);
       } else if (systemResult) {
-        onVentilationChange(systemResult.vot / airProps.densityRatio);
+        onVentilationChange(systemResult.votActual || systemResult.vot);
       }
     }
-  }, [systemType, zoneResults, systemResult, airProps.densityRatio, onVentilationChange]);
+  }, [systemType, zoneResults, systemResult, onVentilationChange]);
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Context Summary Card */}
+      <div className="bg-sky-950/30 border border-sky-900/50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between shadow-sm">
+        <div className="flex items-center space-x-3 mb-4 md:mb-0">
+          <div className="bg-sky-500/20 p-2 rounded-lg border border-sky-500/30">
+            <Info className="w-5 h-5 text-sky-400" />
+          </div>
+          <div>
+            <h4 className="text-white text-sm font-bold">Calculation Context</h4>
+            <p className="text-xs text-slate-400">Active Parameters</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-4 md:gap-8">
+          <div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">ASHRAE Edition</p>
+            <p className="text-sm font-mono text-sky-300 font-bold">{edition}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Air Distribution (Ez)</p>
+            <p className="text-sm font-mono text-sky-300 font-bold">
+              {zones.length === 1 
+                ? zoneResults[0].result.ez.toFixed(2) 
+                : 'Zone Specific'}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Density Factor (Eρ)</p>
+            <p className="text-sm font-mono text-sky-300 font-bold">{densityRatio.toFixed(3)}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Settings Panel */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
         <h3 className="text-sm font-semibold text-white mb-5 flex items-center">
@@ -146,6 +176,14 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
             </select>
           </div>
           <div>
+            <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Elevation ({isMetric ? 'm' : 'ft'})</label>
+            <input type="number" value={altitude} onChange={(e) => setAltitude(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-sky-500" />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Air Temp ({isMetric ? '°C' : '°F'})</label>
+            <input type="number" value={airTemp} onChange={(e) => setAirTemp(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-sky-500" />
+          </div>
+          <div>
             <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">System Type</label>
             <select 
               value={systemType}
@@ -156,27 +194,9 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
               <option value="multi">Multi-Zone System (VAV/CV)</option>
             </select>
           </div>
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Elevation ({isMetric ? 'm' : 'ft'})</label>
-            <input 
-              type="number" 
-              value={altitude}
-              onChange={(e) => setAltitude(Number(e.target.value))}
-              className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-sky-500"
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Air Temp ({isMetric ? '°C' : '°F'})</label>
-            <input 
-              type="number" 
-              value={airTemp}
-              onChange={(e) => setAirTemp(Number(e.target.value))}
-              className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-sky-500"
-            />
-          </div>
         </div>
         <div className="text-[10px] text-slate-500 font-mono">
-          Density Ratio: {airProps.densityRatio.toFixed(3)} (Volume adjustments applied to final results)
+          Density Ratio: {densityRatio.toFixed(3)} (Volume adjustments applied to final results)
         </div>
       </div>
 
@@ -238,7 +258,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
                   onChange={(e) => updateZone(zr.input.id, 'ezId', e.target.value)}
                   className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-indigo-500"
                 >
-                  {ASHRAE_62_1_2022_EZ.map(ez => (
+                  {Ashrae621Service.getEzByEdition(edition).map(ez => (
                     <option key={ez.id} value={ez.id}>{ez.ez.toFixed(1)} - {ez.name}</option>
                   ))}
                 </select>
@@ -298,8 +318,12 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
                   <span className="font-mono text-indigo-400 font-bold">{Math.round(zr.result.vbz)} {flowUnit}</span>
                 </div>
                 <div>
-                  <span className="block text-[9px] text-slate-500 uppercase">Vbz / Ez = Voz</span>
+                  <span className="block text-[9px] text-slate-500 uppercase">Vbz / Ez = Voz (Std)</span>
                   <span className="font-mono text-sky-400 font-bold">{Math.round(zr.result.voz)} {flowUnit}</span>
+                </div>
+                <div>
+                  <span className="block text-[9px] text-slate-500 uppercase">Voz (Actual)</span>
+                  <span className="font-mono text-indigo-400 font-bold">{Math.round(zr.result.vozActual || zr.result.voz)} {flowUnit}</span>
                 </div>
               </div>
             </div>
@@ -309,10 +333,10 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
               <div className="mt-4 bg-sky-950/20 border border-sky-900/30 p-4 rounded-lg flex items-center justify-between">
                  <div>
                    <h5 className="text-[10px] font-bold text-sky-400 uppercase">Required Outdoor Air (Voz)</h5>
-                   <p className="text-xs text-slate-400 mt-1">Adjusted for air density (Ratio: {airProps.densityRatio.toFixed(3)})</p>
+                   <p className="text-xs text-slate-400 mt-1">Adjusted for air density (Ratio: {densityRatio.toFixed(3)})</p>
                  </div>
                  <div className="text-right">
-                    <span className="text-3xl font-black text-white font-mono">{Math.ceil(zr.result.voz / airProps.densityRatio).toLocaleString()}</span>
+                    <span className="text-3xl font-black text-white font-mono">{Math.ceil(zr.result.vozActual || zr.result.voz).toLocaleString()}</span>
                     <span className="text-xs font-bold text-sky-400 ml-2">{flowUnit}</span>
                  </div>
               </div>
@@ -371,7 +395,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange }: { onVe
               <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 to-transparent" />
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 z-10">Required System Outdoor Air (Vot)</p>
               <p className="text-5xl font-black text-white font-mono tracking-tight drop-shadow-md z-10">
-                {Math.ceil(systemResult.vot / airProps.densityRatio).toLocaleString()}
+                {Math.ceil(systemResult.votActual || systemResult.vot).toLocaleString()}
               </p>
               <p className="text-sm font-bold text-sky-400 uppercase tracking-widest mt-1 z-10">{flowUnit}</p>
               <p className="text-[10px] text-slate-500 mt-2 z-10">Density Adjusted. Base: {Math.ceil(systemResult.vot).toLocaleString()}</p>

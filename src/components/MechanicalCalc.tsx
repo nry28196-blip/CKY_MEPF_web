@@ -6,6 +6,7 @@ import CoolingLoadReference from './CoolingLoadReference';
 import { motion } from 'motion/react';
 import DuctSizingCalc from './DuctSizingCalc';
 import VentilationCalc from './VentilationCalc';
+import SystemPerformanceCalc from './SystemPerformanceCalc';
 import TrendVisualizer from './TrendVisualizer';
 import VrfTopologyCanvas from './VrfTopologyCanvas';
 import VrfLoadDistributionChart from './VrfLoadDistributionChart';
@@ -16,7 +17,7 @@ import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
 
-type SubTab = 'cooling' | 'ductSizing' | 'formulas' | 'ventilation';
+type SubTab = 'cooling' | 'ductSizing' | 'formulas' | 'ventilation' | 'fanDuty';
 
 interface MechanicalCalcProps {
   restoredParams?: any;
@@ -363,6 +364,16 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
         >
           Formulas
         </button>
+        <button
+          onClick={() => setSubTab('fanDuty')}
+          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
+            subTab === 'fanDuty'
+              ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
+              : 'border-transparent text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          Fan Duty Point
+        </button>
       </div>
 
       {/* Toast Alert */}
@@ -376,6 +387,8 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
       {/* Conditional Rendering */}
       {subTab === 'ventilation' ? (
         <VentilationCalc onVentilationChange={setVentilationLps} />
+      ) : subTab === 'fanDuty' ? (
+        <SystemPerformanceCalc qOutdoorAirProp={ventilationLps} />
       ) : subTab === 'formulas' ? (
         <FormulaVisualizer
           category="Mechanical & HVAC"

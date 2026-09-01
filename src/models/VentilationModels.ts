@@ -21,6 +21,10 @@ export interface ZoneVentilationData {
   // -- Multi-Zone Specific Parameters --
   /** Zone primary airflow (Vpz) - required for multi-zone calculations */
   vpz?: number;
+  /** Primary air fraction (Ep) - Default 1.0 for single-duct */
+  ep?: number;
+  /** Secondary recirculation fraction (Er) - Default 0.0 for single-duct */
+  er?: number;
   /** Primary outdoor air fraction (Zp = Voz / Vpz) */
   zp?: number;
 }
@@ -46,6 +50,8 @@ export interface SystemOutdoorAirRequirements {
   ev: number;
   /** Total system outdoor air intake required (Vot) */
   vot: number;
+  /** Actual system outdoor air intake (density corrected) */
+  votActual?: number;
 }
 
 export interface LocalExhaustRequirements {

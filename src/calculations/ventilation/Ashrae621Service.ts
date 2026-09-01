@@ -1,6 +1,7 @@
 import { VentilationSpaceType } from '../../models/VentilationModels';
 import { ASHRAE_62_1_2022_SPACES, ASHRAE_62_1_2019_SPACES, ASHRAE_62_1_2025_SPACES } from '../data/ashrae621/SpaceTypes';
-import { AirDistributionConfiguration } from '../data/ashrae621/AirDistributionData';
+import { AirDistributionConfiguration, ASHRAE_62_1_2019_EZ, ASHRAE_62_1_2022_EZ, ASHRAE_62_1_2025_EZ } from '../data/ashrae621/AirDistributionData';
+import { SystemOutdoorAirRequirements, ZoneVentilationData } from '../../models/VentilationModels';
 
 export interface ZoneVentilationInput {
   spaceType: VentilationSpaceType;
@@ -9,6 +10,7 @@ export interface ZoneVentilationInput {
   useDefaultOccupancy: boolean;
   ezConfig: AirDistributionConfiguration;
   isMetric: boolean;
+  densityRatio?: number;
 }
 
 export interface ZoneVentilationResult {
@@ -23,20 +25,77 @@ export interface ZoneVentilationResult {
   voz: number; // Zone outdoor airflow
   occupancyUsed: number;
   occupancySource: 'design' | 'default';
+  vozActual?: number;
 }
 
 export class Ashrae621Service {
   /**
    * Retrieves space types based on the selected ASHRAE 62.1 edition.
    */
+  
+  // --- Density Correction Utilities ---
+
+  /** Standard sea level pressure in Pa */
+  static STANDARD_PRESSURE_PA = 101325;
+  /** Gas constant for dry air in J/(kg·K) */
+  static R_AIR = 287.058;
+  /** Standard HVAC sea level temperature */
+  static STANDARD_TEMP_C = 21.11; // 70 F
+
+  /**
+   * Consolidates air density ratio (Eρ) calculation into a single standard utility.
+   * Ensures identical elevation adjustments across outdoor, supply, and exhaust logic.
+   * @param elevation - Elevation (meters if isMetric, feet otherwise)
+   * @param temperature - Temperature (C if isMetric, F otherwise)
+   * @param isMetric - True for SI units, False for Imperial
+   */
+  static getDensityRatio(elevation: number, temperature: number, isMetric: boolean): number {
+    const elevationM = isMetric ? elevation : elevation * 0.3048;
+    const tempC = isMetric ? temperature : (temperature - 32) * 5 / 9;
+    const tempK = tempC + 273.15;
+    
+    // Standard lapse rate and gravity
+    const L = 0.0065; // K/m
+    const T0 = 288.15; // Sea level standard temp in K (15 C)
+    const g = 9.80665;
+    const M = 0.0289644; // Molar mass of dry air kg/mol
+    const R0 = 8.3144598; // Universal gas constant
+    
+    let pressurePa = this.STANDARD_PRESSURE_PA;
+    if (elevationM > 0) {
+       pressurePa = this.STANDARD_PRESSURE_PA * Math.pow(1 - (L * elevationM) / T0, (g * M) / (R0 * L));
+    }
+    
+    const densityKgM3 = pressurePa / (this.R_AIR * tempK);
+    const standardTempK = this.STANDARD_TEMP_C + 273.15;
+    const standardDensityKgM3 = this.STANDARD_PRESSURE_PA / (this.R_AIR * standardTempK);
+    
+    return densityKgM3 / standardDensityKgM3;
+  }
+
+  /**
+   * Applies density ratio to convert standard flow to actual volumetric flow.
+   * Q_actual = Q_standard / densityRatio
+   */
+  static applyDensityCorrection(standardFlow: number, densityRatio: number): number {
+    if (!densityRatio || densityRatio <= 0) return standardFlow;
+    return standardFlow / densityRatio;
+  }
+
   static getSpacesByEdition(edition: '2019' | '2022' | '2025'): VentilationSpaceType[] {
     if (edition === '2019') return ASHRAE_62_1_2019_SPACES;
     if (edition === '2025') return ASHRAE_62_1_2025_SPACES;
     return ASHRAE_62_1_2022_SPACES;
   }
 
+  static getEzByEdition(edition: '2019' | '2022' | '2025'): AirDistributionConfiguration[] {
+    if (edition === '2019') return ASHRAE_62_1_2019_EZ;
+    if (edition === '2025') return ASHRAE_62_1_2025_EZ;
+    return ASHRAE_62_1_2022_EZ;
+  }
+
   static calculateZoneVentilation(input: ZoneVentilationInput): ZoneVentilationResult {
-    const { spaceType, area, designOccupancy, useDefaultOccupancy, ezConfig, isMetric } = input;
+    const { spaceType, area, designOccupancy, useDefaultOccupancy, ezConfig, isMetric, densityRatio = 1.0 } = input;
 
     // 1. Determine Rp and Ra
     const rp = isMetric ? (spaceType.rpMetric || 0) : (spaceType.rpImp || 0);
@@ -65,6 +124,7 @@ export class Ashrae621Service {
     // 5. Calculate Voz
     // Voz = Vbz / Ez
     const voz = ez > 0 ? vbz / ez : 0;
+    const vozActual = Ashrae621Service.applyDensityCorrection(voz, densityRatio);
 
     return {
       az: area,
@@ -77,7 +137,72 @@ export class Ashrae621Service {
       ez,
       voz,
       occupancyUsed: pz,
-      occupancySource
+      occupancySource,
+      vozActual
+    };
+  }
+
+
+
+  /**
+   * Calculates ASHRAE 62.1 multi-zone system outdoor air requirements.
+   * Section 6.2.5 Multiple Zone Recirculating Systems.
+   */
+  static calculateSystemVentilation(systemId: string, zones: ZoneVentilationData[], densityRatio: number = 1.0): SystemOutdoorAirRequirements {
+    let vou = 0;
+    let vps = 0;
+    let maxZp = 0;
+
+    for (const zone of zones) {
+      vou += zone.voz;
+      if (zone.vpz && zone.vpz > 0) {
+        vps += zone.vpz;
+        const zp = zone.voz / zone.vpz;
+        if (zp > maxZp) {
+          maxZp = zp;
+        }
+      }
+    }
+
+    const xs = vps > 0 ? vou / vps : 0;
+    const zd = maxZp;
+
+    // Calculate exact Evz for each zone (Full Normative Appendix A)
+    let ev = 1.0;
+    for (const zone of zones) {
+      if (zone.vpz && zone.vpz > 0) {
+        const zp = zone.voz / zone.vpz;
+        const ep = zone.ep ?? 1.0;
+        const er = zone.er ?? 0.0;
+        const ez = zone.ez ?? 1.0;
+        
+        const fa = ep + (1 - ep) * er;
+        const fb = ep;
+        const fc = 1 - (1 - ez) * (1 - er) * (1 - ep);
+        
+        const evz = fa > 0 ? (fa + xs * fb - zp * ep * fc) / fa : 1.0;
+        
+        if (evz < ev) {
+          ev = evz;
+        }
+      }
+    }
+    // Ev theoretically shouldn't exceed 1.0 or drop below a practical minimum (e.g., 0.1)
+    ev = Math.max(0.1, Math.min(1.0, ev));
+
+    const vot = ev > 0 ? vou / ev : 0;
+    const votActual = Ashrae621Service.applyDensityCorrection(vot, densityRatio);
+
+    return {
+      systemId,
+      systemType: 'multi',
+      vps,
+      vou,
+      xs,
+      zd,
+      ev,
+      vot,
+      votActual
     };
   }
 }

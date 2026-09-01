@@ -1,10 +1,12 @@
-import { ZoneVentilationResult } from './Ashrae621Service';
+import { ZoneVentilationResult, Ashrae621Service } from './Ashrae621Service';
 
 export interface MultiZoneInput {
   zoneId: string;
   name: string;
   zoneResult: ZoneVentilationResult;
   primaryAirflow: number; // Vpz (Zone Primary Airflow)
+  ep?: number; // Primary air fraction (Ep)
+  er?: number; // Secondary recirculation fraction (Er)
 }
 
 export interface MultiZoneSystemResult {
@@ -17,6 +19,7 @@ export interface MultiZoneSystemResult {
   ev: number; // System Ventilation Efficiency
   vou: number; // Uncorrected Outdoor Air Intake
   vot: number; // Required System Outdoor Air Intake
+  votActual: number; // Density Corrected
   criticalZoneId: string;
   zones: {
     zoneId: string;
@@ -30,7 +33,7 @@ export class MultiZoneVentilationService {
    * Calculates the multi-zone AHU outdoor air requirement per ASHRAE 62.1 (Simplified/Primary method).
    * Note: This represents the standard 62.1-2019/2022 calculation for a multi-zone VAV/CV system.
    */
-  static calculateMultiZoneSystem(zones: MultiZoneInput[], populationDiversity: number = 1.0): MultiZoneSystemResult {
+  static calculateMultiZoneSystem(zones: MultiZoneInput[], populationDiversity: number = 1.0, densityRatio: number = 1.0): MultiZoneSystemResult {
     let sumVbz = 0;
     let sumVoz = 0;
     let sumVpz = 0;
@@ -90,29 +93,41 @@ export class MultiZoneVentilationService {
     
     vou = (d * sumRpPz) + sumRaAz;
 
+    
     // System Primary Fraction (Xs)
     const xs = sumVpz > 0 ? vou / sumVpz : 0;
 
     // System Ventilation Efficiency (Ev)
-    // Simplified table or calculation. ASHRAE 62.1 Table 6.2.5.2
-    // Or Appendix A exact calculation. We will use the simplified Appendix A formula Ev = 1 + Xs - Zd
-    // Standard table lookup:
+    // #1 Fix: Exact applicable 62.1 procedure (Normative Appendix A)
+    // Ev = 1 + Xs - Zd (for systems with no secondary recirculation)
+    // We will calculate Evz for each zone and take the minimum to be fully exact.
+    
     let ev = 1.0;
-    if (zdMax <= 0.15) ev = 1.0;
-    else if (zdMax <= 0.25) ev = 0.9;
-    else if (zdMax <= 0.35) ev = 0.8;
-    else if (zdMax <= 0.45) ev = 0.7;
-    else if (zdMax <= 0.55) ev = 0.6;
-    else if (zdMax <= 0.65) ev = 0.5;
-    else if (zdMax <= 0.75) ev = 0.4;
-    else {
-      // If Zd > 0.75, standard Ev table doesn't apply well, usually Ev is lower or use exact Appendix A
-      // We'll approximate using the formula from App A if needed, or bound at 0.3
-      ev = 0.3;
-    }
+    
+    // Calculate exact Evz for each zone using Full Normative Appendix A
+    zoneResults.forEach(zr => {
+       const zoneInput = zones.find(z => z.zoneId === zr.zoneId);
+       const ep = zoneInput?.ep ?? 1.0;
+       const er = zoneInput?.er ?? 0.0;
+       const ez = zoneInput?.zoneResult.ez ?? 1.0;
+       
+       const fa = ep + (1 - ep) * er;
+       const fb = ep;
+       const fc = 1 - (1 - ez) * (1 - er) * (1 - ep);
+       
+       const evz = fa > 0 ? (fa + xs * fb - zr.zpz * ep * fc) / fa : 1.0;
+       
+       if (evz < ev) {
+          ev = evz;
+       }
+    });
+    
+    // Ev cannot be greater than 1.0 or less than 0.1 theoretically
+    ev = Math.max(0.1, Math.min(1.0, ev));
 
     // Required System Outdoor Air Intake (Vot)
     const vot = ev > 0 ? vou / ev : 0;
+    const votActual = Ashrae621Service.applyDensityCorrection(vot, densityRatio);
 
     return {
       sumVbz,
@@ -124,6 +139,7 @@ export class MultiZoneVentilationService {
       ev,
       vou,
       vot,
+      votActual,
       criticalZoneId,
       zones: zoneResults
     };
