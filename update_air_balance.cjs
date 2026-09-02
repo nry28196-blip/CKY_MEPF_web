@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Layers, Activity, Building2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+const fs = require('fs');
+
+const content = `import React, { useState } from 'react';
+import { Layers, Activity, Building2, Wind, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 import { AirBalanceService, AirBalanceInput, AirBalanceResult, SystemBalanceInput, SystemBalanceResult } from '../calculations/ventilation/AirBalanceService';
 
@@ -50,17 +52,17 @@ export default function AirBalanceCalc() {
         <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
           <button
             onClick={() => setMode('system')}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+            className={\`px-4 py-1.5 rounded-md text-xs font-bold transition-all \${
               mode === 'system' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'text-slate-400 hover:text-slate-200 border border-transparent'
-            }`}
+            }\`}
           >
             System / Building
           </button>
           <button
             onClick={() => setMode('room')}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+            className={\`px-4 py-1.5 rounded-md text-xs font-bold transition-all \${
               mode === 'room' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'text-slate-400 hover:text-slate-200 border border-transparent'
-            }`}
+            }\`}
           >
             Room / Zone
           </button>
@@ -142,7 +144,7 @@ export default function AirBalanceCalc() {
                 
                 <div className="relative z-10 text-center">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Building Pressure Relationship</p>
-                  <p className={`text-4xl font-black font-mono tracking-tight drop-shadow-md uppercase ${sysNetColor}`}>
+                  <p className={\`text-4xl font-black font-mono tracking-tight drop-shadow-md uppercase \${sysNetColor}\`}>
                     {systemResult.buildingPressure}
                   </p>
                   
@@ -283,7 +285,7 @@ export default function AirBalanceCalc() {
               <div className="bg-slate-950/50 p-6 rounded-xl border border-indigo-900/30 flex flex-col items-center justify-center relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent" />
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 z-10">Pressure Relationship</p>
-                <p className={`text-3xl font-black font-mono tracking-tight drop-shadow-md z-10 uppercase ${roomNetColor}`}>
+                <p className={\`text-3xl font-black font-mono tracking-tight drop-shadow-md z-10 uppercase \${roomNetColor}\`}>
                   {roomResult.pressureRelationship}
                 </p>
                 {roomResult.pressureRelationship === 'Positive' && (
@@ -309,3 +311,5 @@ export default function AirBalanceCalc() {
     </div>
   );
 }
+`
+fs.writeFileSync('src/components/AirBalanceCalc.tsx', content);

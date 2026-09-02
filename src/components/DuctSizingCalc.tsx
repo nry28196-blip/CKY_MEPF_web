@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import TrendVisualizer from './TrendVisualizer';
 import TooltipLabel from './TooltipLabel';
 import InputAlert from './InputAlert';
+import ValidatedInput from './ValidatedInput';
 import StaticPressureCalc from './StaticPressureCalc';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';

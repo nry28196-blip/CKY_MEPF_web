@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 
-interface ValidatedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface ValidatedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'min' | 'max'> {
   min?: number;
   max?: number;
   errorMsg?: string;
@@ -30,9 +30,11 @@ export default function ValidatedInput({
       >
         <input
           value={value}
+          min={min}
+          max={max}
           className={`w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border focus:outline-none transition-colors ${
             isInvalid ? 'border-red-500 focus:border-red-500' : 'border-slate-800 focus:border-sky-500'
-          } ${className || ''}`}
+          }`}
           {...props}
         />
         {isInvalid && (

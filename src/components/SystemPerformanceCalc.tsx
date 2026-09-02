@@ -3,6 +3,7 @@ import { Activity, Fan, Wind, Gauge, Zap } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 import { SystemPerformanceService, SystemPerformanceInput, SystemPerformanceResult } from '../calculations/ventilation/SystemPerformanceService';
 import { Ashrae621Service } from '../calculations/ventilation/Ashrae621Service';
+import ValidatedInput from './ValidatedInput';
 
 export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTemp = 20, qOutdoorAirProp }: { globalAltitude?: number, globalAirTemp?: number, qOutdoorAirProp?: number }) {
   const { unitSystem } = useUnit();
@@ -63,11 +64,11 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Outdoor Air ({flowUnit})</label>
-              <input type="number" value={qOutdoorAir} onChange={(e) => setQOutdoorAir(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-sky-500" />
+              <ValidatedInput type="number" min={0} errorMsg="Flow rate must be >= 0" value={qOutdoorAir} onChange={(e) => setQOutdoorAir(Number(e.target.value))} />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Return Air ({flowUnit})</label>
-              <input type="number" value={qReturnAir} onChange={(e) => setQReturnAir(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-sky-500" />
+              <ValidatedInput type="number" min={0} errorMsg="Flow rate must be >= 0" value={qReturnAir} onChange={(e) => setQReturnAir(Number(e.target.value))} />
             </div>
           </div>
           <p className="text-[10px] text-slate-500 font-mono mt-2">Density Ratio (Eρ): {densityRatio.toFixed(3)}</p>
@@ -82,19 +83,19 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Critical Length ({lengthUnit})</label>
-              <input type="number" value={criticalDuctLength} onChange={(e) => setCriticalDuctLength(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-indigo-500" />
+              <ValidatedInput type="number" min={1} errorMsg="Length must be >= 1" value={criticalDuctLength} onChange={(e) => setCriticalDuctLength(Number(e.target.value))} />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Friction ({frictionUnit})</label>
-              <input type="number" step="0.01" value={ductFrictionRate} onChange={(e) => setDuctFrictionRate(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-indigo-500" />
+              <ValidatedInput type="number" step="0.01" min={0.01} max={5} errorMsg="Standard friction: 0.01 to 5.0" value={ductFrictionRate} onChange={(e) => setDuctFrictionRate(Number(e.target.value))} />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Fitting Loss ({pressureUnit})</label>
-              <input type="number" step="0.1" value={fittingLosses} onChange={(e) => setFittingLosses(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-indigo-500" />
+              <ValidatedInput type="number" step="0.1" min={0} errorMsg="Loss must be >= 0" value={fittingLosses} onChange={(e) => setFittingLosses(Number(e.target.value))} />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Equip. Drop ({pressureUnit})</label>
-              <input type="number" step="0.1" value={equipmentPressureDrop} onChange={(e) => setEquipmentPressureDrop(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-indigo-500" />
+              <ValidatedInput type="number" step="0.1" min={0} errorMsg="Pressure drop must be >= 0" value={equipmentPressureDrop} onChange={(e) => setEquipmentPressureDrop(Number(e.target.value))} />
             </div>
           </div>
         </div>
@@ -110,11 +111,11 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Fan Eff. (%)</label>
-              <input type="number" max="100" min="1" value={fanEfficiency} onChange={(e) => setFanEfficiency(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-amber-500" />
+              <ValidatedInput type="number" min={1} max={100} errorMsg="Efficiency: 1% to 100%" value={fanEfficiency} onChange={(e) => setFanEfficiency(Number(e.target.value))} />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Motor Eff. (%)</label>
-              <input type="number" max="100" min="1" value={motorEfficiency} onChange={(e) => setMotorEfficiency(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-amber-500" />
+              <ValidatedInput type="number" min={1} max={100} errorMsg="Efficiency: 1% to 100%" value={motorEfficiency} onChange={(e) => setMotorEfficiency(Number(e.target.value))} />
             </div>
           </div>
         </div>

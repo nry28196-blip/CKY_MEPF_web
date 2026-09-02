@@ -1,10 +1,13 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend, PieChart, Pie } from 'recharts';
 import { Chart } from 'react-google-charts';
 import React, { useState, useEffect } from 'react';
-import { Wind, Layers, Sliders, Thermometer, Info, Bookmark, CheckCircle2, FileSpreadsheet, Mail, Plus, Trash2, ChevronUp, ChevronDown, BookOpen } from 'lucide-react';
+import { ShieldAlert, Wind, Layers, Sliders, Thermometer, Info, Bookmark, CheckCircle2, FileSpreadsheet, Mail, Plus, Trash2, ChevronUp, ChevronDown, BookOpen } from 'lucide-react';
 import CoolingLoadReference from './CoolingLoadReference';
 import { motion } from 'motion/react';
 import DuctSizingCalc from './DuctSizingCalc';
+import Ashrae621ExhaustCalc from './Ashrae621ExhaustCalc';
+import AirBalanceCalc from './AirBalanceCalc';
+import IAQCalc from './IAQCalc';
 import VentilationCalc from './VentilationCalc';
 import SystemPerformanceCalc from './SystemPerformanceCalc';
 import TrendVisualizer from './TrendVisualizer';
@@ -12,6 +15,7 @@ import VrfTopologyCanvas from './VrfTopologyCanvas';
 import VrfLoadDistributionChart from './VrfLoadDistributionChart';
 import TooltipLabel from './TooltipLabel';
 import InputAlert from './InputAlert';
+import ValidatedInput from './ValidatedInput';
 import FormulaVisualizer, { FormulaDef } from './FormulaVisualizer';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
@@ -387,6 +391,18 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
       {/* Conditional Rendering */}
       {subTab === 'ventilation' ? (
         <VentilationCalc onVentilationChange={setVentilationLps} />
+      ) : subTab === 'iaq' ? (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <IAQCalc />
+        </div>
+      ) : subTab === 'airBalance' ? (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <AirBalanceCalc />
+        </div>
+      ) : subTab === 'exhaust' ? (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Ashrae621ExhaustCalc />
+        </div>
       ) : subTab === 'fanDuty' ? (
         <SystemPerformanceCalc qOutdoorAirProp={ventilationLps} />
       ) : subTab === 'formulas' ? (

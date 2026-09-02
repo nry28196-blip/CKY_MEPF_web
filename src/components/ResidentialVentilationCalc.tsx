@@ -9,7 +9,7 @@ export default function ResidentialVentilationCalc() {
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
 
-  const [edition, setEdition] = useState<'2022' | '2019'>('2022');
+  const [edition, setEdition] = useState<'2025' | '2022' | '2019'>('2025');
   const [floorArea, setFloorArea] = useState<number>(isMetric ? 150 : 1500);
   const [bedrooms, setBedrooms] = useState<number>(3);
   const [kitchenVolume, setKitchenVolume] = useState<number>(isMetric ? 30 : 1000);
@@ -63,9 +63,10 @@ export default function ResidentialVentilationCalc() {
         </h3>
         <select 
           value={edition}
-          onChange={(e) => setEdition(e.target.value as '2022' | '2019')}
+          onChange={(e) => setEdition(e.target.value as '2025' | '2022' | '2019')}
           className="bg-slate-950 text-white rounded-lg px-3 py-1.5 text-xs border border-slate-800 focus:border-purple-500"
         >
+          <option value="2025">ASHRAE 62.2-2025</option>
           <option value="2022">ASHRAE 62.2-2022</option>
           <option value="2019">ASHRAE 62.2-2019</option>
         </select>

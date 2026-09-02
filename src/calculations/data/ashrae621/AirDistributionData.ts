@@ -1,3 +1,4 @@
+import ashrae2025Data from '../../../data/ashrae62_1_2025.json';
 export interface AirDistributionConfiguration {
   id: string;
   name: string;
@@ -80,9 +81,4 @@ export const ASHRAE_62_1_2019_EZ: AirDistributionConfiguration[] = [
   { id: 'floor_cool', name: 'Floor Supply (Cooling)', description: 'Floor supply of cool air and ceiling return.', ez: 1.2, heatingMode: false, coolingMode: true, reference: '2019 Table 6.2.2.2' }
 ];
 
-export const ASHRAE_62_1_2025_EZ: AirDistributionConfiguration[] = [
-  { id: 'ceiling_cool', name: 'Ceiling Supply (Cooling)', description: 'Ceiling supply of cool air.', ez: 1.0, heatingMode: false, coolingMode: true, reference: '2025 Table 6.2.2.2' },
-  { id: 'ceiling_heat_warm', name: 'Ceiling Supply (Heating, T_supply > T_room + 15°F)', description: 'Ceiling supply of warm air and ceiling return.', ez: 0.8, heatingMode: true, coolingMode: false, reference: '2025 Table 6.2.2.2' },
-  { id: 'ceiling_heat_mild', name: 'Ceiling Supply (Heating, T_supply < T_room + 15°F)', description: 'Ceiling supply of warm air (temp diff < 15°F).', ez: 1.0, heatingMode: true, coolingMode: false, reference: '2025 Table 6.2.2.2' },
-  { id: 'floor_cool', name: 'Floor Supply (Cooling)', description: 'Floor supply of cool air and ceiling return.', ez: 1.2, heatingMode: false, coolingMode: true, reference: '2025 Table 6.2.2.2' }
-];
+export const ASHRAE_62_1_2025_EZ: AirDistributionConfiguration[] = ashrae2025Data.coefficients.airDistribution as AirDistributionConfiguration[];
