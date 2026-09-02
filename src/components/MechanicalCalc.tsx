@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend, PieChart, Pie } from 'recharts';
 import { Chart } from 'react-google-charts';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ShieldAlert, Wind, Layers, Sliders, Thermometer, Info, Bookmark, CheckCircle2, FileSpreadsheet, Mail, Plus, Trash2, ChevronUp, ChevronDown, BookOpen } from 'lucide-react';
 import CoolingLoadReference from './CoolingLoadReference';
 import { motion } from 'motion/react';
@@ -20,6 +20,8 @@ import FormulaVisualizer, { FormulaDef } from './FormulaVisualizer';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
+import { AirDensityService } from '../calculations/services/AirDensityService';
+import { VentilationValidator } from '../validation/VentilationValidator';
 
 type SubTab = 'cooling' | 'ductSizing' | 'formulas' | 'ventilation' | 'fanDuty';
 
@@ -37,6 +39,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const [subTab, setSubTab] = useState<SubTab>('ductSizing'); // Default to the highly advanced requested module!
   const [showCoolingRef, setShowCoolingRef] = useState(false);
   const [projectType, setProjectType] = useState<'Commercial' | 'Residential' | 'Industrial' | 'Healthcare'>('Commercial');
+  const [governingStandard, setGoverningStandard] = useState<string>('ASHRAE 62.1-2025');
 
   // --- NEW ADVANCED ASHRAE STATE ---
   const [outdoorTemp, setOutdoorTemp] = useState<number>(35);
@@ -54,9 +57,20 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const [windowUValue, setWindowUValue] = useState<number>(3.0);
   const [windowShgc, setWindowShgc] = useState<number>(0.6);
   const [ventilationLps, setVentilationLps] = useState<number>(25);
+  const [ventilationDetails, setVentilationDetails] = useState<any>(null);
+  
+  const handleVentilationChange = useCallback((flow: number, details?: any) => {
+    setVentilationLps(flow);
+    if (details) {
+      setVentilationDetails(details);
+    } else {
+      setVentilationDetails(null);
+    }
+  }, []);
   const [infiltrationACH, setInfiltrationACH] = useState<number>(0.5);
   const [safetyFactor, setSafetyFactor] = useState<number>(10);
   const [altitude, setAltitude] = useState<number>(0);
+  const [relativeHumidity, setRelativeHumidity] = useState<number>(50);
   const [useAltitudeAdj, setUseAltitudeAdj] = useState<boolean>(false);
 
   const [estimationBasis, setEstimationBasis] = useState<'area' | 'volume'>('area');
@@ -187,9 +201,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     const solarSensible = windowArea * windowShgc * solarIrradiance;
     
     // 6. Ventilation (Sensible & Latent)
-    // Altitude adjustment for air density
+    // Altitude and humidity adjustment for air density
     const altMeters = isMetric ? altitude : altitude * 0.3048;
-    const densityRatio = useAltitudeAdj ? Math.pow(1 - 2.25577e-5 * altMeters, 5.2559) : 1.0;
+    let densityRatio = 1.0;
+    if (useAltitudeAdj) {
+      const airProps = AirDensityService.getAirProperties(altMeters, outdoorTemp, relativeHumidity);
+      densityRatio = airProps.densityRatio;
+    }
     
     // Adjusted psychrometric constants for sensible and latent heat based on air density
     const cpAir = 1.21 * densityRatio; 
@@ -225,6 +243,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   };
 
   const results = calculateCoolingLoad();
+  const validationResult = !isVrf ? VentilationValidator.validate({ area, volume, occupants, ventilationLps, outdoorTemp, indoorTemp }) : null;
 
   const getVrfCalculations = () => {
     let totalConnectedTons = 0;
@@ -326,8 +345,38 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     <div className="space-y-6">
       <CoolingLoadReference isOpen={showCoolingRef} onClose={() => setShowCoolingRef(false)} />
       
+      {/* Global Standard & Code Configuration */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg shadow-sky-950/10">
+        <div>
+          <h3 className="text-sm font-bold text-white flex items-center">
+            <Bookmark className="w-4 h-4 mr-2 text-sky-400" />
+            Governing Code / Standard
+          </h3>
+          <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-mono">Project Standard Edition Selection</p>
+        </div>
+        <div className="flex items-center space-x-3 bg-slate-950 p-2 rounded-lg border border-slate-800">
+          <select
+            className="bg-slate-900 text-white text-sm rounded-lg border border-slate-700 px-3 py-1.5 focus:border-sky-500 outline-none font-bold min-w-[200px]"
+            value={governingStandard}
+            onChange={(e) => setGoverningStandard(e.target.value)}
+          >
+            <option value="ASHRAE 62.1-2025">ASHRAE 62.1-2025 (Commercial)</option>
+            <option value="ASHRAE 62.1-2022">ASHRAE 62.1-2022 (Commercial)</option>
+            <option value="ASHRAE 62.1-2019">ASHRAE 62.1-2019 (Commercial)</option>
+            <option value="ASHRAE 62.2-2025">ASHRAE 62.2-2025 (Residential)</option>
+            <option value="ASHRAE 62.2-2022">ASHRAE 62.2-2022 (Residential)</option>
+            <option value="ASHRAE 62.2-2019">ASHRAE 62.2-2019 (Residential)</option>
+          </select>
+          {projectType !== 'Commercial' && projectType !== 'Residential' && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-950/30 px-2 py-1 rounded border border-amber-900/50">
+              Special Occupancy Warning
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Sub-tabs toggle */}
-      <div className="flex border-b border-slate-800 pb-1 gap-2">
+      <div className="flex border-b border-slate-800 pb-1 gap-2 overflow-x-auto hide-scrollbar">
         <button
           onClick={() => setSubTab('ductSizing')}
           className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
@@ -390,7 +439,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
       {/* Conditional Rendering */}
       {subTab === 'ventilation' ? (
-        <VentilationCalc onVentilationChange={setVentilationLps} />
+        <VentilationCalc onVentilationChange={handleVentilationChange} governingStandard={governingStandard} />
       ) : subTab === 'iaq' ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <IAQCalc />
@@ -727,7 +776,23 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
                 
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">{t('coolingLoadResult')}</h3>
+                  <div className="flex items-center space-x-3">
+                    <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">{t('coolingLoadResult')}</h3>
+                    {validationResult && (
+                      <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        validationResult.status === 'PASS' 
+                          ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/50' 
+                          : validationResult.status === 'INCOMPLETE'
+                          ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                          : 'bg-rose-950/40 text-rose-400 border border-rose-800/50'
+                      }`}>
+                        {validationResult.status === 'PASS' && <CheckCircle2 className="w-3 h-3" />}
+                        {validationResult.status === 'FAIL' && <ShieldAlert className="w-3 h-3" />}
+                        {validationResult.status === 'INCOMPLETE' && <Info className="w-3 h-3" />}
+                        <span>{validationResult.status}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-lg text-[9px] font-bold uppercase w-fit z-10 relative">
                     <button
                       onClick={() => setChartMode('bar')}
@@ -748,6 +813,19 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   </div>
                 </div>
                 
+                {validationResult && validationResult.status === 'FAIL' && (
+                  <div className="bg-rose-950/20 border border-rose-900/50 rounded-xl p-3 mb-2">
+                    <div className="flex items-center space-x-2 text-rose-400 mb-1.5">
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Engineering Flags</span>
+                    </div>
+                    <ul className="list-disc pl-4 space-y-1">
+                      {validationResult.messages.map((msg, idx) => (
+                        <li key={idx} className="text-xs text-rose-300/80 leading-relaxed">{msg}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
                   <div>
@@ -894,23 +972,104 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   </div>
                 )}
 
-                <div className="pt-2 flex justify-end">
-                  <div className="text-[10px] font-mono text-slate-500 bg-slate-950/40 p-3 rounded-xl border border-slate-850 w-full flex flex-col gap-2">
-                    <span className="text-slate-400 font-bold uppercase">Calculation Reference:</span>
-                    <ul className="flex flex-col gap-1.5 list-none">
-                      <li className="flex gap-2 items-start">
-                        <span className="text-slate-600 shrink-0">•</span>
-                        <span>{estimationBasis === 'area' ? '150W/m² area rule-of-thumb' : '50W/m³ volume rule-of-thumb'}</span>
-                      </li>
-                      <li className="flex gap-2 items-start">
-                        <span className="text-slate-600 shrink-0">•</span>
-                        <span>100W per person occupant gain</span>
-                      </li>
-                      <li className="flex gap-2 items-start">
-                        <span className="text-slate-600 shrink-0">•</span>
-                        <span>COP (Coefficient of Performance) = 3.5 standard</span>
-                      </li>
-                    </ul>
+                {/* System Audit Trail */}
+                <div className="mt-8 pt-6 border-t border-slate-800/60 w-full">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center">
+                    <BookOpen className="w-4 h-4 mr-2 text-sky-400" />
+                    Engineering Audit Trail
+                  </h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px]">
+                      <div className="text-sky-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Governing Standards</div>
+                      <div className="grid grid-cols-2 gap-2 text-slate-300">
+                        <div className="text-slate-500">Methodology:</div>
+                        <div className="text-right">ASHRAE Cooling Load</div>
+                        <div className="text-slate-500">Edition:</div>
+                        <div className="text-right">Fundamentals (Ch. 18)</div>
+                        <div className="text-slate-500">Calculation Method:</div>
+                        <div className="text-right">Sensible/Latent Heat Balance</div>
+                        <div className="text-slate-500">Safety Factor:</div>
+                        <div className="text-right">{safetyFactor}%</div>
+                        <div className="text-slate-500">COP (Standard):</div>
+                        <div className="text-right">3.5</div>
+                      </div>
+                    </div>
+                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px]">
+                      <div className="text-emerald-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Intermediate Variables</div>
+                      <div className="grid grid-cols-2 gap-2 text-slate-300">
+                        <div className="text-slate-500">ΔT (Outdoor - Indoor):</div>
+                        <div className="text-right">{(outdoorTemp - indoorTemp).toFixed(1)} {isMetric ? '°C' : '°F'}</div>
+                        <div className="text-slate-500">Air Density Ratio (ρ):</div>
+                        <div className="text-right">{useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : altitude * 0.3048, outdoorTemp, relativeHumidity).densityRatio.toFixed(3) : '1.000'}</div>
+                        <div className="text-slate-500">Specific Heat (Cp):</div>
+                        <div className="text-right">{((useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : altitude * 0.3048, outdoorTemp, relativeHumidity).densityRatio : 1.0) * 1.21).toFixed(3)} kJ/kg·K</div>
+                        <div className="text-slate-500">Latent Heat (hfg):</div>
+                        <div className="text-right">{((useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : altitude * 0.3048, outdoorTemp, relativeHumidity).densityRatio : 1.0) * 3010).toFixed(0)} kJ/kg</div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px] lg:col-span-2">
+                      <div className="text-amber-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Load Components (Sensible / Latent)</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-slate-300">
+                        <div className="text-slate-500">People:</div>
+                        <div className="text-right">{Math.round(results.peopleSensible)} W / {Math.round(results.peopleLatent)} W</div>
+                        
+                        <div className="text-slate-500">Lighting/Equip:</div>
+                        <div className="text-right">{Math.round(results.lightingSensible + results.equipmentSensible)} W / 0 W</div>
+                        
+                        <div className="text-slate-500">Envelope:</div>
+                        <div className="text-right">{Math.round(results.wallSensible + results.roofSensible + results.windowCondSensible)} W / 0 W</div>
+                        
+                        <div className="text-slate-500">Solar (SHGC):</div>
+                        <div className="text-right">{Math.round(results.solarSensible)} W / 0 W</div>
+                        
+                        <div className="text-slate-500">Ventilation:</div>
+                        <div className="text-right">{Math.round(results.ventSensible)} W / {Math.round(results.ventLatent)} W</div>
+                        
+                        <div className="text-slate-500">Infiltration:</div>
+                        <div className="text-right">{Math.round(results.infiltrationSensible)} W / {Math.round(results.infiltrationLatent)} W</div>
+                        
+                        <div className="text-slate-500 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">Total Unfactored:</div>
+                        <div className="text-right font-bold text-slate-100 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{Math.round(results.totalSensible)} W / {Math.round(results.totalLatent)} W</div>
+                        <div className="text-slate-500 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">Calculated Final:</div>
+                        <div className="text-right font-bold text-amber-400 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{Math.round(results.calculatedTotal)} W</div>
+                      </div>
+                    </div>
+                    {ventilationDetails && (
+                      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px] lg:col-span-2">
+                        <div className="text-amber-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1 flex justify-between">
+                          <span>Ventilation Audit Trail</span>
+                          <span className="text-slate-500">{governingStandard} - {ventilationDetails.systemType === 'single' ? 'Single Zone (VRP)' : 'Multi-Zone (VRP)'}</span>
+                        </div>
+                        
+                        {ventilationDetails.systemType === 'single' && ventilationDetails.zoneResults && ventilationDetails.zoneResults.length > 0 && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-slate-300">
+                            <div className="text-slate-500">Vbz (Breathing Zone Outdoor Air) Formula <span className="text-[8px] text-slate-600">(ASHRAE 62.1 Eq 6.2.2.1)</span>:</div>
+                            <div className="text-right text-slate-400">Rp×Pz + Ra×Az = {Math.round(ventilationDetails.zoneResults[0].result?.vbz || 0)}</div>
+                            <div className="text-slate-500">Ez (Zone Air Distribution Effectiveness) <span className="text-[8px] text-slate-600">(Table 6.2.2.2)</span>:</div>
+                            <div className="text-right text-slate-400">{ventilationDetails.zoneResults[0].result?.ez || 1.0}</div>
+                            <div className="text-slate-500">Voz (Zone Outdoor Air) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.2.3)</span>:</div>
+                            <div className="text-right text-slate-400">Vbz / Ez = {Math.round(ventilationDetails.zoneResults[0].result?.voz || 0)}</div>
+                          </div>
+                        )}
+
+                        {ventilationDetails.systemType === 'multi' && ventilationDetails.systemResult && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-slate-300">
+                            <div className="text-slate-500">Vou (Uncorrected Outdoor Air) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.5.3)</span>:</div>
+                            <div className="text-right text-slate-400">D×Σ(Rp×Pz) + Σ(Ra×Az) = {Math.round(ventilationDetails.systemResult.vou)}</div>
+                            
+                            <div className="text-slate-500">Max Zpz (Critical Zone Fraction) <span className="text-[8px] text-slate-600">(Max(Voz/Vpz))</span>:</div>
+                            <div className="text-right text-slate-400">{ventilationDetails.systemResult.zd.toFixed(3)}</div>
+                            
+                            <div className="text-slate-500">Ev (System Vent. Efficiency) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.5.4.1)</span>:</div>
+                            <div className="text-right text-slate-400">1 + Xs - Zd = {ventilationDetails.systemResult.ev.toFixed(3)}</div>
+                            
+                            <div className="text-slate-500">Vot (System Outdoor Air) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.5.1)</span>:</div>
+                            <div className="text-right text-slate-400">Vou / Ev = {Math.round(ventilationDetails.systemResult.vot)}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

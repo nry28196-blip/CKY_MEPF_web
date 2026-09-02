@@ -1,17 +1,24 @@
 const fs = require('fs');
+let code = fs.readFileSync('src/calculations/ventilation/Ashrae621Service.ts', 'utf8');
 
-let file = fs.readFileSync('src/components/Ashrae621VentilationCalc.tsx', 'utf8');
+// The block to remove:
+const toRemove = `  /**
+   * Consolidates air density ratio (Eρ) calculation into a single standard utility.
+   * Ensures identical elevation adjustments across outdoor, supply, and exhaust logic.
+   * @param elevation - Elevation (meters if isMetric, feet otherwise)
+   * @param temperature - Temperature (C if isMetric, F otherwise)
+   * @param isMetric - True for SI units, False for Imperial
+   */      
+    const densityKgM3 = pressurePa / (this.R_AIR * tempK);
+    const standardTempK = this.STANDARD_TEMP_C + 273.15;
+    const standardDensityKgM3 = this.STANDARD_PRESSURE_PA / (this.R_AIR * standardTempK);
+    
+    return densityKgM3 / standardDensityKgM3;
+  }`;
 
-file = file.replace(
-  /<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">/g,
-  '<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">'
-);
+// Actually, let's just use regex to remove everything from `/** Consolidates air density` up to `return densityKgM3 / standardDensityKgM3;\n  }`
 
-file = file.replace(
-  /          <\/div>\n        <\/div>\n          <div>\n            <label className="block text-\[10px\] font-bold text-slate-400 mb-1\.5 uppercase">System Type<\/label>/,
-  `          </div>
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">System Type</label>`
-);
+code = code.replace(/\/\*\*[\s\S]*?return densityKgM3 \/ standardDensityKgM3;\n  \}/, '');
 
-fs.writeFileSync('src/components/Ashrae621VentilationCalc.tsx', file);
+fs.writeFileSync('src/calculations/ventilation/Ashrae621Service.ts', code);
+console.log("Fixed");

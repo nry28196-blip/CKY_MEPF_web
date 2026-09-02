@@ -15,7 +15,7 @@ export default function ValidatedInput({
 }: ValidatedInputProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const numValue = Number(value);
-  const isInvalid = (min !== undefined && numValue < min) || (max !== undefined && numValue > max);
+  const isInvalid = value !== '' && value !== undefined && value !== null && ((min !== undefined && numValue < min) || (max !== undefined && numValue > max));
 
   const defaultError = `ASHRAE standard range: ${min !== undefined ? min : '-∞'} to ${max !== undefined ? max : '∞'}`;
   const displayError = errorMsg || defaultError;

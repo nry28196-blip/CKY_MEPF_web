@@ -10,7 +10,10 @@ import CommercialLocalExhaustCalc from './CommercialLocalExhaustCalc';
 import AirBalanceCalc from './AirBalanceCalc';
 import SystemPerformanceCalc from './SystemPerformanceCalc';
 
-export default function VentilationCalc({ onVentilationChange }: { onVentilationChange?: (flow: number) => void }) {
+export default function VentilationCalc({ onVentilationChange, governingStandard = 'ASHRAE 62.1-2025' }: { onVentilationChange?: (flow: number, details?: any) => void, governingStandard?: string }) {
+  const standardParts = governingStandard.split('-');
+  const edition = standardParts.length > 1 ? standardParts[1] : '2025';
+
   const { t } = useLanguage();
   const { unitSystem } = useUnit();
   
@@ -88,7 +91,7 @@ export default function VentilationCalc({ onVentilationChange }: { onVentilation
            </p>
         </div>
         
-        {ventMode === 'standard' && <Ashrae621VentilationCalc onVentilationChange={onVentilationChange} />}
+        {ventMode === 'standard' && <Ashrae621VentilationCalc onVentilationChange={onVentilationChange} edition={edition as any} />}
         {ventMode === 'exhaust' && <CommercialLocalExhaustCalc />}
         {ventMode === 'balance' && <AirBalanceCalc />}
         {ventMode === 'kitchen' && <KitchenVentilationCalc />}

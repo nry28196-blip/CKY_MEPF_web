@@ -17,6 +17,8 @@ export interface SystemBalanceInput {
   qOutdoorAir: number;
   qReturn: number;
   qExhaust: number;
+  buildingVolume?: number;
+  isMetric?: boolean;
 }
 
 export interface SystemBalanceResult {
@@ -25,6 +27,7 @@ export interface SystemBalanceResult {
   qNetBuilding: number;
   totalExhaustAndRelief: number;
   buildingPressure: 'Positive' | 'Neutral' | 'Negative';
+  ach?: number;
   isValid: boolean;
   warnings: string[];
 }
@@ -101,12 +104,26 @@ export class AirBalanceService {
         warnings.push("Building is highly pressurized. Check for excessive exfiltration or ensure doors can close.");
     }
 
+
+    let ach = 0;
+    if (input.buildingVolume && input.buildingVolume > 0) {
+      // Net flow is in CFM or L/s. We want ACH (Air Changes per Hour).
+      // If Metric (L/s & m3): ACH = (Net L/s * 3600 / 1000) / m3 = Net L/s * 3.6 / m3
+      // If Imperial (CFM & ft3): ACH = (Net CFM * 60) / ft3
+      if (input.isMetric) {
+        ach = (Math.abs(qNetBuilding) * 3.6) / input.buildingVolume;
+      } else {
+        ach = (Math.abs(qNetBuilding) * 60) / input.buildingVolume;
+      }
+    }
+
     return {
       qRecirculated: Math.max(0, qRecirculated),
       qRelief,
       qNetBuilding,
       totalExhaustAndRelief,
       buildingPressure,
+      ach,
       isValid,
       warnings
     };

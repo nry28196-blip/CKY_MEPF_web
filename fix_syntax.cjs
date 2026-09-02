@@ -1,10 +1,8 @@
 const fs = require('fs');
+let code = fs.readFileSync('src/calculations/services/ValidationService.ts', 'utf8');
 
-let file = fs.readFileSync('src/calculations/ventilation/Ashrae621Service.ts', 'utf8');
+code = code.replace(/\\`sys_err_\\\$\\{rule\.id\\}\\`/, "`sys_err_${rule.id}`");
+code = code.replace(/\\`Rule \\\$\\{rule\.id\\} failed to execute\\.\\`/, "`Rule ${rule.id} failed to execute.`");
 
-file = file.replace(
-  /        \}\n      \}\n    \}\n    \}\n    \/\/ Ev theoretically/,
-  '        }\n      }\n    }\n    // Ev theoretically'
-);
-
-fs.writeFileSync('src/calculations/ventilation/Ashrae621Service.ts', file);
+fs.writeFileSync('src/calculations/services/ValidationService.ts', code);
+console.log("Fixed syntax");

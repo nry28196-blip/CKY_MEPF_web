@@ -21,6 +21,7 @@ export default function AirBalanceCalc() {
   const [sysOutdoor, setSysOutdoor] = useState<number>(2500);
   const [sysReturn, setSysReturn] = useState<number>(8500);
   const [sysExhaust, setSysExhaust] = useState<number>(2000);
+  const [sysVolume, setSysVolume] = useState<number>(isMetric ? 1000 : 35000);
 
   // Calculations
   const roomInput: AirBalanceInput = {
@@ -30,7 +31,8 @@ export default function AirBalanceCalc() {
   const roomNetColor = roomResult.pressureRelationship === 'Positive' ? 'text-sky-400' : roomResult.pressureRelationship === 'Negative' ? 'text-amber-400' : 'text-slate-400';
 
   const systemInput: SystemBalanceInput = {
-    qSupply: sysSupply, qOutdoorAir: sysOutdoor, qReturn: sysReturn, qExhaust: sysExhaust
+    qSupply: sysSupply, qOutdoorAir: sysOutdoor, qReturn: sysReturn, qExhaust: sysExhaust,
+    buildingVolume: sysVolume, isMetric
   };
   const systemResult: SystemBalanceResult = AirBalanceService.calculateSystemBalance(systemInput);
   const sysNetColor = systemResult.buildingPressure === 'Positive' ? 'text-sky-400' : systemResult.buildingPressure === 'Negative' ? 'text-amber-400' : 'text-slate-400';
