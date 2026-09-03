@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Wind, Copy, Plus, Trash2, Building, Scale, Settings } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
+import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import ValidatedInput from './ValidatedInput';
 
 type ExhaustSourceType = 'ashrae621' | 'imc' | 'custom';
@@ -16,9 +17,9 @@ interface ExhaustItem {
 }
 
 export default function Ashrae621ExhaustCalc() {
-  const { unitSystem, getUnitLabel, convert } = useUnit();
-  const flowUnit = getUnitLabel('airflow');
-  const areaUnit = getUnitLabel('area');
+  const { unitSystem } = useUnit();
+  const flowUnit = unitSystem === 'metric' ? 'L/s' : 'cfm';
+  const areaUnit = unitSystem === 'metric' ? 'm²' : 'ft²';
   const isMetric = unitSystem === 'metric';
 
   const [items, setItems] = useState<ExhaustItem[]>([
@@ -115,7 +116,7 @@ export default function Ashrae621ExhaustCalc() {
             </div>
           </div>
           <div className="text-right">
-            <span className="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Subtotal</span>
+            <span className="block text-xs text-slate-500 uppercase tracking-widest font-bold">Subtotal</span>
             <span className={`text-lg font-mono font-bold ${colorClass.split(' ')[0]}`}>{subtotal.toFixed(1)} <span className="text-xs text-slate-500">{flowUnit}</span></span>
           </div>
         </div>
@@ -132,7 +133,7 @@ export default function Ashrae621ExhaustCalc() {
               </button>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pr-6">
                 <div className="md:col-span-1">
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Description</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Description</label>
                   <input
                     type="text"
                     value={item.name}
@@ -141,7 +142,7 @@ export default function Ashrae621ExhaustCalc() {
                   />
                 </div>
                 <div className="md:col-span-1">
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Category</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Category</label>
                   <select
                     value={item.category || ''}
                     onChange={(e) => updateItem(item.id, 'category', e.target.value)}
@@ -155,7 +156,7 @@ export default function Ashrae621ExhaustCalc() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Qty (Units or {areaUnit})</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Qty (Units or {areaUnit})</label>
                   <ValidatedInput
                     type="number" min={0} errorMsg="Quantity >= 0"
                     value={item.quantity}
@@ -164,7 +165,7 @@ export default function Ashrae621ExhaustCalc() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Rate ({flowUnit}/unit)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Rate ({flowUnit}/unit)</label>
                   <ValidatedInput
                     type="number" min={0} errorMsg="Rate >= 0"
                     value={item.ratePerUnit}
@@ -174,7 +175,7 @@ export default function Ashrae621ExhaustCalc() {
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-slate-800/30 flex justify-between items-center">
-                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Flow ({flowUnit})</span>
+                <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Flow ({flowUnit})</span>
                 <span className="text-sm font-mono font-bold text-slate-200">{item.totalCfm.toFixed(1)}</span>
               </div>
             </div>

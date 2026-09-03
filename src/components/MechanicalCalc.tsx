@@ -22,8 +22,20 @@ import { useUnit } from '../lib/UnitContext';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
 import { AirDensityService } from '../calculations/services/AirDensityService';
 import { VentilationValidator } from '../validation/VentilationValidator';
+import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 
-type SubTab = 'cooling' | 'ductSizing' | 'formulas' | 'ventilation' | 'fanDuty';
+export type SubTab = 'cooling' | 'ventilation' | 'exhaust' | 'airBalance' | 'iaq' | 'ductSizing' | 'fanDuty' | 'formulas';
+
+export const mechanicalModules = [
+  { id: 'cooling', label: 'Simplified Cooling Load Estimate' },
+  { id: 'ventilation', label: 'Ventilation' },
+  { id: 'exhaust', label: 'Exhaust' },
+  { id: 'airBalance', label: 'Air Balance' },
+  { id: 'iaq', label: 'CO₂ / DCV Engineering Analysis' },
+  { id: 'ductSizing', label: 'Duct Design' },
+  { id: 'fanDuty', label: 'Fan Duty' },
+  { id: 'formulas', label: 'References' }
+];
 
 interface MechanicalCalcProps {
   restoredParams?: any;
@@ -71,6 +83,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const [safetyFactor, setSafetyFactor] = useState<number>(10);
   const [altitude, setAltitude] = useState<number>(0);
   const [relativeHumidity, setRelativeHumidity] = useState<number>(50);
+  const [indoorRelativeHumidity, setIndoorRelativeHumidity] = useState<number>(50);
   const [useAltitudeAdj, setUseAltitudeAdj] = useState<boolean>(false);
 
   const [estimationBasis, setEstimationBasis] = useState<'area' | 'volume'>('area');
@@ -201,29 +214,33 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     const solarSensible = windowArea * windowShgc * solarIrradiance;
     
     // 6. Ventilation (Sensible & Latent)
-    // Altitude and humidity adjustment for air density
+    // Psychrometric state calculations
     const altMeters = isMetric ? altitude : altitude * 0.3048;
-    let densityRatio = 1.0;
-    if (useAltitudeAdj) {
-      const airProps = AirDensityService.getAirProperties(altMeters, outdoorTemp, relativeHumidity);
-      densityRatio = airProps.densityRatio;
-    }
     
-    // Adjusted psychrometric constants for sensible and latent heat based on air density
-    const cpAir = 1.21 * densityRatio; 
-    const hfgAir = 3010 * densityRatio;
-
-    // 6. Ventilation (Sensible & Latent)
-    const ventSensible = cpAir * ventilationLps * dT;
-    // Latent assumption: outdoor humidity ratio approx 0.016, indoor 0.009 -> dw = 0.007
-    const dw = 0.007; 
-    const ventLatent = hfgAir * ventilationLps * dw;
+    // Explicit psychrometric calculations for both states
+    const outdoorProps = AirDensityService.getAirProperties(altMeters, outdoorTemp, relativeHumidity);
+    const indoorProps = AirDensityService.getAirProperties(altMeters, indoorTemp, indoorRelativeHumidity);
+    
+    const densityRatio = useAltitudeAdj ? outdoorProps.densityRatio : 1.0;
+    const actualAirDensity = useAltitudeAdj ? outdoorProps.densityKgM3 : outdoorProps.standardDensityKgM3;
+    
+    // Calculate dw based on actual psychrometric state
+    const dw = Math.max(0, outdoorProps.humidityRatioKgKg - indoorProps.humidityRatioKgKg);
+    
+    // Specific heat of dry air ~ 1006 J/kgK + vapor contribution. Simplification: 1026 J/kgK for moist air.
+    const cpAir = 1.026 * actualAirDensity; // kJ/s (kW) per m3/s per K
+    const hfgVapor = 2501 * actualAirDensity; // kJ/kg -> kW per (kg/s) -> using air density to get volumetric coefficient
+    
+    // Convert flow to m3/s for SI calculation
+    const ventM3s = ventilationLps / 1000;
+    const ventSensible = (cpAir * ventM3s * dT) * 1000; // Convert kW to Watts
+    const ventLatent = (hfgVapor * ventM3s * dw) * 1000; // Convert kW to Watts
     
     // 7. Infiltration
     const numVolume = numArea * height;
-    const infiltrationLps = (infiltrationACH * numVolume * 1000) / 3600;
-    const infiltrationSensible = cpAir * infiltrationLps * dT;
-    const infiltrationLatent = hfgAir * infiltrationLps * dw;
+    const infiltrationM3s = (infiltrationACH * numVolume) / 3600;
+    const infiltrationSensible = (cpAir * infiltrationM3s * dT) * 1000;
+    const infiltrationLatent = (hfgVapor * infiltrationM3s * dw) * 1000;
 
     const totalSensible = peopleSensible + lightingSensible + equipmentSensible + wallSensible + roofSensible + windowCondSensible + solarSensible + ventSensible + infiltrationSensible;
     const totalLatent = peopleLatent + ventLatent + infiltrationLatent;
@@ -352,7 +369,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
             <Bookmark className="w-4 h-4 mr-2 text-sky-400" />
             Governing Code / Standard
           </h3>
-          <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-mono">Project Standard Edition Selection</p>
+          <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-mono">Project Standard Edition Selection</p>
         </div>
         <div className="flex items-center space-x-3 bg-slate-950 p-2 rounded-lg border border-slate-800">
           <select
@@ -368,7 +385,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
             <option value="ASHRAE 62.2-2019">ASHRAE 62.2-2019 (Residential)</option>
           </select>
           {projectType !== 'Commercial' && projectType !== 'Residential' && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-950/30 px-2 py-1 rounded border border-amber-900/50">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-500 bg-amber-950/30 px-2 py-1 rounded border border-amber-900/50">
               Special Occupancy Warning
             </span>
           )}
@@ -377,56 +394,19 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
       {/* Sub-tabs toggle */}
       <div className="flex border-b border-slate-800 pb-1 gap-2 overflow-x-auto hide-scrollbar">
-        <button
-          onClick={() => setSubTab('ductSizing')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
-            subTab === 'ductSizing'
-              ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          {t('mechDuctSizingTitle')}
-        </button>
-        <button
-          onClick={() => setSubTab('ventilation')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
-            subTab === 'ventilation'
-              ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          {t('mechVentilationTitle') || 'Ventilation'}
-        </button>
-        <button
-          onClick={() => setSubTab('cooling')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
-            subTab === 'cooling'
-              ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          {t('mechCoolingTitle')}
-        </button>
-        <button
-          onClick={() => setSubTab('formulas')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
-            subTab === 'formulas'
-              ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          Formulas
-        </button>
-        <button
-          onClick={() => setSubTab('fanDuty')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
-            subTab === 'fanDuty'
-              ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
-              : 'border-transparent text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          Fan Duty Point
-        </button>
+        {mechanicalModules.map(mod => (
+          <button
+            key={mod.id}
+            onClick={() => setSubTab(mod.id as SubTab)}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
+              subTab === mod.id
+                ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
+                : 'border-transparent text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            {mod.label}
+          </button>
+        ))}
       </div>
 
       {/* Toast Alert */}
@@ -539,8 +519,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
             <div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-md shadow-emerald-500/50" />
-                  <h2 className="text-lg font-bold uppercase tracking-tight text-white">{t('mechCoolingTitle')}</h2>
+                  <h2 className="text-lg font-bold text-white">Simplified Cooling Load Estimate</h2>
                 </div>
               </div>
               <p className="text-xs text-slate-400 mt-1 flex items-center space-x-3">
@@ -551,12 +530,12 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   className="flex items-center space-x-1.5 text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded transition-colors border border-emerald-500/20"
                 >
                   <BookOpen className="h-3 w-3" />
-                  <span className="font-bold tracking-wider uppercase text-[9px]">ASHRAE Guide</span>
+                  <span className="font-bold tracking-wider uppercase text-xs">ASHRAE Guide</span>
                 </button>
               </p>
             </div>
 
-            <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-[10px] font-bold uppercase w-fit mb-4">
+            <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-xs font-bold uppercase w-fit mb-4">
               <span className="px-3 py-1.5 text-slate-400">Project Type:</span>
               <select
                 value={projectType}
@@ -571,7 +550,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
             </div>
 
             {/* Sizing Mode Toggle */}
-            <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-[10px] font-bold uppercase w-fit">
+            <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-xs font-bold uppercase w-fit">
               <button
                 type="button"
                 onClick={() => setIsVrf(false)}
@@ -606,13 +585,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   <TooltipLabel 
                     label={t('estimationBasis')} 
                     tooltip={t("estimationBasisTooltip")}
-                    className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider" 
+                    className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider" 
                   />
                   <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-850">
                     <button
                       type="button"
                       onClick={() => setEstimationBasis('area')}
-                      className={`py-1.5 text-[10px] font-bold uppercase rounded-lg transition-all cursor-pointer ${
+                      className={`py-1.5 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer ${
                         estimationBasis === 'area'
                           ? 'bg-emerald-650 text-white shadow-md shadow-emerald-950/25 border border-emerald-500/20'
                           : 'text-slate-400 hover:text-white'
@@ -623,7 +602,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     <button
                       type="button"
                       onClick={() => setEstimationBasis('volume')}
-                      className={`py-1.5 text-[10px] font-bold uppercase rounded-lg transition-all cursor-pointer ${
+                      className={`py-1.5 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer ${
                         estimationBasis === 'volume'
                           ? 'bg-emerald-650 text-white shadow-md shadow-emerald-950/25 border border-emerald-500/20'
                           : 'text-slate-400 hover:text-white'
@@ -636,7 +615,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 
                 <TooltipLabel label="Altitude / Air Density" tooltip="Adjust psychrometric equations for non-sea-level air density." className="text-sky-400" />
                 <div className="flex items-center space-x-2 mb-4">
-                  <label className="flex items-center text-[10px] font-medium text-slate-400 cursor-pointer">
+                  <label className="flex items-center text-xs font-medium text-slate-400 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={useAltitudeAdj}
@@ -779,7 +758,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   <div className="flex items-center space-x-3">
                     <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">{t('coolingLoadResult')}</h3>
                     {validationResult && (
-                      <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
                         validationResult.status === 'PASS' 
                           ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/50' 
                           : validationResult.status === 'INCOMPLETE'
@@ -793,7 +772,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       </div>
                     )}
                   </div>
-                  <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-lg text-[9px] font-bold uppercase w-fit z-10 relative">
+                  <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-lg text-xs font-bold uppercase w-fit z-10 relative">
                     <button
                       onClick={() => setChartMode('bar')}
                       className={`px-3 py-1.5 rounded-md transition-all cursor-pointer ${
@@ -817,7 +796,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   <div className="bg-rose-950/20 border border-rose-900/50 rounded-xl p-3 mb-2">
                     <div className="flex items-center space-x-2 text-rose-400 mb-1.5">
                       <ShieldAlert className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Engineering Flags</span>
+                      <span className="text-xs font-bold uppercase tracking-wider">Engineering Flags</span>
                     </div>
                     <ul className="list-disc pl-4 space-y-1">
                       {validationResult.messages.map((msg, idx) => (
@@ -829,45 +808,45 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">Total Calculated Load</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Total Calculated Load</p>
                     <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{Math.round(results.calculatedTotal || 0).toLocaleString()} <span className="text-xs font-normal text-slate-500">W</span></p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">Sensible Load</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Sensible Load</p>
                     <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{Math.round(results.totalSensible || 0).toLocaleString()} <span className="text-xs font-normal text-slate-500">W</span></p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">Latent Load</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Latent Load</p>
                     <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{Math.round(results.totalLatent || 0).toLocaleString()} <span className="text-xs font-normal text-slate-500">W</span></p>
                   </div>
                   
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">Final Design Load</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Final Design Load</p>
                     <p className="text-xl font-bold text-emerald-400 mt-1 font-mono">{Math.round(results.watts || 0).toLocaleString()} <span className="text-xs font-normal text-emerald-500/50">W (+{safetyFactor}%)</span></p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">{t('btuHr')}</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">{t('btuHr')}</p>
                     <p className="text-xl font-bold text-white mt-1 font-mono">{Math.round(results.btu || 0).toLocaleString()} <span className="text-xs font-normal text-slate-400">BTU/h</span></p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">Cooling Capacity</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Cooling Capacity</p>
                     <p className="text-2xl font-black text-white mt-1 font-mono">{(results.tons || 0).toFixed(2)} <span className="text-xs font-normal text-slate-400">TR</span></p>
                   </div>
                   
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">Rec. AC Capacity</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Rec. AC Capacity</p>
                     <p className="text-xl font-bold text-sky-400 mt-1 font-mono">{Math.ceil((results.tons || 0) * 2) / 2} <span className="text-xs font-normal text-sky-500/50">TR</span></p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">Req. Outdoor Air</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Req. Outdoor Air</p>
                     <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{ventilationLps} <span className="text-xs font-normal text-slate-500">L/s</span></p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">Req. Supply Air</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Req. Supply Air</p>
                     <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{Math.round((results.totalSensible || 0) / 13.31 * 2.11888).toLocaleString()} <span className="text-xs font-normal text-slate-500">CFM</span></p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">Est. Electrical Input</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Est. Electrical Input</p>
                     <p className="text-xl font-bold text-amber-400 mt-1 font-mono">{Math.round((results.watts || 0) / 3.5).toLocaleString()} <span className="text-xs font-normal text-amber-500/50">W (COP 3.5)</span></p>
                   </div>
                 </div>
@@ -878,7 +857,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     {chartMode === 'bar' ? (
                       <div className="flex flex-col lg:flex-row gap-6">
                         <div className="min-w-0 flex-grow">
-                          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Load Breakdown</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Load Breakdown</p>
                           <div className="h-48 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart data={[
@@ -906,7 +885,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         </div>
                         
                         <div className="min-w-0 flex-grow">
-                          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Efficiency Benchmarks</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Reference Benchmarks</p>
                           <div className="h-48 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                               <RadarChart cx="50%" cy="50%" outerRadius="65%" data={[
@@ -956,8 +935,8 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           />
                         </div>
                         <div className="flex flex-col items-center justify-center gap-2 mt-[-20px] mb-2 relative z-10">
-                           <div className="text-[10px] font-bold uppercase text-sky-400 tracking-wider">Data Series: Estimated Cooling Capacity</div>
-                           <div className="flex justify-center flex-wrap gap-4 text-[10px] font-bold uppercase">
+                           <div className="text-xs font-bold uppercase text-sky-400 tracking-wider">Data Series: Estimated Cooling Capacity</div>
+                           <div className="flex justify-center flex-wrap gap-4 text-xs font-bold uppercase">
                              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#f43f5e]" /> <span className="text-slate-400">People</span></div>
                              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#facc15]" /> <span className="text-slate-400">Lighting</span></div>
                              <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#818cf8]" /> <span className="text-slate-400">Equipment</span></div>
@@ -979,7 +958,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     Engineering Audit Trail
                   </h3>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px]">
+                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-xs">
                       <div className="text-sky-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Governing Standards</div>
                       <div className="grid grid-cols-2 gap-2 text-slate-300">
                         <div className="text-slate-500">Methodology:</div>
@@ -994,7 +973,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <div className="text-right">3.5</div>
                       </div>
                     </div>
-                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px]">
+                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-xs">
                       <div className="text-emerald-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Intermediate Variables</div>
                       <div className="grid grid-cols-2 gap-2 text-slate-300">
                         <div className="text-slate-500">ΔT (Outdoor - Indoor):</div>
@@ -1008,7 +987,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       </div>
                     </div>
                     
-                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px] lg:col-span-2">
+                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-xs lg:col-span-2">
                       <div className="text-amber-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Load Components (Sensible / Latent)</div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-slate-300">
                         <div className="text-slate-500">People:</div>
@@ -1036,7 +1015,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       </div>
                     </div>
                     {ventilationDetails && (
-                      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px] lg:col-span-2">
+                      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-xs lg:col-span-2">
                         <div className="text-amber-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1 flex justify-between">
                           <span>Ventilation Audit Trail</span>
                           <span className="text-slate-500">{governingStandard} - {ventilationDetails.systemType === 'single' ? 'Single Zone (VRP)' : 'Multi-Zone (VRP)'}</span>
@@ -1180,7 +1159,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         onChange={(e) => setDiversityFactor(parseFloat(e.target.value))}
                         className="w-full accent-emerald-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                       />
-                      <p className="text-[10px] text-slate-500 mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         Accounts for non-coincidence of peak loads across multiple zones (Standard: 1.1 - 1.25).
                       </p>
                     </div>
@@ -1191,9 +1170,9 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <TooltipLabel 
                           label="Refrigerant Chemistry"
                           tooltip={t("refrigerantTooltip")}
-                          className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
+                          className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" 
                         />
-                        <div className="grid grid-cols-2 gap-2 p-0.5 bg-slate-950 rounded-lg border border-slate-850 text-[10px] font-bold uppercase">
+                        <div className="grid grid-cols-2 gap-2 p-0.5 bg-slate-950 rounded-lg border border-slate-850 text-xs font-bold uppercase">
                           <button
                             type="button"
                             onClick={() => setRefrigerantType('R410A')}
@@ -1218,12 +1197,12 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <TooltipLabel 
                           label="Pipe Material"
                           tooltip={t("pipingMatTooltip")}
-                          className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
+                          className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" 
                         />
                         <select
                           value={pipeMaterial}
                           onChange={(e) => setPipeMaterial(e.target.value as any)}
-                          className="w-full bg-slate-950 text-slate-300 rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase focus:outline-none focus:ring-1 focus:ring-emerald-500 border border-slate-800 transition-colors"
+                          className="w-full bg-slate-950 text-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold uppercase focus:outline-none focus:ring-1 focus:ring-emerald-500 border border-slate-800 transition-colors"
                         >
                           <option value="Copper">Copper</option>
                           <option value="Steel">Steel</option>
@@ -1231,6 +1210,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         </select>
                       </div>
                     </div>
+          <EngineeringStatusHeader 
+            status="WARNING" 
+            message="Simplified cooling-load model is being used. Does not replace a full ASHRAE heat-balance calculation."
+            className="mb-4"
+          />
                   </div>
 
                    <div>
@@ -1251,14 +1235,14 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                          <TooltipLabel
                            label={<label htmlFor="auto-calc-piping-toggle" className="cursor-pointer">Auto-Calculate from Canvas</label>}
                            tooltip={t("syncTopologyTooltip")} 
-                           className="text-[9px] text-emerald-400 font-bold uppercase select-none"
+                           className="text-xs text-emerald-400 font-bold uppercase select-none"
                          />
                        </div>
                      </div>
                      {autoCalcPiping ? (
                        <div className="w-full bg-slate-950 text-emerald-400 rounded-lg px-3 py-1.5 text-xs font-mono border border-emerald-900/30 flex justify-between items-center">
                          <span>{pipingLength} m (Canvas-driven)</span>
-                         <span className="text-[9px] text-slate-500 italic">{customPipesTotal !== null ? `Custom Drawn Pipes: ${customPipesTotal}m` : `Main: ${mainPipingLength}m + Branches: ${vrfRooms.reduce((sum, r) => sum + (r.pipeLength ?? 15), 0)}m`}</span>
+                         <span className="text-xs text-slate-500 italic">{customPipesTotal !== null ? `Custom Drawn Pipes: ${customPipesTotal}m` : `Main: ${mainPipingLength}m + Branches: ${vrfRooms.reduce((sum, r) => sum + (r.pipeLength ?? 15), 0)}m`}</span>
                        </div>
                      ) : (
                         <div>
@@ -1280,7 +1264,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           )}
                         </div>
                       )}
-                     <p className="text-[10px] text-slate-500 mt-1">
+                     <p className="text-xs text-slate-500 mt-1">
                        {autoCalcPiping 
                          ? "Summed up automatically from your main pipe line set and indoor unit branches." 
                          : "Used to approximate required additional pre-commissioning liquid line refrigerant charge."
@@ -1295,9 +1279,9 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <TooltipLabel 
                         label="ODU Sizing Selection"
                         tooltip={t("autoSizeTooltip")}
-                        className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
+                        className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" 
                       />
-                      <div className="grid grid-cols-2 gap-2 p-0.5 bg-slate-950 rounded-lg border border-slate-850 text-[10px] font-bold uppercase">
+                      <div className="grid grid-cols-2 gap-2 p-0.5 bg-slate-950 rounded-lg border border-slate-850 text-xs font-bold uppercase">
                         <button
                           type="button"
                           onClick={() => setIsOduAuto(true)}
@@ -1317,7 +1301,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           Manual override
                         </button>
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         Select whether the system automatically finds the recommended unit size or uses your manual selection.
                       </p>
                     </div>
@@ -1328,7 +1312,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <TooltipLabel 
                           label="Manual ODU HP Override"
                           tooltip={t("unitCapTooltip")}
-                          className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" 
+                          className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" 
                         />
                         <select
                           value={customOduHp}
@@ -1339,7 +1323,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             <option key={hp} value={hp}>{hp} HP ({ (hp * 0.8).toFixed(1) } TR)</option>
                           ))}
                         </select>
-                        <p className="text-[10px] text-slate-500 mt-1">
+                        <p className="text-xs text-slate-500 mt-1">
                           Forces the design to validate against a specific hardware profile.
                         </p>
                       </div>
@@ -1349,7 +1333,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           <TooltipLabel
                           label="Max allowed CR limit"
                           tooltip={t("capRatioTooltip")} 
-                          className="text-slate-400 uppercase text-[10px]"
+                          className="text-slate-400 uppercase text-xs"
                         />
                           <span className="font-mono text-emerald-400 font-bold">{maxAllowedCr}%</span>
                         </div>
@@ -1362,7 +1346,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           onChange={(e) => setMaxAllowedCr(Number(e.target.value))}
                           className="w-full accent-emerald-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                         />
-                        <p className="text-[10px] text-slate-500 mt-1">
+                        <p className="text-xs text-slate-500 mt-1">
                           The absolute maximum allowable ratio of connected IDU to ODU capacity.
                         </p>
                       </div>
@@ -1375,7 +1359,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <TooltipLabel
                           label="Max allowed CR limit"
                           tooltip={t("capRatioTooltip")} 
-                          className="text-slate-400 uppercase text-[10px]"
+                          className="text-slate-400 uppercase text-xs"
                         />
                         <span className="font-mono text-emerald-400 font-bold">{maxAllowedCr}%</span>
                       </div>
@@ -1388,7 +1372,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         onChange={(e) => setMaxAllowedCr(Number(e.target.value))}
                         className="w-full accent-emerald-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                       />
-                      <p className="text-[10px] text-slate-500 mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         The absolute maximum allowable ratio of connected IDU to ODU capacity.
                       </p>
                     </div>
@@ -1413,14 +1397,14 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   {/* Results Grid */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-950/30 p-3 rounded-xl border border-slate-850/50">
-                      <p className="text-[9px] text-slate-500 uppercase tracking-wider">Total IDU connected</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider">Total IDU connected</p>
                       <p className="text-2xl font-black text-white mt-1 font-mono">
                         {vrfResults.totalConnectedTons.toFixed(2)}{' '}
                         <span className="text-xs font-normal text-slate-400">TR</span>
                       </p>
                     </div>
                     <div className="bg-slate-950/30 p-3 rounded-xl border border-slate-850/50">
-                      <p className="text-[9px] text-slate-500 uppercase tracking-wider">Coincident peak load</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider">Coincident peak load</p>
                       <p className="text-2xl font-black text-white mt-1 font-mono text-emerald-400">
                         {vrfResults.coincidentTons.toFixed(2)}{' '}
                         <span className="text-xs font-normal text-slate-400">TR</span>
@@ -1430,15 +1414,15 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-950/30 p-3 rounded-xl border border-slate-850/50">
-                      <p className="text-[9px] text-slate-500 uppercase tracking-wider">Recommended ODU Size</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider">Recommended ODU Size</p>
                       <p className="text-xl font-black text-white mt-1 font-mono">
                         {vrfResults.oduHP}{' '}
                         <span className="text-xs font-normal text-slate-400">HP</span>
-                        <span className="block text-[10px] text-slate-500 font-normal font-sans">({vrfResults.oduTons.toFixed(1)} TR capacity)</span>
+                        <span className="block text-xs text-slate-500 font-normal font-sans">({vrfResults.oduTons.toFixed(1)} TR capacity)</span>
                       </p>
                     </div>
                     <div className="bg-slate-950/30 p-3 rounded-xl border border-slate-850/50">
-                      <p className="text-[9px] text-slate-500 uppercase tracking-wider">Combination Ratio (CR)</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider">Combination Ratio (CR)</p>
                       <p className={`text-xl font-black mt-1 font-mono ${
                         vrfResults.combinationRatio > maxAllowedCr
                           ? 'text-rose-400 font-extrabold animate-pulse'
@@ -1454,7 +1438,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
                   {/* Real-time Design Validation & Safety Center */}
                   <div className="space-y-3 pt-3 border-t border-slate-800/60">
-                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full ${
                         vrfResults.combinationRatio <= maxAllowedCr && !vrfResults.hasCapacityDeficit && !vrfResults.toxicLimitExceeded
                           ? 'bg-emerald-400'
@@ -1464,7 +1448,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     </h4>
 
                     {/* Sizing Connection Ratio Check Card */}
-                    <div className={`p-3 rounded-xl text-[10px] leading-relaxed border transition-all duration-200 ${
+                    <div className={`p-3 rounded-xl text-xs leading-relaxed border transition-all duration-200 ${
                       vrfResults.combinationRatio <= maxAllowedCr && vrfResults.combinationRatio >= 50
                         ? 'bg-emerald-950/15 border-emerald-500/20 text-emerald-300'
                         : vrfResults.combinationRatio > maxAllowedCr
@@ -1499,7 +1483,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
                     {/* Piping Capacity Loss / Derating Check Card */}
                     {vrfRooms.length > 0 && (
-                      <div className={`p-3 rounded-xl text-[10px] leading-relaxed border transition-all duration-200 ${
+                      <div className={`p-3 rounded-xl text-xs leading-relaxed border transition-all duration-200 ${
                         !vrfResults.hasCapacityDeficit
                           ? 'bg-emerald-950/10 border-emerald-500/15 text-emerald-300/90'
                           : 'bg-rose-950/20 border-rose-500/30 text-rose-300'
@@ -1528,7 +1512,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
                     {/* Safety limit concentration check (ASHRAE 15 / ISO 5149) Card */}
                     {vrfRooms.length > 0 && (
-                      <div className={`p-3 rounded-xl text-[10px] leading-relaxed border transition-all duration-200 ${
+                      <div className={`p-3 rounded-xl text-xs leading-relaxed border transition-all duration-200 ${
                         !vrfResults.toxicLimitExceeded
                           ? 'bg-emerald-950/10 border-emerald-500/15 text-emerald-300/90'
                           : 'bg-rose-950/20 border-rose-500/30 text-rose-300'
@@ -1556,7 +1540,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   </div>
 
                   {/* Piping & Additional Charge Estimate */}
-                  <div className="p-3.5 rounded-xl bg-slate-950/50 border border-slate-850 text-[10px] space-y-1.5 text-slate-300">
+                  <div className="p-3.5 rounded-xl bg-slate-950/50 border border-slate-850 text-xs space-y-1.5 text-slate-300">
                     <span className="font-bold uppercase text-slate-400 block">Refrigerant Additional Charge:</span>
                     <div className="flex justify-between">
                       <span>Chemistry Model:</span>
@@ -1688,7 +1672,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <Wind className="h-4.5 w-4.5 text-emerald-400" />
                       <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">Connected Indoor Units ({vrfRooms.length})</h3>
                     </div>
-                    <span className="text-[10px] bg-emerald-950/40 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20 font-bold font-mono">
+                    <span className="text-xs bg-emerald-950/40 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20 font-bold font-mono">
                       Sum IDU: {vrfResults.totalConnectedTons.toFixed(2)} TR
                     </span>
                   </div>
@@ -1697,7 +1681,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   <div className="overflow-x-auto rounded-xl border border-slate-850 bg-slate-950/40 max-h-[220px] overflow-y-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-900 border-b border-slate-800 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                        <tr className="bg-slate-900 border-b border-slate-800 text-xs font-bold uppercase tracking-wider text-slate-400">
                           <th className="p-3">Space/Zone Name</th>
                           <th className="p-3">Basis / Sizing</th>
                           <th className="p-3 text-center">Occupants</th>
@@ -1789,7 +1773,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     <TooltipLabel
                       label="Add Custom Indoor Unit Zone"
                       tooltip={t("manualUnitTooltip")} 
-                      className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block"
+                      className="text-xs font-bold text-slate-400 uppercase tracking-wider block"
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                       <input
@@ -1800,7 +1784,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         className="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-xs border border-slate-800 focus:outline-none focus:border-emerald-500"
                       />
                       
-                      <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800 text-[10px] font-bold uppercase gap-1">
+                      <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs font-bold uppercase gap-1">
                         <button
                           type="button"
                           onClick={() => setNewRoomBasis('area')}
@@ -1898,7 +1882,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           setNewRoomOccupants('');
                           triggerToast(`Zone "${name}" added successfully!`);
                         }}
-                        className="flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-md transition-all duration-150 active:scale-95 cursor-pointer"
+                        className="flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md transition-all duration-150 active:scale-95 cursor-pointer"
                       >
                         <Plus className="h-3 w-3" />
                         <span>Add Zone to System</span>

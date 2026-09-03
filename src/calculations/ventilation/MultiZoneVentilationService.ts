@@ -60,10 +60,10 @@ export class MultiZoneVentilationService {
       sumVbz += z.zoneResult.vbz;
       sumVoz += z.zoneResult.voz;
       sumVpz += z.primaryAirflow;
-      // 62.1-2025: If Vpz-min is not provided, correctly derive it as max(30% of Vpz, Voz) for VAV safety
+      // If Vpz-min is not provided, default to Vpz (assumes Constant Volume). Do not use an arbitrary 30% VAV rule.
       const derivedVpzMin = (z.vpzMin !== undefined && z.vpzMin !== null) 
         ? Number(z.vpzMin) 
-        : Math.max(z.primaryAirflow * 0.3, z.zoneResult.voz);
+        : z.primaryAirflow;
       sumVpzMin += derivedVpzMin;
       sumPz += z.zoneResult.pz;
       sumRpPz += z.zoneResult.vbp;
@@ -100,7 +100,7 @@ export class MultiZoneVentilationService {
     zones.forEach(z => {
       const vpzMin = (z.vpzMin !== undefined && z.vpzMin !== null) 
         ? Number(z.vpzMin) 
-        : Math.max(z.primaryAirflow * 0.3, z.zoneResult.voz);
+        : z.primaryAirflow;
       
       // Zpz = Voz / Vpz-min. If vpzMin is 0, Zpz is Infinity (highly critical)
       const zpz = vpzMin > 0 ? z.zoneResult.voz / vpzMin : Infinity;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Layers, Activity, Building2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
+import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { AirBalanceService, AirBalanceInput, AirBalanceResult, SystemBalanceInput, SystemBalanceResult } from '../calculations/ventilation/AirBalanceService';
 
 export default function AirBalanceCalc() {
@@ -39,6 +40,11 @@ export default function AirBalanceCalc() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <EngineeringStatusHeader 
+        status="READY" 
+        message="Engineering analysis of building and room-level mass airflow balance."
+        className="mb-4"
+      />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center">
@@ -79,7 +85,7 @@ export default function AirBalanceCalc() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Total Supply Air ({flowUnit})</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Total Supply Air ({flowUnit})</label>
                 <input 
                   type="number" min="0" step="100"
                   value={sysSupply}
@@ -88,7 +94,7 @@ export default function AirBalanceCalc() {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Total Return Air ({flowUnit})</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Total Return Air ({flowUnit})</label>
                 <input 
                   type="number" min="0" step="100"
                   value={sysReturn}
@@ -97,7 +103,7 @@ export default function AirBalanceCalc() {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-sky-400 mb-1.5 uppercase">Outdoor Air ({flowUnit})</label>
+                <label className="block text-xs font-bold text-sky-400 mb-1.5 uppercase">Outdoor Air ({flowUnit})</label>
                 <input 
                   type="number" min="0" step="100"
                   value={sysOutdoor}
@@ -106,7 +112,7 @@ export default function AirBalanceCalc() {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-amber-400 mb-1.5 uppercase">Total Exhaust Air ({flowUnit})</label>
+                <label className="block text-xs font-bold text-amber-400 mb-1.5 uppercase">Total Exhaust Air ({flowUnit})</label>
                 <input 
                   type="number" min="0" step="100"
                   value={sysExhaust}
@@ -143,7 +149,7 @@ export default function AirBalanceCalc() {
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent" />
                 
                 <div className="relative z-10 text-center">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Building Pressure Relationship</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Building Pressure Relationship</p>
                   <p className={`text-4xl font-black font-mono tracking-tight drop-shadow-md uppercase ${sysNetColor}`}>
                     {systemResult.buildingPressure}
                   </p>
@@ -206,7 +212,7 @@ export default function AirBalanceCalc() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Supply Air ({flowUnit})</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Supply Air ({flowUnit})</label>
                   <input 
                     type="number" min="0" step="10"
                     value={supplyAir}
@@ -215,7 +221,7 @@ export default function AirBalanceCalc() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Return Air ({flowUnit})</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Return Air ({flowUnit})</label>
                   <input 
                     type="number" min="0" step="10"
                     value={returnAir}
@@ -227,7 +233,7 @@ export default function AirBalanceCalc() {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Local Exhaust Air ({flowUnit})</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Local Exhaust Air ({flowUnit})</label>
                   <input 
                     type="number" min="0" step="10"
                     value={exhaustAir}
@@ -236,7 +242,7 @@ export default function AirBalanceCalc() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Transfer Air In ({flowUnit})</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Transfer Air In ({flowUnit})</label>
                   <input 
                     type="number" min="0" step="10"
                     value={transferIn}
@@ -284,7 +290,7 @@ export default function AirBalanceCalc() {
               
               <div className="bg-slate-950/50 p-6 rounded-xl border border-indigo-900/30 flex flex-col items-center justify-center relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 z-10">Pressure Relationship</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 z-10">Pressure Relationship</p>
                 <p className={`text-3xl font-black font-mono tracking-tight drop-shadow-md z-10 uppercase ${roomNetColor}`}>
                   {roomResult.pressureRelationship}
                 </p>

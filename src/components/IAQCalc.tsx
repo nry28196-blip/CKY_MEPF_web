@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShieldAlert, Wind, Ruler, Activity, CheckCircle2, Filter } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 import ValidatedInput from './ValidatedInput';
+import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import ashrae2025Data from '../data/ashrae62_1_2025.json';
 
 const MERV_DATA = [
@@ -21,11 +22,11 @@ export default function IAQCalc() {
   const pm25Threshold = ashrae2025Data.airQualityStandards.filtrationRequirements.pm25DesignThreshold;
   const exhaustClasses = ashrae2025Data.airQualityStandards.exhaustClasses;
 
-  const { unitSystem, getUnitLabel } = useUnit();
+  const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
-  const flowUnit = getUnitLabel('airflow');
-  const lenUnit = getUnitLabel('length');
-  const areaUnit = getUnitLabel('area');
+  const flowUnit = unitSystem === 'metric' ? 'L/s' : 'cfm';
+  const lenUnit = unitSystem === 'metric' ? 'm' : 'ft';
+  const areaUnit = unitSystem === 'metric' ? 'm²' : 'ft²';
 
   // --- DCV & CO2 ---
   const [designPop, setDesignPop] = useState(100);
@@ -84,14 +85,19 @@ export default function IAQCalc() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <EngineeringStatusHeader 
+        status={dcvCO2 > maxAllowedCO2 ? 'WARNING' : 'READY'} 
+        message={dcvCO2 > maxAllowedCO2 ? "Estimated CO₂ exceeds max allowable threshold." : "DCV calculations ready."}
+        className="mb-4"
+      />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center">
             <ShieldAlert className="w-5 h-5 mr-2 text-emerald-400" />
-            IAQ & Filtration
+            CO₂ / DCV Engineering Analysis
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            Analyze Demand Controlled Ventilation, CO₂ concentrations, and filtration efficacy.
+            Analyze Demand Controlled Ventilation, CO₂ concentrations, filtration efficacy, and separation distances.
           </p>
         </div>
       </div>
@@ -107,26 +113,30 @@ export default function IAQCalc() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Design Population</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Design Population</label>
               <ValidatedInput type="number" min={0} value={designPop} onChange={(e) => setDesignPop(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">DCV Current Population</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">DCV Current Population</label>
               <ValidatedInput type="number" min={0} value={dcvPop} onChange={(e) => setDcvPop(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Area ({areaUnit})</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Area ({areaUnit})</label>
               <ValidatedInput type="number" min={0} value={area} onChange={(e) => setArea(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Outdoor CO₂ (ppm)</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">CO₂ Generation Rate ({isMetric ? 'L/s/person' : 'cfm/person'})</label>
+              <ValidatedInput type="number" min={0} step={0.001} value={activityLevel} onChange={(e) => setActivityLevel(Number(e.target.value))} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Outdoor CO₂ (ppm)</label>
               <ValidatedInput type="number" min={300} value={outdoorCO2} onChange={(e) => setOutdoorCO2(Number(e.target.value))} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-slate-950 p-5 rounded-xl border border-slate-800">
-              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Design State (Max Occupancy)</h4>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Design State (Max Occupancy)</h4>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-slate-300">Required Airflow</span>
                 <span className="text-sm font-mono font-bold text-white">{designAirflow.toFixed(1)} {flowUnit}</span>
@@ -140,7 +150,7 @@ export default function IAQCalc() {
             </div>
 
             <div className="bg-slate-950 p-5 rounded-xl border border-emerald-900/30">
-              <h4 className="text-[10px] font-bold text-emerald-500/70 uppercase tracking-widest mb-3">DCV State (Current Occupancy)</h4>
+              <h4 className="text-xs font-bold text-emerald-500/70 uppercase tracking-wider mb-3">DCV State (Current Occupancy)</h4>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-slate-300">DCV Airflow</span>
                 <span className="text-sm font-mono font-bold text-emerald-400">{dcvAirflow.toFixed(1)} {flowUnit}</span>
@@ -167,20 +177,20 @@ export default function IAQCalc() {
           <h3 className="text-sm font-semibold text-white mb-5 flex items-center justify-between">
             <div className="flex items-center">
               <Filter className="w-4 h-4 mr-2 text-sky-400" />
-              Filtration Effectiveness
+              Filter Rating Reference
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-[9px] uppercase tracking-wider font-bold bg-slate-800 text-slate-300 px-2 py-1 rounded">
+              <span className="text-xs uppercase tracking-wider font-bold bg-slate-800 text-slate-300 px-2 py-1 rounded">
                 ASHRAE 2025 Min: MERV {minMerv}
               </span>
-              <span className="text-[9px] uppercase tracking-wider font-bold bg-amber-950/30 text-amber-400 border border-amber-900/50 px-2 py-1 rounded">
+              <span className="text-xs uppercase tracking-wider font-bold bg-amber-950/30 text-amber-400 border border-amber-900/50 px-2 py-1 rounded">
                 PM2.5 Threshold: {pm25Threshold} μg/m³
               </span>
             </div>
           </h3>
           
           <div className="mb-6">
-            <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Target Filter MERV Rating</label>
+            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Target Filter MERV Rating</label>
             <select 
               value={selectedMerv} onChange={(e) => setSelectedMerv(e.target.value)}
               className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-sky-500 font-mono"
@@ -193,25 +203,25 @@ export default function IAQCalc() {
 
           <div className="space-y-4">
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Particle Size Efficiency (PSE)</h4>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Particle Size Efficiency (PSE)</h4>
               <div className="space-y-2 text-sm font-mono">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">E1 (0.3 - 1.0 µm) <span className="text-[10px] ml-1 text-slate-600">e.g. Smoke</span></span>
+                  <span className="text-slate-400">E1 (0.3 - 1.0 µm) <span className="text-xs ml-1 text-slate-600">e.g. Smoke</span></span>
                   <span className="text-sky-300 font-bold">{currentMerv.e1}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">E2 (1.0 - 3.0 µm) <span className="text-[10px] ml-1 text-slate-600">e.g. PM2.5</span></span>
+                  <span className="text-slate-400">E2 (1.0 - 3.0 µm) <span className="text-xs ml-1 text-slate-600">e.g. PM2.5</span></span>
                   <span className="text-sky-300 font-bold">{currentMerv.e2}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">E3 (3.0 - 10.0 µm) <span className="text-[10px] ml-1 text-slate-600">e.g. Pollen</span></span>
+                  <span className="text-slate-400">E3 (3.0 - 10.0 µm) <span className="text-xs ml-1 text-slate-600">e.g. Pollen</span></span>
                   <span className="text-sky-300 font-bold">{currentMerv.e3}</span>
                 </div>
               </div>
             </div>
             
             <div className="bg-sky-950/20 p-4 rounded-xl border border-sky-900/30">
-              <h4 className="text-[10px] font-bold text-sky-500/70 uppercase tracking-widest mb-1">Typical Applications</h4>
+              <h4 className="text-xs font-bold text-sky-500/70 uppercase tracking-wider mb-1">Typical Applications</h4>
               <p className="text-xs text-sky-200">{currentMerv.app}</p>
             </div>
           </div>
@@ -221,12 +231,12 @@ export default function IAQCalc() {
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
           <h3 className="text-sm font-semibold text-white mb-5 flex items-center">
             <Ruler className="w-4 h-4 mr-2 text-amber-400" />
-            ASHRAE 62.1 Separation Distances
+            Simplified Separation Check (ASHRAE 62.1)
           </h3>
           
           <div className="space-y-4 mb-6">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Exhaust / Source Type</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Exhaust / Source Type</label>
               <select 
                 value={exhaustSource} onChange={(e) => setExhaustSource(e.target.value)}
                 className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-amber-500"
@@ -245,7 +255,7 @@ export default function IAQCalc() {
               if (!ec) return null;
               return (
                 <div className="mt-2 bg-slate-950 p-3 rounded-lg border border-slate-800/50">
-                   <h5 className="text-[9px] font-bold text-amber-500/70 uppercase tracking-widest mb-1">Recirculation Rule (2025 Std)</h5>
+                   <h5 className="text-xs font-bold text-amber-500/70 uppercase tracking-wider mb-1">Recirculation Rule (2025 Std)</h5>
                    <p className="text-xs text-slate-300">
                      {ec.recirculationAllowed === true && "Full recirculation allowed to any space."}
                      {ec.recirculationAllowed === 'limited' && "Limited recirculation allowed (only to Class 2/3/4 spaces, never to Class 1)."}
@@ -257,7 +267,7 @@ export default function IAQCalc() {
           </div>
 
           <div className="mt-4 bg-amber-950/20 p-6 rounded-xl border border-amber-900/50 flex flex-col items-center justify-center text-center">
-            <span className="text-[10px] font-bold text-amber-500/70 uppercase tracking-widest">Minimum Distance to Intake</span>
+            <span className="text-xs font-bold text-amber-500/70 uppercase tracking-wider">Minimum Distance to Intake</span>
             <span className="text-4xl font-black font-mono text-amber-400 mt-2">{distance} <span className="text-xl text-amber-600">{lenUnit}</span></span>
             <p className="text-xs text-slate-400 mt-3 max-w-[250px]">
               Minimum separation required between the selected exhaust source and any outdoor air intake.

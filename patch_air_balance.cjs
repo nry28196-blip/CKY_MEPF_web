@@ -1,5 +1,5 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/components/Ashrae621ExhaustCalc.tsx', 'utf8');
+let code = fs.readFileSync('src/components/AirBalanceCalc.tsx', 'utf8');
 
 code = code.replace(
   "import { useUnit } from '../lib/UnitContext';",
@@ -9,15 +9,15 @@ code = code.replace(
 // Add EngineeringStatusHeader
 const insertTarget = `<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">`;
 const headerInject = `<EngineeringStatusHeader 
-        status="CALCULATED" 
-        message="ASHRAE 62.1 Exhaust Requirements"
+        status="READY" 
+        message="Engineering analysis of building and room-level mass airflow balance."
         className="mb-4"
       />\n      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">`;
-      
+
 code = code.replace(insertTarget, headerInject);
 
 code = code.replace(/text-\[9px\]/g, "text-xs");
 code = code.replace(/text-\[10px\]/g, "text-xs");
 
-fs.writeFileSync('src/components/Ashrae621ExhaustCalc.tsx', code);
-console.log("Patched Ashrae621ExhaustCalc");
+fs.writeFileSync('src/components/AirBalanceCalc.tsx', code);
+console.log("Patched AirBalanceCalc");

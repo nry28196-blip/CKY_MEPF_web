@@ -10,6 +10,7 @@ import ValidatedInput from './ValidatedInput';
 import StaticPressureCalc from './StaticPressureCalc';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
+import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { useUnitValue } from '../lib/useUnitValue';
 import { exportDuctSizingToCsv } from '../lib/exportCsv';
 
@@ -399,7 +400,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
       )}
 
       {/* Top Toggle */}
-      <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-[10px] font-bold uppercase w-fit mb-2">
+      <div className="flex bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-xs font-bold uppercase w-fit mb-2">
         <button
           onClick={() => setSizingMode('equal-friction')}
           className={`px-4 py-2 rounded-lg transition-all ${sizingMode === 'equal-friction' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
@@ -466,7 +467,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                       : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
                       } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
-                  <span className="text-[10px] text-slate-500 font-mono">{flowUnit}</span>
+                  <span className="text-xs text-slate-500 font-mono">{flowUnit}</span>
                 </div>
               </div>
               <input
@@ -478,7 +479,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                 onChange={(e) => setAirflow(airflowUnitHook.getInternalValue(Number(e.target.value)))}
                 className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
               />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <div className="flex justify-between text-xs text-slate-500 font-mono">
                 <span>200 CFM</span>
                 <span>7,500 CFM</span>
                 <span>15,000 CFM</span>
@@ -505,7 +506,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                       : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
                       } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
-                  <span className="text-[10px] text-slate-500 font-mono">in/100ft</span>
+                  <span className="text-xs text-slate-500 font-mono">in/100ft</span>
                 </div>
               </div>
               <input
@@ -517,7 +518,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                 onChange={(e) => setFrictionRate(fricUnitHook.getInternalValue(Number(e.target.value)))}
                 className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
               />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <div className="flex justify-between text-xs text-slate-500 font-mono">
                 <span>0.04 (Low Noise)</span>
                 <span>0.10 (Standard)</span>
                 <span>0.40 (High Velocity)</span>
@@ -531,7 +532,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
             <div className="space-y-4 mb-6">
               <div className="space-y-2">
                 <div><TooltipLabel label="System / Duct Type" tooltip={t("ductTypeTooltip")} className="text-xs text-slate-400 font-medium mb-1" />
-                  <span className="text-[10px] text-slate-500 font-normal">For reference guidelines</span></div>
+                  <span className="text-xs text-slate-500 font-normal">For reference guidelines</span></div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setDuctType('supply')}
@@ -581,7 +582,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                         : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                     />
-                    <span className="text-[10px] text-slate-500 font-mono">{velUnit}</span>
+                    <span className="text-xs text-slate-500 font-mono">{velUnit}</span>
                   </div>
                 </div>
                 <input
@@ -593,7 +594,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                   onChange={(e) => setVelocityLimit(velUnitHook.getInternalValue(Number(e.target.value)))}
                   className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                 />
-                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                <div className="flex justify-between text-xs text-slate-500 font-mono">
                   <span>600 (Quiet)</span>
                   <span>1,200 (Office)</span>
                   <span>2,500 (Ind.)</span>
@@ -607,10 +608,10 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
               <div className="bg-slate-950/40 rounded-lg border border-slate-800/80 overflow-hidden">
                 <div className="px-3 py-2 bg-slate-900/50 border-b border-slate-800/80 flex items-center">
                   <Info className="w-3 h-3 text-slate-400 mr-1.5" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Velocity Guidelines</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Velocity Guidelines</span>
                 </div>
                 <div className="p-0">
-                  <table className="w-full text-left text-[10px]">
+                  <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-slate-800/50 text-slate-500">
                         <th className="px-3 py-1.5 font-medium">Application</th>
@@ -657,7 +658,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                       </tr>
                     </tbody>
                   </table>
-                  <div className="px-3 py-1.5 bg-slate-900/30 text-[9px] text-slate-500 flex justify-between border-t border-slate-800/50">
+                  <div className="px-3 py-1.5 bg-slate-900/30 text-xs text-slate-500 flex justify-between border-t border-slate-800/50">
                     <span>* Values in {velUnit}. Varies by noise constraint.</span>
                   </div>
                 </div>
@@ -680,7 +681,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                       : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
                       } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
-                  <span className="text-[10px] text-slate-500 font-mono">IN</span>
+                  <span className="text-xs text-slate-500 font-mono">IN</span>
                 </div>
               </div>
 
@@ -694,7 +695,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                   <button
                     key={h}
                     onClick={() => setDuctHeight(h)}
-                    className={`text-[10px] px-2 py-1 rounded font-mono border transition-all ${ductHeight === h
+                    className={`text-xs px-2 py-1 rounded font-mono border transition-all ${ductHeight === h
                       ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300'
                       : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                       }`}
@@ -711,7 +712,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                 <Layers className="h-4 w-4 text-emerald-400" />
                 <div>
                   <span className="block text-xs font-semibold text-slate-200">Branch Splitting Engine</span>
-                  <span className="block text-[10px] text-slate-500">Solve downstream branch sizes</span>
+                  <span className="block text-xs text-slate-500">Solve downstream branch sizes</span>
                 </div>
               </div>
               <button
@@ -748,7 +749,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                 </div>
 
                 <div className="space-y-3 pt-2">
-                  <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Adjust Split Proportions</span>
+                  <span className="block text-xs font-semibold text-slate-500 uppercase tracking-widest">Adjust Split Proportions</span>
                   {branchPercentages.map((pct, idx) => (
                     <div key={idx} className="space-y-1">
                       <div className="flex justify-between text-[11px] font-mono">
@@ -766,7 +767,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                       />
                     </div>
                   ))}
-                  <div className="text-[10px] text-slate-500 flex items-center justify-between font-mono bg-slate-950/30 p-2 rounded border border-slate-850">
+                  <div className="text-xs text-slate-500 flex items-center justify-between font-mono bg-slate-950/30 p-2 rounded border border-slate-850">
                     <span>Proportion Integrity</span>
                     <span className="text-emerald-400/90">Sum total: 100% (Balanced)</span>
                   </div>
@@ -813,7 +814,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                 {/* Block 1: EQUIV. DIAMETER */}
                 <div className="flex md:justify-start">
                   <div className="flex flex-col">
-                    <span className="block text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">Equiv. Diameter</span>
+                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Equiv. Diameter</span>
                     <div className="flex items-end gap-1.5">
                       <span className="text-4xl font-bold text-white font-mono leading-none">
                         {lenUnitHook.getDisplayValue(deMain).toFixed(1)}
@@ -831,7 +832,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                 {/* Block 2: RECTANGULAR SIZING */}
                 <div className="flex md:justify-center">
                   <div className="flex flex-col">
-                    <span className="block text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">Rectangular Sizing</span>
+                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Rectangular Sizing</span>
                     <div className="flex items-end gap-1.5">
                       <span className="text-4xl font-bold text-emerald-400 font-mono leading-none">
                         {lenUnitHook.getDisplayValue(widthMain).toFixed(0)}x{lenUnitHook.getDisplayValue(ductHeight).toFixed(0)}
@@ -849,7 +850,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                 {/* Block 3: VELOCITY (RECT) */}
                 <div className="flex md:justify-end">
                   <div className="flex flex-col">
-                    <span className="block text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">Velocity (Rect)</span>
+                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Velocity (Rect)</span>
                     <div className="flex items-end gap-1.5">
                       <span className={`text-4xl font-bold font-mono leading-none ${statusMain === 'optimal' ? 'text-emerald-400' : statusMain === 'warning' ? 'text-amber-400' : 'text-red-500'
                         }`}>
@@ -859,15 +860,15 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                     </div>
                     <div className="mt-2 flex items-center h-6">
                       {statusMain === 'optimal' ? (
-                        <span className="text-[9px] text-emerald-400 font-mono flex items-center bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-900/30 uppercase tracking-wider">
+                        <span className="text-xs text-emerald-400 font-mono flex items-center bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-900/30 uppercase tracking-wider">
                           <CheckCircle2 className="h-2.5 w-2.5 mr-1" /> OPTIMAL
                         </span>
                       ) : statusMain === 'warning' ? (
-                        <span className="text-[9px] text-amber-400 font-mono flex items-center bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-900/30 uppercase tracking-wider">
+                        <span className="text-xs text-amber-400 font-mono flex items-center bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-900/30 uppercase tracking-wider">
                           <AlertTriangle className="h-2.5 w-2.5 mr-1" /> SLIGHTLY HIGH
                         </span>
                       ) : (
-                        <span className="text-[9px] text-red-500 font-mono flex items-center bg-red-950/30 px-1.5 py-0.5 rounded border border-red-900/30 uppercase tracking-wider">
+                        <span className="text-xs text-red-500 font-mono flex items-center bg-red-950/30 px-1.5 py-0.5 rounded border border-red-900/30 uppercase tracking-wider">
                           <AlertTriangle className="h-2.5 w-2.5 mr-1" /> CRITICAL VELOCITY
                         </span>
                       )}
@@ -879,7 +880,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
               
               {/* System Flow Schematic */}
               <div className="bg-slate-950/60 border border-slate-850/80 rounded-xl p-5 flex flex-col min-h-[220px] relative overflow-hidden">
-                 <span className="absolute top-3 left-3 text-[10px] text-slate-500 uppercase tracking-wider font-semibold font-mono z-10">System Flow Schematic</span>
+                 <span className="absolute top-3 left-3 text-xs text-slate-500 uppercase tracking-wider font-semibold font-mono z-10">System Flow Schematic</span>
                  
                  <div className="w-full flex-1 flex items-center justify-center mt-6">
                    <svg viewBox="0 0 400 160" className="w-full h-auto drop-shadow-md">
@@ -1007,7 +1008,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
               
               {/* Duct visual cross-section representation using dynamic SVG shape */}
               <div className="bg-slate-950/60 border border-slate-850/80 rounded-xl p-5 flex flex-col items-center justify-center min-h-[220px] relative">
-                <span className="absolute top-3 left-3 text-[10px] text-slate-500 uppercase tracking-wider font-semibold font-mono">Interactive Flow Visualization</span>
+                <span className="absolute top-3 left-3 text-xs text-slate-500 uppercase tracking-wider font-semibold font-mono">Interactive Flow Visualization</span>
 
                 {/* SVG representing round (dashed blue outline) and calculated rectangular duct side-by-side or overlaid */}
                 <div className="w-full max-w-sm flex items-center justify-around gap-6 mt-4">
@@ -1026,7 +1027,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                         Ø {lenUnitHook.getDisplayValue(deMain).toFixed(1)}"
                       </text>
                     </svg>
-                    <span className="text-[10px] text-slate-500 font-mono">Round Equivalent</span>
+                    <span className="text-xs text-slate-500 font-mono">Round Equivalent</span>
                   </div>
 
                   {/* Rectangular cross-section (solid chrome border) */}
@@ -1060,12 +1061,12 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                         );
                       })()}
                     </svg>
-                    <span className="text-[10px] text-emerald-400 font-mono font-semibold">Rectangular Profile</span>
+                    <span className="text-xs text-emerald-400 font-mono font-semibold">Rectangular Profile</span>
                   </div>
 
                 </div>
 
-                <div className="w-full mt-4 flex items-center justify-between text-[10px] text-slate-400 bg-slate-900/50 p-2 rounded">
+                <div className="w-full mt-4 flex items-center justify-between text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
                   <div className="flex items-center space-x-2">
                     <span className="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-sm" />
                     <span>Perimeter: {2 * (widthMain + ductHeight)} in</span>
@@ -1081,7 +1082,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
               {/* Downstream branches display */}
               {enableSplitting && (
                 <div className="space-y-3 animate-in fade-in duration-300">
-                  <span className="block text-[10px] text-slate-500 uppercase tracking-wider font-semibold font-mono">Downstream Splitting Balance sheet</span>
+                  <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold font-mono">Downstream Splitting Balance sheet</span>
 
                   <div className="grid grid-cols-1 gap-2.5">
                     {branches.map(b => (
@@ -1096,9 +1097,9 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                           <div>
                             <div className="flex items-baseline space-x-1.5">
                               <span className="text-xs font-bold text-white">Branch #{b.id}</span>
-                              <span className="text-[10px] text-emerald-400 font-bold font-mono">({b.pct}%)</span>
+                              <span className="text-xs text-emerald-400 font-bold font-mono">({b.pct}%)</span>
                             </div>
-                            <span className="block text-[10px] text-slate-400 font-mono">{airflowUnitHook.getDisplayValue(b.cfm).toFixed(0)} CFM</span>
+                            <span className="block text-xs text-slate-400 font-mono">{airflowUnitHook.getDisplayValue(b.cfm).toFixed(0)} CFM</span>
                           </div>
                         </div>
 
@@ -1123,7 +1124,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
 
                   {/* Visual Chart for Section Distribution */}
                   <div className="mt-6 pt-4 border-t border-slate-850">
-                    <span className="block text-[10px] text-slate-500 uppercase tracking-wider font-semibold font-mono mb-4">Branch Airflow Distribution (CFM)</span>
+                    <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold font-mono mb-4">Branch Airflow Distribution (CFM)</span>
                     <div className="h-48 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={branches} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>

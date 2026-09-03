@@ -8,6 +8,7 @@ export interface AirProperties {
   densityKgM3: number;
   densityRatio: number; // Ratio of actual density to standard density
   standardDensityKgM3: number;
+  humidityRatioKgKg: number;
 }
 
 export class AirDensityService {
@@ -80,7 +81,10 @@ export class AirDensityService {
     // 6. Density Ratio
     const densityRatio = densityKgM3 / standardDensityKgM3;
 
+    const humidityRatioKgKg = 0.621945 * (pv / pd);
+
     return {
+      humidityRatioKgKg,
       elevationM,
       temperatureC,
       relativeHumidity,

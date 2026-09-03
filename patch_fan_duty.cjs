@@ -1,5 +1,5 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/components/Ashrae621ExhaustCalc.tsx', 'utf8');
+let code = fs.readFileSync('src/components/SystemPerformanceCalc.tsx', 'utf8');
 
 code = code.replace(
   "import { useUnit } from '../lib/UnitContext';",
@@ -10,14 +10,19 @@ code = code.replace(
 const insertTarget = `<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">`;
 const headerInject = `<EngineeringStatusHeader 
         status="CALCULATED" 
-        message="ASHRAE 62.1 Exhaust Requirements"
+        message="Fan Duty Point engineering calculations."
         className="mb-4"
       />\n      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">`;
       
 code = code.replace(insertTarget, headerInject);
 
+// Remove visual noise
 code = code.replace(/text-\[9px\]/g, "text-xs");
 code = code.replace(/text-\[10px\]/g, "text-xs");
+code = code.replace(/animate-bounce/g, "");
 
-fs.writeFileSync('src/components/Ashrae621ExhaustCalc.tsx', code);
-console.log("Patched Ashrae621ExhaustCalc");
+// Ensure it's called Fan Duty Point
+code = code.replace(/System Performance & Fans/g, "Fan Duty Point");
+
+fs.writeFileSync('src/components/SystemPerformanceCalc.tsx', code);
+console.log("Patched SystemPerformanceCalc");

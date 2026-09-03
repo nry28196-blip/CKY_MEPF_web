@@ -2,6 +2,7 @@ import { AirDensityService } from '../calculations/services/AirDensityService';
 import React, { useState } from 'react';
 import { Activity, Fan, Wind, Gauge, Zap } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
+import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { SystemPerformanceService, SystemPerformanceInput, SystemPerformanceResult } from '../calculations/ventilation/SystemPerformanceService';
 import { Ashrae621Service } from '../calculations/ventilation/Ashrae621Service';
 import ValidatedInput from './ValidatedInput';
@@ -66,15 +67,15 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Outdoor Air ({flowUnit})</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Outdoor Air ({flowUnit})</label>
               <ValidatedInput type="number" min={0} errorMsg="Flow rate must be >= 0" value={qOutdoorAir} onChange={(e) => setQOutdoorAir(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Return Air ({flowUnit})</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Return Air ({flowUnit})</label>
               <ValidatedInput type="number" min={0} errorMsg="Flow rate must be >= 0" value={qReturnAir} onChange={(e) => setQReturnAir(Number(e.target.value))} />
             </div>
           </div>
-          <p className="text-[10px] text-slate-500 font-mono mt-2">Density Ratio (Eρ): {densityRatio.toFixed(3)}</p>
+          <p className="text-xs text-slate-500 font-mono mt-2">Density Ratio (Eρ): {densityRatio.toFixed(3)}</p>
         </div>
 
         {/* Duct Network & Static Pressure */}
@@ -85,19 +86,19 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Critical Length ({lengthUnit})</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Critical Length ({lengthUnit})</label>
               <ValidatedInput type="number" min={1} errorMsg="Length must be >= 1" value={criticalDuctLength} onChange={(e) => setCriticalDuctLength(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Friction ({frictionUnit})</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Friction ({frictionUnit})</label>
               <ValidatedInput type="number" step="0.01" min={0.01} max={5} errorMsg="Standard friction: 0.01 to 5.0" value={ductFrictionRate} onChange={(e) => setDuctFrictionRate(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Fitting Loss ({pressureUnit})</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Fitting Loss ({pressureUnit})</label>
               <ValidatedInput type="number" step="0.1" min={0} errorMsg="Loss must be >= 0" value={fittingLosses} onChange={(e) => setFittingLosses(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Equip. Drop ({pressureUnit})</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Equip. Drop ({pressureUnit})</label>
               <ValidatedInput type="number" step="0.1" min={0} errorMsg="Pressure drop must be >= 0" value={equipmentPressureDrop} onChange={(e) => setEquipmentPressureDrop(Number(e.target.value))} />
             </div>
           </div>
@@ -113,11 +114,11 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Fan Eff. (%)</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Fan Eff. (%)</label>
               <ValidatedInput type="number" min={1} max={100} errorMsg="Efficiency: 1% to 100%" value={fanEfficiency} onChange={(e) => setFanEfficiency(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Motor Eff. (%)</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Motor Eff. (%)</label>
               <ValidatedInput type="number" min={1} max={100} errorMsg="Efficiency: 1% to 100%" value={motorEfficiency} onChange={(e) => setMotorEfficiency(Number(e.target.value))} />
             </div>
           </div>
@@ -134,28 +135,28 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
             
             <div className="grid grid-cols-2 gap-4 border-b border-slate-800/60 pb-4">
               <div>
-                <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Standard Airflow</p>
+                <p className="text-xs text-slate-500 font-bold uppercase mb-1">Standard Airflow</p>
                 <p className="text-xl font-mono text-slate-300 font-bold">{Math.round(result.qSupplyStandard).toLocaleString()} <span className="text-sm font-sans font-normal text-slate-500">{flowUnit}</span></p>
               </div>
               <div>
-                <p className="text-[10px] text-sky-400 font-bold uppercase mb-1">Actual Airflow (Eρ Corrected)</p>
+                <p className="text-xs text-sky-400 font-bold uppercase mb-1">Actual Airflow (Eρ Corrected)</p>
                 <p className="text-xl font-mono text-white font-bold">{Math.round(result.qSupplyActual).toLocaleString()} <span className="text-sm font-sans font-normal text-sky-400/70">{flowUnit}</span></p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 border-b border-slate-800/60 pb-4">
               <div>
-                <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Total Static Pressure (SP)</p>
+                <p className="text-xs text-slate-500 font-bold uppercase mb-1">Total Static Pressure (SP)</p>
                 <p className="text-xl font-mono text-white font-bold">{result.totalStaticPressure.toFixed(2)} <span className="text-sm font-sans font-normal text-slate-500">{pressureUnit}</span></p>
               </div>
               <div>
-                <p className="text-[10px] text-amber-500 font-bold uppercase mb-1">Fan Power ({isMetric ? "kW" : "BHP"})</p>
+                <p className="text-xs text-amber-500 font-bold uppercase mb-1">Fan Power ({isMetric ? "kW" : "BHP"})</p>
                 <p className="text-xl font-mono text-white font-bold">{result.fanBrakeHorsepower.toFixed(2)} <span className="text-sm font-sans font-normal text-amber-500/70">{powerUnit}</span></p>
               </div>
             </div>
 
             <div>
-              <p className="text-[10px] text-emerald-400 font-bold uppercase mb-1">Motor Electrical Duty</p>
+              <p className="text-xs text-emerald-400 font-bold uppercase mb-1">Motor Electrical Duty</p>
               <p className="text-3xl font-black font-mono tracking-tight text-white">{result.motorElectricalPower.toFixed(2)} <span className="text-lg font-sans font-bold text-emerald-400/80">kW</span></p>
             </div>
             
