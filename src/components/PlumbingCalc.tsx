@@ -2019,7 +2019,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                               </div>
                               <div className="flex justify-between">
                                 <span>Calc. Velocity:</span>
-                                <span className={Number(hydraulicResult.velocity) > 2.5 ? 'text-red-400 font-bold' : 'text-white'}>
+                                <span className={Number(hydraulicResult.velocity) > 2.4 ? 'text-red-400 font-bold flex items-center gap-1' : 'text-white'}>
+                                  {Number(hydraulicResult.velocity) > 2.4 && <AlertTriangle className="w-3 h-3" />}
                                   {hydraulicResult.velocity} m/s
                                 </span>
                               </div>

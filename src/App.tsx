@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Wind, Zap, Droplet, Flame, Calculator, Sparkles, History, Trash2, Clock, BookOpen, Sun, Moon, Scale, CheckSquare, Square, Languages, PanelRightOpen, PanelRightClose, Layers, Download, Ruler } from 'lucide-react';
+import { Wind, MessageSquare, Pencil, Zap, Droplet, Flame, Calculator, Sparkles, History, Trash2, Clock, BookOpen, Sun, Moon, Scale, CheckSquare, Square, Languages, PanelRightOpen, PanelRightClose, Layers, Download, Ruler } from 'lucide-react';
 import { TabType, HistoryItem } from './types';
 import MechanicalCalc from './components/MechanicalCalc';
 import ElectricalCalc from './components/ElectricalCalc';
@@ -103,6 +103,17 @@ export default function App() {
   const [isCompareMode, setIsCompareMode] = useState<boolean>(false);
   const [selectedCompareIds, setSelectedCompareIds] = useState<string[]>([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
+
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteInput, setNoteInput] = useState<string>('');
+
+  const updateHistoryNotes = (id: string, notes: string) => {
+    setHistory((prev) => {
+      const next = prev.map(p => p.id === id ? { ...p, notes } : p);
+      localStorage.setItem('cky_mepf_history', JSON.stringify(next));
+      return next;
+    });
+  };
 
   const addHistoryItem = (item: Omit<HistoryItem, 'id' | 'timestamp'>) => {
     const newItem: HistoryItem = {
@@ -217,9 +228,9 @@ export default function App() {
       id: 'mechanical' as TabType, 
       label: 'Mechanical / HVAC', 
       icon: Wind, 
-      color: 'text-emerald-400', 
-      bgHover: 'hover:bg-slate-900 hover:text-emerald-300', 
-      activeBg: 'bg-emerald-950/30 border-emerald-500/40 text-emerald-400' 
+      color: 'text-cyan-400', 
+      bgHover: 'hover:bg-slate-900 hover:text-cyan-300', 
+      activeBg: 'bg-cyan-950/30 border-cyan-500/40 text-cyan-400' 
     },
     { 
       id: 'electrical' as TabType, 
@@ -387,7 +398,7 @@ export default function App() {
           {/* Main Workspace Frame */}
           <div ref={workspaceRef} className={`${
             isSidebarOpen ? 'lg:col-span-3' : 'w-full'
-          } bg-slate-900/40 backdrop-blur-md rounded-2xl google-pro-gradient-border google-pro-animated-gradient google-pro-glow overflow-hidden shadow-2xl transition-all duration-300`}>
+          } bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-800 overflow-hidden shadow-xl transition-all duration-300`}>
             
             {/* Navigation bar */}
             <div className="flex overflow-x-auto border-b border-slate-850 bg-slate-950/50 p-2.5 gap-2 hide-scrollbar">
@@ -433,7 +444,7 @@ export default function App() {
             <div className="lg:col-span-1 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               
               {/* Recent Calculations Sidebar */}
-              <div className="bg-slate-900/40 backdrop-blur-md rounded-2xl google-pro-gradient-border google-pro-glow p-5 space-y-4 shadow-xl flex flex-col">
+              <div className="bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-800 p-5 space-y-4 shadow-xl flex flex-col">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <div className="flex items-center space-x-2">
                     <History className="h-4.5 w-4.5 text-sky-400 animate-pulse" />
@@ -582,6 +593,44 @@ export default function App() {
                               <p className="text-[10px] font-semibold text-slate-400 font-mono mt-1 leading-normal truncate">
                                 {item.summary}
                               </p>
+                              
+                              {/* Custom Notes Field */}
+                              {editingNoteId === item.id ? (
+                                <div className="mt-2" onClick={e => e.stopPropagation()}>
+                                  <textarea
+                                    value={noteInput}
+                                    onChange={(e) => setNoteInput(e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200 resize-none focus:outline-none focus:border-sky-500"
+                                    rows={2}
+                                    placeholder="Add custom notes..."
+                                    autoFocus
+                                  />
+                                  <div className="flex justify-end gap-2 mt-1">
+                                    <button onClick={() => setEditingNoteId(null)} className="text-[9px] text-slate-400 hover:text-slate-200 uppercase font-bold">Cancel</button>
+                                    <button onClick={() => { updateHistoryNotes(item.id, noteInput); setEditingNoteId(null); }} className="text-[9px] text-sky-400 hover:text-sky-300 uppercase font-bold">Save</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-1.5 group/note min-h-[14px]">
+                                  {item.notes ? (
+                                    <div className="flex items-start gap-1.5">
+                                      <MessageSquare className="w-3 h-3 text-slate-500 mt-0.5 shrink-0" />
+                                      <p className="text-[10px] text-slate-300 italic leading-relaxed break-words whitespace-pre-wrap">{item.notes}</p>
+                                      {!isCompareMode && (
+                                        <button onClick={(e) => { e.stopPropagation(); setEditingNoteId(item.id); setNoteInput(item.notes || ''); }} className="opacity-0 group-hover/note:opacity-100 p-0.5 text-slate-500 hover:text-sky-400 shrink-0 transition-opacity" title="Edit note">
+                                          <Pencil className="w-2.5 h-2.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    !isCompareMode ? (
+                                      <button onClick={(e) => { e.stopPropagation(); setEditingNoteId(item.id); setNoteInput(''); }} className="text-[9px] text-slate-500 hover:text-sky-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity font-bold uppercase tracking-wider" title="Add note">
+                                        <Pencil className="w-2.5 h-2.5" /> Add Note
+                                      </button>
+                                    ) : null
+                                  )}
+                                </div>
+                              )}
                             </div>
 
                             {/* Action buttons (Delete) */}

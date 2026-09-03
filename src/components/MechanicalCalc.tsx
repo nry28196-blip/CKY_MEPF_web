@@ -5,8 +5,6 @@ import { ShieldAlert, Wind, Layers, Sliders, Thermometer, Info, Bookmark, CheckC
 import CoolingLoadReference from './CoolingLoadReference';
 import { motion } from 'motion/react';
 import DuctSizingCalc from './DuctSizingCalc';
-import Ashrae621ExhaustCalc from './Ashrae621ExhaustCalc';
-import AirBalanceCalc from './AirBalanceCalc';
 import IAQCalc from './IAQCalc';
 import VentilationCalc from './VentilationCalc';
 import SystemPerformanceCalc from './SystemPerformanceCalc';
@@ -24,13 +22,11 @@ import { AirDensityService } from '../calculations/services/AirDensityService';
 import { VentilationValidator } from '../validation/VentilationValidator';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 
-export type SubTab = 'cooling' | 'ventilation' | 'exhaust' | 'airBalance' | 'iaq' | 'ductSizing' | 'fanDuty' | 'formulas';
+export type SubTab = 'cooling' | 'ventilation' | 'iaq' | 'ductSizing' | 'fanDuty' | 'formulas';
 
 export const mechanicalModules = [
   { id: 'cooling', label: 'Simplified Cooling Load Estimate' },
   { id: 'ventilation', label: 'Ventilation' },
-  { id: 'exhaust', label: 'Exhaust' },
-  { id: 'airBalance', label: 'Air Balance' },
   { id: 'iaq', label: 'CO₂ / DCV Engineering Analysis' },
   { id: 'ductSizing', label: 'Duct Design' },
   { id: 'fanDuty', label: 'Fan Duty' },
@@ -363,7 +359,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
       <CoolingLoadReference isOpen={showCoolingRef} onClose={() => setShowCoolingRef(false)} />
       
       {/* Global Standard & Code Configuration */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg shadow-sky-950/10">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div>
           <h3 className="text-sm font-bold text-white flex items-center">
             <Bookmark className="w-4 h-4 mr-2 text-sky-400" />
@@ -373,7 +369,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
         </div>
         <div className="flex items-center space-x-3 bg-slate-950 p-2 rounded-lg border border-slate-800">
           <select
-            className="bg-slate-900 text-white text-sm rounded-lg border border-slate-700 px-3 py-1.5 focus:border-sky-500 outline-none font-bold min-w-[200px]"
+            className="bg-slate-900 text-white text-sm rounded-lg border border-slate-700 px-3 py-1.5 focus:border-cyan-500 outline-none font-bold min-w-[200px]"
             value={governingStandard}
             onChange={(e) => setGoverningStandard(e.target.value)}
           >
@@ -400,7 +396,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
             onClick={() => setSubTab(mod.id as SubTab)}
             className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
               subTab === mod.id
-                ? 'border-emerald-500 text-emerald-400 font-extrabold bg-emerald-950/10'
+                ? 'border-cyan-500 text-cyan-400 font-extrabold bg-cyan-950/10'
                 : 'border-transparent text-slate-500 hover:text-slate-300'
             }`}
           >
@@ -411,8 +407,8 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-slate-900 border border-emerald-500/50 text-emerald-400 px-4 py-3 rounded-lg shadow-xl shadow-emerald-950/20 flex items-center space-x-2 animate-bounce">
-          <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 border border-cyan-500/50 text-cyan-400 px-4 py-3 rounded-lg shadow-sm shadow-cyan-950/20 flex items-center space-x-2 animate-bounce">
+          <CheckCircle2 className="h-5 w-5 text-cyan-400" />
           <span className="text-sm font-medium">{toastMessage}</span>
         </div>
       )}
@@ -423,14 +419,6 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
       ) : subTab === 'iaq' ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <IAQCalc />
-        </div>
-      ) : subTab === 'airBalance' ? (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <AirBalanceCalc />
-        </div>
-      ) : subTab === 'exhaust' ? (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Ashrae621ExhaustCalc />
         </div>
       ) : subTab === 'fanDuty' ? (
         <SystemPerformanceCalc qOutdoorAirProp={ventilationLps} />
@@ -527,7 +515,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 <button
                   type="button"
                   onClick={() => setShowCoolingRef(true)}
-                  className="flex items-center space-x-1.5 text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded transition-colors border border-emerald-500/20"
+                  className="flex items-center space-x-1.5 text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-2 py-0.5 rounded transition-colors border border-cyan-500/20"
                 >
                   <BookOpen className="h-3 w-3" />
                   <span className="font-bold tracking-wider uppercase text-xs">ASHRAE Guide</span>
@@ -540,7 +528,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
               <select
                 value={projectType}
                 onChange={(e) => setProjectType(e.target.value as any)}
-                className="bg-slate-950 text-white focus:outline-none focus:text-emerald-400 cursor-pointer"
+                className="bg-slate-950 text-white focus:outline-none focus:text-cyan-400 cursor-pointer"
               >
                 <option value="Commercial">Commercial</option>
                 <option value="Residential">Residential</option>
@@ -555,7 +543,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 type="button"
                 onClick={() => setIsVrf(false)}
                 className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  !isVrf ? 'bg-emerald-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
+                  !isVrf ? 'bg-cyan-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Individual Space Load
@@ -564,7 +552,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 type="button"
                 onClick={() => setIsVrf(true)}
                 className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  isVrf ? 'bg-emerald-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
+                  isVrf ? 'bg-cyan-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Multi-Space VRF System
@@ -575,9 +563,9 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
           {!isVrf ? (
             /* INDIVIDUAL SPACE MODE */
             <div className="flex flex-col gap-6">
-              <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-4 google-pro-border-emerald">
+              <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-sm space-y-4 border border-slate-800">
                 <div className="flex items-center space-x-2 mb-2 border-b border-slate-800 pb-3">
-                  <Thermometer className="h-4.5 w-4.5 text-emerald-400" />
+                  <Thermometer className="h-4.5 w-4.5 text-cyan-400" />
                   <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">{t("thermalInputs")}</h3>
                 </div>
 
@@ -593,7 +581,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       onClick={() => setEstimationBasis('area')}
                       className={`py-1.5 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer ${
                         estimationBasis === 'area'
-                          ? 'bg-emerald-650 text-white shadow-md shadow-emerald-950/25 border border-emerald-500/20'
+                          ? 'bg-cyan-650 text-white shadow-sm border border-cyan-500/20'
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -604,7 +592,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       onClick={() => setEstimationBasis('volume')}
                       className={`py-1.5 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer ${
                         estimationBasis === 'volume'
-                          ? 'bg-emerald-650 text-white shadow-md shadow-emerald-950/25 border border-emerald-500/20'
+                          ? 'bg-cyan-650 text-white shadow-sm border border-cyan-500/20'
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -635,7 +623,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     className={`w-full bg-slate-950 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none transition-colors border ${
                       !useAltitudeAdj 
                         ? 'text-slate-600 border-slate-800' 
-                        : 'text-white border-slate-700 focus:border-sky-500'
+                        : 'text-white border-slate-700 focus:border-cyan-500'
                     }`}
                   />
                   <span className="text-xs text-slate-500">{isMetric ? 'm' : 'ft'}</span>
@@ -664,7 +652,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       className={`w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm font-mono focus:outline-none transition-colors border ${
                         area !== '' && (Number(area) < 5 || Number(area) > 2000)
                           ? 'border-red-500/70 focus:ring-2 focus:ring-red-500/20 text-red-200'
-                          : 'border-slate-800 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500'
+                          : 'border-slate-800 focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500'
                       } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                     />
                     {area !== '' && (Number(area) < 5 || Number(area) > 2000) && (
@@ -694,7 +682,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       className={`w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm font-mono focus:outline-none transition-colors border ${
                         volume !== '' && (Number(volume) < 15 || Number(volume) > 6000)
                           ? 'border-red-500/70 focus:ring-2 focus:ring-red-500/20 text-red-200'
-                          : 'border-slate-800 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500'
+                          : 'border-slate-800 focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500'
                       } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                     />
                     {volume !== '' && (Number(volume) < 15 || Number(volume) > 6000) && (
@@ -726,7 +714,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           (projectType === 'Industrial' && (Number(area) / Number(occupants)) < 50)
                         )
                         ? 'border-amber-500/70 focus:ring-2 focus:ring-amber-500/20 text-amber-200'
-                        : 'border-slate-800 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500'
+                        : 'border-slate-800 focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500'
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {occupants !== '' && (Number(occupants) < 1 || Number(occupants) > 1000) && (
@@ -750,17 +738,16 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: 'easeOut' }}
-                className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl flex flex-col justify-center space-y-5 relative overflow-hidden google-pro-border-emerald"
+                className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl flex flex-col justify-center space-y-5 relative overflow-hidden border border-slate-800"
               >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
-                
+                                
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                   <div className="flex items-center space-x-3">
-                    <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">{t('coolingLoadResult')}</h3>
+                    <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-widest">{t('coolingLoadResult')}</h3>
                     {validationResult && (
                       <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
                         validationResult.status === 'PASS' 
-                          ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/50' 
+                          ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-800/50' 
                           : validationResult.status === 'INCOMPLETE'
                           ? 'bg-slate-800 text-slate-400 border border-slate-700'
                           : 'bg-rose-950/40 text-rose-400 border border-rose-800/50'
@@ -776,7 +763,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     <button
                       onClick={() => setChartMode('bar')}
                       className={`px-3 py-1.5 rounded-md transition-all cursor-pointer ${
-                        chartMode === 'bar' ? 'bg-emerald-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
+                        chartMode === 'bar' ? 'bg-cyan-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
                       }`}
                     >
                       Benchmarks
@@ -784,7 +771,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     <button
                       onClick={() => setChartMode('pie')}
                       className={`px-3 py-1.5 rounded-md transition-all cursor-pointer ${
-                        chartMode === 'pie' ? 'bg-emerald-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
+                        chartMode === 'pie' ? 'bg-cyan-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
                       }`}
                     >
                       3D Breakdown
@@ -822,7 +809,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Final Design Load</p>
-                    <p className="text-xl font-bold text-emerald-400 mt-1 font-mono">{Math.round(results.watts || 0).toLocaleString()} <span className="text-xs font-normal text-emerald-500/50">W (+{safetyFactor}%)</span></p>
+                    <p className="text-xl font-bold text-cyan-400 mt-1 font-mono">{Math.round(results.watts || 0).toLocaleString()} <span className="text-xs font-normal text-cyan-500/50">W (+{safetyFactor}%)</span></p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">{t('btuHr')}</p>
@@ -974,7 +961,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       </div>
                     </div>
                     <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-xs">
-                      <div className="text-emerald-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Intermediate Variables</div>
+                      <div className="text-cyan-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Intermediate Variables</div>
                       <div className="grid grid-cols-2 gap-2 text-slate-300">
                         <div className="text-slate-500">ΔT (Outdoor - Indoor):</div>
                         <div className="text-right">{(outdoorTemp - indoorTemp).toFixed(1)} {isMetric ? '°C' : '°F'}</div>
@@ -1077,7 +1064,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         triggerToast(t('toastCalculationSaved'));
                       }
                     }}
-                    className="flex-1 flex items-center justify-center space-x-2 bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
+                    className="flex-1 flex items-center justify-center space-x-2 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300 border border-cyan-500/30 hover:border-cyan-500/50 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
                   >
                     <Bookmark className="h-4 w-4" />
                     <span>{t('saveCalculation')}</span>
@@ -1097,7 +1084,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     }}
                     className="flex-1 flex items-center justify-center space-x-2 bg-slate-950 hover:bg-slate-900 text-slate-200 border border-slate-800 hover:border-slate-700 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
                   >
-                    <FileSpreadsheet className="h-4 w-4 text-emerald-400" />
+                    <FileSpreadsheet className="h-4 w-4 text-cyan-400" />
                     <span>{t('exportCsv')}</span>
                   </button>
                   <button
@@ -1133,9 +1120,9 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 <div className="w-full h-full">
                   
                 {/* System Parameters Card */}
-                <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-4 border border-slate-800/80 h-full flex flex-col">
+                <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-sm space-y-4 border border-slate-800/80 h-full flex flex-col">
                   <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
-                    <Sliders className="h-4.5 w-4.5 text-emerald-400" />
+                    <Sliders className="h-4.5 w-4.5 text-cyan-400" />
                     <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">VRF System Design Settings</h3>
                   </div>
 
@@ -1148,7 +1135,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           tooltip={t("vrfDiversityTooltip")} 
                           className="text-slate-400 uppercase"
                         />
-                        <span className="font-mono text-emerald-400 font-bold">{diversityFactor.toFixed(2)}x</span>
+                        <span className="font-mono text-cyan-400 font-bold">{diversityFactor.toFixed(2)}x</span>
                       </div>
                       <input
                         type="range"
@@ -1157,7 +1144,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         step="0.05"
                         value={diversityFactor}
                         onChange={(e) => setDiversityFactor(parseFloat(e.target.value))}
-                        className="w-full accent-emerald-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
+                        className="w-full accent-cyan-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                       />
                       <p className="text-xs text-slate-500 mt-1">
                         Accounts for non-coincidence of peak loads across multiple zones (Standard: 1.1 - 1.25).
@@ -1177,7 +1164,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             type="button"
                             onClick={() => setRefrigerantType('R410A')}
                             className={`py-1 rounded-md transition-all cursor-pointer ${
-                              refrigerantType === 'R410A' ? 'bg-emerald-650 text-white font-extrabold' : 'text-slate-400 hover:text-white'
+                              refrigerantType === 'R410A' ? 'bg-cyan-650 text-white font-extrabold' : 'text-slate-400 hover:text-white'
                             }`}
                           >
                             R-410A
@@ -1186,7 +1173,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             type="button"
                             onClick={() => setRefrigerantType('R32')}
                             className={`py-1 rounded-md transition-all cursor-pointer ${
-                              refrigerantType === 'R32' ? 'bg-emerald-650 text-white font-extrabold' : 'text-slate-400 hover:text-white'
+                              refrigerantType === 'R32' ? 'bg-cyan-650 text-white font-extrabold' : 'text-slate-400 hover:text-white'
                             }`}
                           >
                             R-32
@@ -1202,7 +1189,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <select
                           value={pipeMaterial}
                           onChange={(e) => setPipeMaterial(e.target.value as any)}
-                          className="w-full bg-slate-950 text-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold uppercase focus:outline-none focus:ring-1 focus:ring-emerald-500 border border-slate-800 transition-colors"
+                          className="w-full bg-slate-950 text-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold uppercase focus:outline-none focus:ring-1 focus:ring-cyan-500 border border-slate-800 transition-colors"
                         >
                           <option value="Copper">Copper</option>
                           <option value="Steel">Steel</option>
@@ -1230,17 +1217,17 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                            type="checkbox"
                            checked={autoCalcPiping}
                            onChange={(e) => setAutoCalcPiping(e.target.checked)}
-                           className="w-3 h-3 accent-emerald-500 cursor-pointer"
+                           className="w-3 h-3 accent-cyan-500 cursor-pointer"
                          />
                          <TooltipLabel
                            label={<label htmlFor="auto-calc-piping-toggle" className="cursor-pointer">Auto-Calculate from Canvas</label>}
                            tooltip={t("syncTopologyTooltip")} 
-                           className="text-xs text-emerald-400 font-bold uppercase select-none"
+                           className="text-xs text-cyan-400 font-bold uppercase select-none"
                          />
                        </div>
                      </div>
                      {autoCalcPiping ? (
-                       <div className="w-full bg-slate-950 text-emerald-400 rounded-lg px-3 py-1.5 text-xs font-mono border border-emerald-900/30 flex justify-between items-center">
+                       <div className="w-full bg-slate-950 text-cyan-400 rounded-lg px-3 py-1.5 text-xs font-mono border border-cyan-900/30 flex justify-between items-center">
                          <span>{pipingLength} m (Canvas-driven)</span>
                          <span className="text-xs text-slate-500 italic">{customPipesTotal !== null ? `Custom Drawn Pipes: ${customPipesTotal}m` : `Main: ${mainPipingLength}m + Branches: ${vrfRooms.reduce((sum, r) => sum + (r.pipeLength ?? 15), 0)}m`}</span>
                        </div>
@@ -1256,7 +1243,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             className={`w-full bg-slate-950 text-white rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none transition-colors border ${
                               pipingLength !== '' && (Number(pipingLength) < 5 || Number(pipingLength) > 1000)
                                 ? 'border-red-500/70 focus:ring-1 focus:ring-red-500/20 text-red-200'
-                                : 'border-slate-800 focus:border-emerald-500'
+                                : 'border-slate-800 focus:border-cyan-500'
                             } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                           />
                           {pipingLength !== '' && (Number(pipingLength) < 5 || Number(pipingLength) > 1000) && (
@@ -1286,7 +1273,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           type="button"
                           onClick={() => setIsOduAuto(true)}
                           className={`py-1 rounded-md transition-all cursor-pointer ${
-                            isOduAuto ? 'bg-emerald-650 text-white font-extrabold' : 'text-slate-400 hover:text-white'
+                            isOduAuto ? 'bg-cyan-650 text-white font-extrabold' : 'text-slate-400 hover:text-white'
                           }`}
                         >
                           Auto Sized
@@ -1295,7 +1282,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           type="button"
                           onClick={() => setIsOduAuto(false)}
                           className={`py-1 rounded-md transition-all cursor-pointer ${
-                            !isOduAuto ? 'bg-emerald-650 text-white font-extrabold' : 'text-slate-400 hover:text-white'
+                            !isOduAuto ? 'bg-cyan-650 text-white font-extrabold' : 'text-slate-400 hover:text-white'
                           }`}
                         >
                           Manual override
@@ -1317,7 +1304,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <select
                           value={customOduHp}
                           onChange={(e) => setCustomOduHp(Number(e.target.value))}
-                          className="w-full bg-slate-950 text-white rounded-lg px-3 py-1.5 text-xs font-mono border border-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                          className="w-full bg-slate-950 text-white rounded-lg px-3 py-1.5 text-xs font-mono border border-slate-800 focus:outline-none focus:border-cyan-500 cursor-pointer"
                         >
                           {[8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60].map(hp => (
                             <option key={hp} value={hp}>{hp} HP ({ (hp * 0.8).toFixed(1) } TR)</option>
@@ -1335,7 +1322,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           tooltip={t("capRatioTooltip")} 
                           className="text-slate-400 uppercase text-xs"
                         />
-                          <span className="font-mono text-emerald-400 font-bold">{maxAllowedCr}%</span>
+                          <span className="font-mono text-cyan-400 font-bold">{maxAllowedCr}%</span>
                         </div>
                         <input
                           type="range"
@@ -1344,7 +1331,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           step="5"
                           value={maxAllowedCr}
                           onChange={(e) => setMaxAllowedCr(Number(e.target.value))}
-                          className="w-full accent-emerald-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
+                          className="w-full accent-cyan-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                         />
                         <p className="text-xs text-slate-500 mt-1">
                           The absolute maximum allowable ratio of connected IDU to ODU capacity.
@@ -1361,7 +1348,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           tooltip={t("capRatioTooltip")} 
                           className="text-slate-400 uppercase text-xs"
                         />
-                        <span className="font-mono text-emerald-400 font-bold">{maxAllowedCr}%</span>
+                        <span className="font-mono text-cyan-400 font-bold">{maxAllowedCr}%</span>
                       </div>
                       <input
                         type="range"
@@ -1370,7 +1357,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         step="5"
                         value={maxAllowedCr}
                         onChange={(e) => setMaxAllowedCr(Number(e.target.value))}
-                        className="w-full accent-emerald-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
+                        className="w-full accent-cyan-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                       />
                       <p className="text-xs text-slate-500 mt-1">
                         The absolute maximum allowable ratio of connected IDU to ODU capacity.
@@ -1388,11 +1375,10 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, ease: 'easeOut' }}
-                  className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl flex flex-col justify-center space-y-5 relative overflow-hidden google-pro-border-emerald h-full"
+                  className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl flex flex-col justify-center space-y-5 relative overflow-hidden border border-slate-800 h-full"
                 >
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
-                  
-                  <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-2">VRF System Coincidence Sizing</h3>
+                                    
+                  <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-widest border-b border-slate-800 pb-2">VRF System Coincidence Sizing</h3>
                   
                   {/* Results Grid */}
                   <div className="grid grid-cols-2 gap-4">
@@ -1405,7 +1391,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     </div>
                     <div className="bg-slate-950/30 p-3 rounded-xl border border-slate-850/50">
                       <p className="text-xs text-slate-500 uppercase tracking-wider">Coincident peak load</p>
-                      <p className="text-2xl font-black text-white mt-1 font-mono text-emerald-400">
+                      <p className="text-2xl font-black text-white mt-1 font-mono text-cyan-400">
                         {vrfResults.coincidentTons.toFixed(2)}{' '}
                         <span className="text-xs font-normal text-slate-400">TR</span>
                       </p>
@@ -1428,7 +1414,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           ? 'text-rose-400 font-extrabold animate-pulse'
                           : vrfResults.combinationRatio < 50
                           ? 'text-amber-400'
-                          : 'text-emerald-400'
+                          : 'text-cyan-400'
                       }`}>
                         {vrfResults.combinationRatio.toFixed(1)}{' '}
                         <span className="text-xs font-normal text-slate-400">%</span>
@@ -1441,7 +1427,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full ${
                         vrfResults.combinationRatio <= maxAllowedCr && !vrfResults.hasCapacityDeficit && !vrfResults.toxicLimitExceeded
-                          ? 'bg-emerald-400'
+                          ? 'bg-cyan-400'
                           : 'bg-rose-400 animate-ping'
                       }`} />
                       VRF Design Validation Center
@@ -1450,7 +1436,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     {/* Sizing Connection Ratio Check Card */}
                     <div className={`p-3 rounded-xl text-xs leading-relaxed border transition-all duration-200 ${
                       vrfResults.combinationRatio <= maxAllowedCr && vrfResults.combinationRatio >= 50
-                        ? 'bg-emerald-950/15 border-emerald-500/20 text-emerald-300'
+                        ? 'bg-cyan-950/15 border-cyan-500/20 text-cyan-300'
                         : vrfResults.combinationRatio > maxAllowedCr
                         ? 'bg-rose-950/20 border-rose-500/30 text-rose-300'
                         : 'bg-amber-950/20 border-amber-500/30 text-amber-300'
@@ -1461,7 +1447,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         </span>
                         <div>
                           <span className={`font-bold uppercase block mb-0.5 ${
-                            vrfResults.combinationRatio <= maxAllowedCr && vrfResults.combinationRatio >= 50 ? 'text-emerald-400' : vrfResults.combinationRatio > maxAllowedCr ? 'text-rose-400 font-extrabold' : 'text-amber-400'
+                            vrfResults.combinationRatio <= maxAllowedCr && vrfResults.combinationRatio >= 50 ? 'text-cyan-400' : vrfResults.combinationRatio > maxAllowedCr ? 'text-rose-400 font-extrabold' : 'text-amber-400'
                           }`}>
                             Connection Ratio: {vrfResults.combinationRatio.toFixed(1)}% (Max Allowed: {maxAllowedCr}%)
                           </span>
@@ -1485,13 +1471,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     {vrfRooms.length > 0 && (
                       <div className={`p-3 rounded-xl text-xs leading-relaxed border transition-all duration-200 ${
                         !vrfResults.hasCapacityDeficit
-                          ? 'bg-emerald-950/10 border-emerald-500/15 text-emerald-300/90'
+                          ? 'bg-cyan-950/10 border-cyan-500/15 text-cyan-300/90'
                           : 'bg-rose-950/20 border-rose-500/30 text-rose-300'
                       }`}>
                         <div className="flex items-start gap-2">
                           <span className="text-xs">{!vrfResults.hasCapacityDeficit ? '✅' : '❌'}</span>
                           <div>
-                            <span className={`font-bold uppercase block mb-0.5 ${!vrfResults.hasCapacityDeficit ? 'text-emerald-400' : 'text-rose-400 font-extrabold'}`}>
+                            <span className={`font-bold uppercase block mb-0.5 ${!vrfResults.hasCapacityDeficit ? 'text-cyan-400' : 'text-rose-400 font-extrabold'}`}>
                               Piping Derating & Sufficiency
                             </span>
                             {!vrfResults.hasCapacityDeficit ? (
@@ -1514,13 +1500,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     {vrfRooms.length > 0 && (
                       <div className={`p-3 rounded-xl text-xs leading-relaxed border transition-all duration-200 ${
                         !vrfResults.toxicLimitExceeded
-                          ? 'bg-emerald-950/10 border-emerald-500/15 text-emerald-300/90'
+                          ? 'bg-cyan-950/10 border-cyan-500/15 text-cyan-300/90'
                           : 'bg-rose-950/20 border-rose-500/30 text-rose-300'
                       }`}>
                         <div className="flex items-start gap-2">
                           <span className="text-xs">{!vrfResults.toxicLimitExceeded ? '✅' : '⚠️'}</span>
                           <div>
-                            <span className={`font-bold uppercase block mb-0.5 ${!vrfResults.toxicLimitExceeded ? 'text-emerald-400' : 'text-rose-400 font-extrabold'}`}>
+                            <span className={`font-bold uppercase block mb-0.5 ${!vrfResults.toxicLimitExceeded ? 'text-cyan-400' : 'text-rose-400 font-extrabold'}`}>
                               ASHRAE 15 / ISO 5149 Safety
                             </span>
                             {!vrfResults.toxicLimitExceeded ? (
@@ -1544,7 +1530,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     <span className="font-bold uppercase text-slate-400 block">Refrigerant Additional Charge:</span>
                     <div className="flex justify-between">
                       <span>Chemistry Model:</span>
-                      <span className="font-mono text-emerald-400 font-bold">{refrigerantType}</span>
+                      <span className="font-mono text-cyan-400 font-bold">{refrigerantType}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Base unit pre-charged limit:</span>
@@ -1587,7 +1573,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           triggerToast('VRF system configuration saved!');
                         }
                       }}
-                      className="flex-1 flex items-center justify-center space-x-2 bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
+                      className="flex-1 flex items-center justify-center space-x-2 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300 border border-cyan-500/30 hover:border-cyan-500/50 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
                     >
                       <Bookmark className="h-4 w-4" />
                       <span>{t('saveCalculation')}</span>
@@ -1609,7 +1595,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       }}
                       className="flex-1 flex items-center justify-center space-x-2 bg-slate-950 hover:bg-slate-900 text-slate-200 border border-slate-800 hover:border-slate-700 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
                     >
-                      <FileSpreadsheet className="h-4 w-4 text-emerald-400" />
+                      <FileSpreadsheet className="h-4 w-4 text-cyan-400" />
                       <span>{t('exportCsv')}</span>
                     </button>
                     <button
@@ -1666,13 +1652,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-6">
                 {/* Zones / Indoor Units Sizing Table */}
-                <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-4 border border-slate-800/80">
+                <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-sm space-y-4 border border-slate-800/80">
                   <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                     <div className="flex items-center space-x-2">
-                      <Wind className="h-4.5 w-4.5 text-emerald-400" />
+                      <Wind className="h-4.5 w-4.5 text-cyan-400" />
                       <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">Connected Indoor Units ({vrfRooms.length})</h3>
                     </div>
-                    <span className="text-xs bg-emerald-950/40 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20 font-bold font-mono">
+                    <span className="text-xs bg-cyan-950/40 text-cyan-400 px-2.5 py-1 rounded-full border border-cyan-500/20 font-bold font-mono">
                       Sum IDU: {vrfResults.totalConnectedTons.toFixed(2)} TR
                     </span>
                   </div>
@@ -1708,10 +1694,10 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                                   const updatedLength = val > 0 ? val : 1;
                                   setVrfRooms(vrfRooms.map(r => r.id === room.id ? { ...r, pipeLength: updatedLength } : r));
                                 }}
-                                className="w-14 bg-slate-950 text-sky-400 border border-slate-800 rounded px-1.5 py-0.5 text-center font-mono text-xs focus:outline-none focus:border-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
+                                className="w-14 bg-slate-950 text-sky-400 border border-slate-800 rounded px-1.5 py-0.5 text-center font-mono text-xs focus:outline-none focus:border-cyan-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                               />
                             </td>
-                            <td className="p-3 text-right font-mono font-bold text-emerald-400">
+                            <td className="p-3 text-right font-mono font-bold text-cyan-400">
                               {room.tons.toFixed(2)} TR
                             </td>
                             <td className="p-3 text-center flex items-center justify-center gap-1">
@@ -1781,7 +1767,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         placeholder="e.g., Conference Rm"
                         value={newRoomName}
                         onChange={(e) => setNewRoomName(e.target.value)}
-                        className="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-xs border border-slate-800 focus:outline-none focus:border-emerald-500"
+                        className="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-xs border border-slate-800 focus:outline-none focus:border-cyan-500"
                       />
                       
                       <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs font-bold uppercase gap-1">
@@ -1789,7 +1775,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           type="button"
                           onClick={() => setNewRoomBasis('area')}
                           className={`flex-1 py-1.5 rounded-md transition-all cursor-pointer ${
-                            newRoomBasis === 'area' ? 'bg-emerald-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
+                            newRoomBasis === 'area' ? 'bg-cyan-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
                           }`}
                         >
                           Area (m²)
@@ -1798,7 +1784,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           type="button"
                           onClick={() => setNewRoomBasis('volume')}
                           className={`flex-1 py-1.5 rounded-md transition-all cursor-pointer ${
-                            newRoomBasis === 'volume' ? 'bg-emerald-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
+                            newRoomBasis === 'volume' ? 'bg-cyan-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
                           }`}
                         >
                           Vol (m³)
@@ -1820,7 +1806,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                                 : (Number(newRoomSize) < 15 || Number(newRoomSize) > 6000)
                             )
                               ? 'border-red-500/70 text-red-200'
-                              : 'border-slate-800 focus:border-emerald-500'
+                              : 'border-slate-800 focus:border-cyan-500'
                           } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                         />
                         {newRoomSize !== '' && (
@@ -1843,7 +1829,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           className={`w-full bg-slate-900 text-white rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none transition-colors border ${
                             newRoomOccupants !== '' && (Number(newRoomOccupants) < 0 || Number(newRoomOccupants) > 1000)
                               ? 'border-red-500/70 text-red-200'
-                              : 'border-slate-800 focus:border-emerald-500'
+                              : 'border-slate-800 focus:border-cyan-500'
                           } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                         />
                         {newRoomOccupants !== '' && (Number(newRoomOccupants) < 0 || Number(newRoomOccupants) > 1000) && (
@@ -1882,7 +1868,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           setNewRoomOccupants('');
                           triggerToast(`Zone "${name}" added successfully!`);
                         }}
-                        className="flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md transition-all duration-150 active:scale-95 cursor-pointer"
+                        className="flex items-center space-x-1 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md transition-all duration-150 active:scale-95 cursor-pointer"
                       >
                         <Plus className="h-3 w-3" />
                         <span>Add Zone to System</span>

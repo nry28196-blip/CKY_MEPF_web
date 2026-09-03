@@ -441,7 +441,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
 
         {/* Left Side: Frosted glass controls */}
         <div className="w-full space-y-6">
-          <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl relative overflow-hidden google-pro-border-emerald">
+          <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl relative overflow-hidden border border-slate-800">
 
             {/* Subtle neon glowing accent corner */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -802,7 +802,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden relative google-pro-border-emerald"
+            className="bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden relative border border-slate-800"
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
 
@@ -852,7 +852,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                   <div className="flex flex-col">
                     <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Velocity (Rect)</span>
                     <div className="flex items-end gap-1.5">
-                      <span className={`text-4xl font-bold font-mono leading-none ${statusMain === 'optimal' ? 'text-emerald-400' : statusMain === 'warning' ? 'text-amber-400' : 'text-red-500'
+                      <span className={`text-4xl font-bold font-mono leading-none ${statusMain === 'optimal' ? 'text-emerald-400' : statusMain === 'warning' ? 'text-amber-400' : 'text-red-500' }>
                         }`}>
                         {velUnitHook.getDisplayValue(velRectMain).toFixed(0)}
                       </span>
@@ -1114,8 +1114,10 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                           </div>
                           <div>
                             <span className="block text-[8px] text-slate-500 uppercase font-bold">Velocity</span>
-                            <span className={`block text-xs font-bold font-mono mt-0.5 ${b.status === 'optimal' ? 'text-emerald-400' : b.status === 'warning' ? 'text-amber-400' : 'text-red-500'
-                              }`}>{velUnitHook.getDisplayValue(b.velocityRect).toFixed(0)} FPM</span>
+                            <span className={`block text-xs font-bold font-mono mt-0.5 ${b.status === "optimal" ? "text-emerald-400" : b.status === "warning" ? "text-amber-400" : "text-red-500"}`}>
+                              {b.status === "danger" && <AlertTriangle className="w-3 h-3 inline mr-1" />}
+                              {velUnitHook.getDisplayValue(b.velocityRect).toFixed(0)} FPM
+                            </span>
                           </div>
                         </div>
                       </div>

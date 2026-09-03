@@ -11,6 +11,7 @@ import InputAlert from './InputAlert';
 import { useLanguage } from '../lib/translations';
 import { exportElectricalToCsv } from '../lib/exportCsv';
 import FormulaVisualizer from './FormulaVisualizer';
+import VoltageDropCalc from './VoltageDropCalc';
 
 interface ElectricalCalcProps {
   restoredParams?: any;
@@ -18,7 +19,7 @@ interface ElectricalCalcProps {
   autoCalculate?: boolean;
 }
 
-type SubTab = 'flc' | 'ups' | 'elv_ups' | 'formulas';
+type SubTab = 'flc' | 'vd' | 'ups' | 'elv_ups' | 'formulas';
 
 export default function ElectricalCalc({ restoredParams, onSaveCalculation, autoCalculate = true }: ElectricalCalcProps) {
   const { t } = useLanguage();

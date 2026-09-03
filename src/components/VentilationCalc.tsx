@@ -6,7 +6,7 @@ import VentilationReferenceModal from './VentilationReferenceModal';
 import KitchenVentilationCalc from './KitchenVentilationCalc';
 import ResidentialVentilationCalc from './ResidentialVentilationCalc';
 import Ashrae621VentilationCalc from './Ashrae621VentilationCalc';
-import CommercialLocalExhaustCalc from './CommercialLocalExhaustCalc';
+import Ashrae621ExhaustCalc from './Ashrae621ExhaustCalc';
 import AirBalanceCalc from './AirBalanceCalc';
 import SystemPerformanceCalc from './SystemPerformanceCalc';
 
@@ -26,52 +26,27 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
       
       {/* Sub-modes for Ventilation */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-        <div className="flex flex-wrap bg-slate-950 border border-slate-850 p-0.5 rounded-xl text-[10px] font-bold uppercase w-fit gap-1">
-          <button
-            type="button"
-            onClick={() => setVentMode('standard')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              ventMode === 'standard' ? 'bg-sky-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Zone / VAV (ASHRAE 62.1)
-          </button>
-          <button
-            type="button"
-            onClick={() => setVentMode('exhaust')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              ventMode === 'exhaust' ? 'bg-indigo-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Commercial Exhaust
-          </button>
-          <button
-            type="button"
-            onClick={() => setVentMode('balance')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              ventMode === 'balance' ? 'bg-emerald-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Air Balance
-          </button>
-          <button
-            type="button"
-            onClick={() => setVentMode('kitchen')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              ventMode === 'kitchen' ? 'bg-rose-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Kitchen Hood
-          </button>
-          <button
-            type="button"
-            onClick={() => setVentMode('residential')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              ventMode === 'residential' ? 'bg-purple-650 text-white shadow-sm font-extrabold' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Residential (62.2)
-          </button>
+        <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-wider">
+          {[
+            { id: 'standard', label: 'Zone / VAV (ASHRAE 62.1)' },
+            { id: 'exhaust', label: 'Commercial Exhaust' },
+            { id: 'balance', label: 'Air Balance' },
+            { id: 'kitchen', label: 'Kitchen Hood' },
+            { id: 'residential', label: 'Residential (62.2)' }
+          ].map(mod => (
+            <button
+              key={mod.id}
+              type="button"
+              onClick={() => setVentMode(mod.id)}
+              className={`px-3 py-1.5 transition-all cursor-pointer ${
+                ventMode === mod.id
+                  ? 'bg-cyan-950/30 text-cyan-400 border border-cyan-500/50 rounded-lg'
+                  : 'text-slate-500 hover:text-slate-300 border border-transparent rounded-lg'
+              }`}
+            >
+              {mod.label}
+            </button>
+          ))}
         </div>
         <button
           onClick={() => setIsRefModalOpen(true)}
@@ -92,7 +67,7 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
         </div>
         
         {ventMode === 'standard' && <Ashrae621VentilationCalc onVentilationChange={onVentilationChange} edition={edition as any} />}
-        {ventMode === 'exhaust' && <CommercialLocalExhaustCalc />}
+        {ventMode === 'exhaust' && <Ashrae621ExhaustCalc />}
         {ventMode === 'balance' && <AirBalanceCalc />}
         {ventMode === 'kitchen' && <KitchenVentilationCalc />}
         {ventMode === 'residential' && <ResidentialVentilationCalc />}

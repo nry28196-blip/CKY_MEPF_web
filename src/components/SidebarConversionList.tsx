@@ -124,7 +124,7 @@ export default function SidebarConversionList() {
   }).filter(group => group.factors.length > 0);
 
   return (
-    <div className="bg-slate-900/40 backdrop-blur-md rounded-2xl google-pro-gradient-border google-pro-glow p-5 space-y-4 shadow-xl flex flex-col">
+    <div className="bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-800 p-5 space-y-4 shadow-xl flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-3">
         <div className="flex items-center space-x-2">

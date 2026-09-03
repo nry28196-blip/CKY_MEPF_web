@@ -8,4 +8,5 @@ export interface HistoryItem {
   title: string;
   summary: string; // Short string showing main results
   parameters: any;
+  notes?: string;
 }
