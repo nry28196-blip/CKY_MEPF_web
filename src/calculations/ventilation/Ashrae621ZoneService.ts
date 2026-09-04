@@ -48,7 +48,9 @@ export class Ashrae621ZoneService {
     
     if (input.useDefaultOccupancy) {
       const defaultDensity = input.spaceType.defaultOccupancyMetric || 0;
-      pz = Math.ceil((input.area / 100) * defaultDensity);
+      // Do not arbitrarily round intermediate occupancy unless required.
+      // ASHRAE 62.1 does not mandate rounding Pz for the calculation of Vbz.
+      pz = (input.area / 100) * defaultDensity; 
       occupancySource = 'default';
     }
 

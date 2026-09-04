@@ -7,8 +7,8 @@ describe('MultiZoneVentilationService', () => {
     const inputs = {
       zones: [
         {
-          zoneResult: { az: 100, pz: 50, rp: 2.5, ra: 0.3, vbz: 155, ez: 1.0, voz: 155 },
-          input: { primaryAirflow: 200, vpzMin: 50 }
+          result: { az: 100, pz: 50, rp: 2.5, ra: 0.3, vbz: 155, ez: 1.0, voz: 155 },
+          input: { primaryAirflow: 200, vpzMin: 160 }
         }
       ]
     };
@@ -26,7 +26,7 @@ describe('MultiZoneVentilationService', () => {
     const inputs = {
       zones: [
         {
-          zoneResult: { az: 100, pz: 50, rp: 2.5, ra: 0.3, vbz: 155, ez: 1.0, voz: 155 },
+          result: { az: 100, pz: 50, rp: 2.5, ra: 0.3, vbz: 155, ez: 1.0, voz: 155 },
           input: { primaryAirflow: 200 }
         }
       ]

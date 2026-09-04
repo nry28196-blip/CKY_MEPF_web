@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Zap, AlertTriangle, Info } from 'lucide-react';
 import TooltipLabel from './TooltipLabel';
 import InputAlert from './InputAlert';
+import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 
 export default function VoltageDropCalc() {
   const [voltage, setVoltage] = useState(400);
@@ -112,6 +113,27 @@ export default function VoltageDropCalc() {
             </div>
           </div>
         </div>
+        
+          {/* Audit Trail */}
+          <div className="mt-6 w-full">
+            <EngineeringAuditTrail
+              title="Voltage Drop Calculation Audit"
+              codeReference="NEC / IEC"
+              trail={[
+                { symbol: 'V', name: 'System Voltage', value: voltage, unit: 'V' },
+                { symbol: 'I', name: 'Load Current', value: current, unit: 'A' },
+                { symbol: 'L', name: 'Cable Length', value: length, unit: 'm' },
+                { symbol: 'R', name: 'Resistance', value: cableResistance, unit: 'Ω/km' },
+                { symbol: 'X', name: 'Reactance', value: cableReactance, unit: 'Ω/km' },
+                { symbol: 'PF', name: 'Power Factor', value: powerFactor, unit: '' },
+                { symbol: 'M', name: 'Phase Multiplier', value: phase === 'single' ? 2 : 1.732, unit: '' },
+                { symbol: 'Z', name: 'Effective Impedance', formula: 'R×cos(φ) + X×sin(φ)', value: ((cableResistance * powerFactor) + (cableReactance * Math.sin(Math.acos(powerFactor)))).toFixed(4), unit: 'Ω/km' },
+                { symbol: 'Vd', name: 'Voltage Drop', formula: '(M × I × L × Z) / 1000', value: results.vd.toFixed(2), unit: 'V', reference: 'Standard Equation' },
+                { symbol: '%Vd', name: 'Percentage Drop', formula: '(Vd / V) × 100', value: results.percentage.toFixed(2), unit: '%' }
+              ]}
+            />
+          </div>
+
       </div>
     </div>
   );

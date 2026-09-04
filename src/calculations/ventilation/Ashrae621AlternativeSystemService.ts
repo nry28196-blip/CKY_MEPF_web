@@ -26,6 +26,8 @@ export interface AlternativeSystemResult {
   status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE';
   warning?: string;
   error?: string;
+  sumVpzMin?: number;
+  sumVpz?: number;
   zoneResults: {
     zpz: number;
     evz: number;
@@ -50,6 +52,17 @@ export class Ashrae621AlternativeSystemService {
     let sumVpzMin = 0;
 
     for (const z of input.zones) {
+      if (z.vpzMin === undefined || isNaN(z.vpzMin) || z.vpzMin < 0) {
+        return this.emptyResult('INCOMPLETE', 'Missing or invalid Vpz-min for one or more zones.');
+      }
+      if (z.vpz === undefined || isNaN(z.vpz) || z.vpz < 0) {
+        return this.emptyResult('INCOMPLETE', 'Missing or invalid Vpz for one or more zones.');
+      }
+      if (z.vpzMin > z.vpz) {
+        status = 'FAIL';
+        error = 'Vpz-min must not exceed Vpz unless explicitly permitted.';
+      }
+      
       const pz = z.zoneResult.pz;
       sumPz += pz;
       sumRpPz += (z.zoneResult.rp * pz);
@@ -61,7 +74,7 @@ export class Ashrae621AlternativeSystemService {
 
     let ps = input.systemPopulation !== null && input.systemPopulation !== undefined ? input.systemPopulation : sumPz;
     if (input.systemPopulation === null || input.systemPopulation === undefined) {
-      if (status as string !== 'FAIL') status = 'WARNING';
+      if (status as string !== "FAIL" && status as string !== "INCOMPLETE") status = 'WARNING';
       warning = 'Ps not provided — calculation assumes D = 1.00.';
     }
     
@@ -70,33 +83,31 @@ export class Ashrae621AlternativeSystemService {
       error = 'Ps cannot be greater than sum of Pz';
       ps = sumPz;
     }
-
     const d = sumPz > 0 ? ps / sumPz : 1.0;
     
     // In Appendix A, Vou = D * Sum(Rp*Pz) + Sum(Ra*Az)
     vou = d * sumRpPz + sumRaAz;
 
-    let vps = input.vps !== null && input.vps !== undefined ? input.vps : sumVpz;
-    if (input.vps === null || input.vps === undefined) {
-      if (status as string !== 'FAIL') status = 'WARNING';
-      warning = (warning ? warning + ' ' : '') + 'System primary airflow (Vps) not provided. Assuming Sum(Vpz).';
+    let vps = input.vps;
+    if (input.vps === null || input.vps === undefined || isNaN(input.vps)) {
+      if (status as string !== "FAIL" && status as string !== "INCOMPLETE") status = 'WARNING';
+      warning = (warning ? warning + ' ' : '') + `Assumed Vps = ${sumVpz} (Sum of Vpz).`;
+      vps = sumVpz;
     }
 
-    const xs = vps > 0 ? vou / vps : 0;
+    const xs = (vps !== undefined && vps > 0) ? vou / vps : 0;
     
     let ev = 1.0;
     const zoneResults = [];
-
+    
     for (const z of input.zones) {
-      // Calculate Evz for each zone
-      // Zpz = Voz / Vpz-min
       const zpz = z.vpzMin > 0 ? z.zoneResult.voz / z.vpzMin : 0;
       
       if (zpz > 1.0) {
         status = 'FAIL';
-        error = `Zone minimum primary airflow (Vpz-min) cannot satisfy the required outdoor airflow. Zpz = ${zpz.toFixed(2)} > 1.0.`;
+        error = `Zone minimum primary airflow (Vpz-min) cannot satisfy the required outdoor airflow. Zpz = ${zpz.toFixed(2)} > 1.0. Increase Vpz-min for the critical zone.`;
       }
-
+      
       const ep = z.ep ?? 1.0;
       const er = z.er ?? 0.0;
       const ez = z.zoneResult.ez;
@@ -105,28 +116,35 @@ export class Ashrae621AlternativeSystemService {
       const fb = ep;
       const fc = 1 - (1 - ez) * (1 - er) * (1 - ep);
       
-      const evz = fa > 0 ? (fa + xs * fb - zpz * ep * fc) / fa : 1.0;
-      if (evz < ev) {
-        ev = evz;
+      const evz = fa > 0 ? 1 + xs - zpz : 1.0; // Wait, ASHRAE Appendix A formula for Evz: Evz = 1 + Xs - Zpz (for ep=1, er=0). 
+      // General formula is: Evz = (Fa + Xs * Fb - Zpz * Ep * Fc) / Fa
+      const evz_general = fa > 0 ? (fa + xs * fb - zpz * ep * fc) / fa : 1.0;
+      
+      if (evz_general < ev) {
+        ev = evz_general;
       }
-
       zoneResults.push({
         zpz,
-        evz
+        evz: evz_general
       });
     }
 
-    ev = Math.max(0.1, Math.min(1.0, ev));
+    // Do NOT clamp invalid Ev.
+    if (ev <= 0 || ev > 1.0 || isNaN(ev)) {
+      status = 'FAIL';
+      error = (error ? error + ' ' : '') + `Calculated Ev is invalid (${ev.toFixed(2)}). Check Xs, Zpz and zone parameters.`;
+    }
+
     const vot = ev > 0 ? vou / ev : 0;
 
     return {
-      ps, sumPz, d, vou, vps, xs, ev, vot, status, warning, error, zoneResults
+      ps, sumPz, d, vou, vps: vps || 0, xs, ev, vot, status, warning, error, zoneResults, sumVpzMin, sumVpz
     };
   }
 
   private static emptyResult(status: any, warning: string): AlternativeSystemResult {
     return {
-      ps: 0, sumPz: 0, d: 1, vou: 0, vps: 0, xs: 0, ev: 1, vot: 0, status, warning, zoneResults: []
+      ps: 0, sumPz: 0, d: 1, vou: 0, vps: 0, xs: 0, ev: 1, vot: 0, status, warning, zoneResults: [], sumVpzMin: 0, sumVpz: 0
     };
   }
 }

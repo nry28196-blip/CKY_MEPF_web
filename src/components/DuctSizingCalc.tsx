@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import TrendVisualizer from './TrendVisualizer';
 import TooltipLabel from './TooltipLabel';
+import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 import InputAlert from './InputAlert';
 import ValidatedInput from './ValidatedInput';
 import StaticPressureCalc from './StaticPressureCalc';

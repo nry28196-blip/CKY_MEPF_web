@@ -7,6 +7,7 @@ import { SystemPerformanceService, SystemPerformanceInput, SystemPerformanceResu
 import { Ashrae621Service } from '../calculations/ventilation/Ashrae621Service';
 import ValidatedInput from './ValidatedInput';
 import TooltipLabel from './TooltipLabel';
+import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 
 export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTemp = 20, qOutdoorAirProp }: { globalAltitude?: number, globalAirTemp?: number, qOutdoorAirProp?: number }) {
   const { unitSystem } = useUnit();

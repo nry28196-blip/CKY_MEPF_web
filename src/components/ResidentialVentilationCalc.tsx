@@ -31,12 +31,13 @@ export default function ResidentialVentilationCalc() {
           bedrooms,
           isMetric,
           qInf,
-          phi
+          phi,
+          edition: edition as "2019" | "2022" | "2025"
        });
        setTotalAirflow(res.qTot);
        setQFan(res.qFan);
     });
-  }, [floorArea, bedrooms, isMetric, qInf, phi]);
+  }, [floorArea, bedrooms, isMetric, qInf, phi, edition]);
 
   const flowUnit = isMetric ? 'L/s' : 'CFM';
   const areaUnit = isMetric ? 'm²' : 'ft²';

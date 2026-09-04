@@ -100,8 +100,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         designOccupancy: z.occupants,
         useDefaultOccupancy: z.useDefaultOccupancy,
         ezConfig,
-        isMetric,
-        densityRatio
+        isMetric
       };
       
       return {
@@ -185,7 +184,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
     if (onVentilationChange) {
       if (systemType === 'single') {
         // Just sum the zones
-        const total = zoneResults.reduce((sum, z) => sum + (z.result.vozActual || z.result.voz), 0);
+        const total = zoneResults.reduce((sum, z) => sum + (z.result.voz || z.result.voz), 0);
         onVentilationChange(total, { systemType: 'single', zoneResults });
       } else if (systemResult) {
         onVentilationChange(systemResult.votActual || systemResult.vot, { systemType: 'multi', systemResult });
@@ -459,7 +458,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Voz (Actual)</span>
-                  <span className="font-mono text-indigo-400 font-bold">{Math.round(zr.result.vozActual || zr.result.voz)} {flowUnit}</span>
+                  <span className="font-mono text-indigo-400 font-bold">{Math.round(zr.result.voz || zr.result.voz)} {flowUnit}</span>
                 </div>
               </div>
             </div>
@@ -520,7 +519,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                    <p className="text-xs text-slate-400 mt-1">Adjusted for air density (Ratio: {densityRatio.toFixed(3)})</p>
                  </div>
                  <div className="text-right">
-                    <span className="text-3xl font-black text-white font-mono">{Math.ceil(zr.result.vozActual || zr.result.voz).toLocaleString()}</span>
+                    <span className="text-3xl font-black text-white font-mono">{Math.ceil(zr.result.voz || zr.result.voz).toLocaleString()}</span>
                     <span className="text-xs font-bold text-sky-400 ml-2">{flowUnit}</span>
                  </div>
               </div>

@@ -7,6 +7,7 @@ import UpsSizingCalc from './UpsSizingCalc';
 import ElvUpsSizingCalc from './ElvUpsSizingCalc';
 import PowerEquipmentTable, { PowerEquipment } from './PowerEquipmentTable';
 import TooltipLabel from './TooltipLabel';
+import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 import InputAlert from './InputAlert';
 import { useLanguage } from '../lib/translations';
 import { exportElectricalToCsv } from '../lib/exportCsv';

@@ -15,6 +15,8 @@ export interface MultiZoneSystemResult {
   ev: number;
   vot: number;
   votActual: number;
+  sumVpzMin?: number;
+  sumVpz?: number;
   status?: string;
   warning?: string;
   error?: string;
@@ -34,7 +36,8 @@ export class MultiZoneVentilationService {
     if (method === 'simplified') {
        const mappedZones = inputs.zones.map(z => ({
          zoneResult: z.result,
-         vpz: z.input.primaryAirflow || 0
+         vpz: z.input.primaryAirflow,
+         vpzMin: z.input.vpzMin !== '' && z.input.vpzMin !== undefined ? Number(z.input.vpzMin) : undefined
        }));
        const res = Ashrae621SimplifiedSystemService.calculate({
          zones: mappedZones,
@@ -46,7 +49,7 @@ export class MultiZoneVentilationService {
          vps: 0,
          vou: res.vou,
          xs: 0,
-         zdMax: res.maxZpz,
+         zdMax: 0, // Simplified doesn't use Zpz max
          ev: res.ev,
          vot: res.vot,
          votActual,
@@ -54,13 +57,17 @@ export class MultiZoneVentilationService {
          warning: res.warning,
          error: res.error,
          method: 'simplified',
-         zones: []
+         zones: [],
+         sumVpzMin: res.sumVpzMin,
+         sumVpz: res.sumVpz
        };
     } else {
        const mappedZones = inputs.zones.map(z => ({
          zoneResult: z.result,
-         vpz: z.input.primaryAirflow || 0,
-         vpzMin: Number(z.input.vpzMin) || 0
+         vpz: z.input.primaryAirflow,
+         vpzMin: z.input.vpzMin !== '' && z.input.vpzMin !== undefined ? Number(z.input.vpzMin) : undefined,
+         ep: z.input.ep !== undefined ? Number(z.input.ep) : 1.0,
+         er: z.input.er !== undefined ? Number(z.input.er) : 0.0
        }));
        const res = Ashrae621AlternativeSystemService.calculate({
          zones: mappedZones,
@@ -85,6 +92,8 @@ export class MultiZoneVentilationService {
          warning: res.warning,
          error: res.error,
          method: 'alternative',
+         sumVpzMin: res.sumVpzMin,
+         sumVpz: res.sumVpz,
          zones: res.zoneResults.map((zr, i) => ({
              zoneId: i.toString(),
              zpz: zr.zpz,
