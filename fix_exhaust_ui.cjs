@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+
+const content = `import React, { useState, useEffect } from 'react';
 import { Wind, Plus, Trash2, Database } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
-import TooltipLabel from './TooltipLabel';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
-import { Ashrae621ExhaustService, ExhaustSpaceType, AshraeEdition } from '../calculations/ventilation/Ashrae621ExhaustService';
+import { Ashrae621ExhaustService } from '../calculations/ventilation/Ashrae621ExhaustService';
+import { ExhaustDatabaseService, ExhaustSpaceType } from '../calculations/data/exhaust/ExhaustDatabase';
 
 interface ExhaustRow {
   id: string;
@@ -19,7 +21,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
   const isMetric = unitSystem === 'metric';
   const flowUnit = isMetric ? 'L/s' : 'cfm';
   
-  const allSpaces = Ashrae621ExhaustService.getSpaces(edition as AshraeEdition);
+  const allSpaces = ExhaustDatabaseService.getAllSpaces();
   
   const [rows, setRows] = useState<ExhaustRow[]>([
     {
@@ -51,22 +53,23 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
 
   const evaluateRows = () => {
     return rows.map(r => {
-      const space = Ashrae621ExhaustService.getSpaceById(r.categoryId, edition as AshraeEdition) || allSpaces[0];
+      const space = ExhaustDatabaseService.getSpaceById(r.categoryId) || allSpaces[0];
+      const ashraeRate = isMetric ? space.ashraeRateMet : space.ashraeRateImp;
+      const imcRate = isMetric ? space.imcRateMet : space.imcRateImp;
       
-      // The service encapsulates the logic to look up the rates and determine the governing rate
-      const result = Ashrae621ExhaustService.calculateSpaceExhaust({
-        spaceId: r.categoryId,
-        edition: edition as AshraeEdition,
-        quantity: r.quantity,
-        isMetric,
-        projectOverride: r.projectTotal,
-        mfgOverride: r.mfgTotal
-      });
+      const ashraeTotal = r.quantity * ashraeRate;
+      const imcTotal = r.quantity * imcRate;
 
       return {
         row: r,
         space,
-        result
+        result: Ashrae621ExhaustService.evaluateSpace({
+          ashraeRate: ashraeTotal,
+          imcRate: imcTotal,
+          projectRate: r.projectTotal,
+          mfgRate: r.mfgTotal,
+          ashraeClass: space.ashraeClass
+        })
       };
     });
   };
@@ -118,7 +121,9 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
               
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-slate-800/50">
                 <div className="md:col-span-1">
-                  <TooltipLabel className="block text-[10px] font-bold text-slate-500 uppercase" label={`Qty (${e.space.ashraeUnit === 'area' ? (isMetric ? 'm²' : 'ft²') : 'units'})`} tooltip="The base physical quantity (e.g., floor area, number of fixtures, or number of appliances) used to calculate the mandatory exhaust flow rate." />
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase">
+                    Qty ({e.space.ashraeUnit === 'area' ? (isMetric ? 'm²' : 'ft²') : 'units'})
+                  </label>
                   <input type="number" min="0" step="any" value={e.row.quantity} onChange={ev => updateRow(e.row.id, 'quantity', Number(ev.target.value))} className="w-full bg-slate-900 text-xs rounded p-2 text-slate-300 border border-slate-800" />
                 </div>
                 <div className="md:col-span-1">
@@ -134,7 +139,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
                   </div>
                 </div>
                 <div className="md:col-span-1">
-                  <TooltipLabel className="block text-[10px] font-bold text-slate-500 uppercase" label="Project Override" tooltip="Allows a custom, project-specific required exhaust flow rate that supersedes ASHRAE/IMC minimums if higher." />
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase">Project Override</label>
                   <input type="number" min="0" step="any" value={e.row.projectTotal} onChange={ev => updateRow(e.row.id, 'projectTotal', Number(ev.target.value))} className="w-full bg-slate-900 text-xs rounded p-2 text-slate-300 border border-slate-800" placeholder="Optional" />
                 </div>
                 <div className="md:col-span-1 bg-slate-800/50 p-2 rounded flex flex-col justify-center items-end border border-slate-700/50">
@@ -159,3 +164,6 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/components/Ashrae621ExhaustCalc.tsx', content);

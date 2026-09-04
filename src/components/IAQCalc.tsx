@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShieldAlert, Wind, Ruler, Activity, CheckCircle2, Filter } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 import ValidatedInput from './ValidatedInput';
+import TooltipLabel from './TooltipLabel';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import ashrae2025Data from '../data/ashrae62_1_2025.json';
 
@@ -113,11 +114,11 @@ export default function IAQCalc() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Design Population</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Design Population" tooltip="Maximum expected occupancy. Sets the upper boundary for the CO2 concentration curve." />
               <ValidatedInput type="number" min={0} value={designPop} onChange={(e) => setDesignPop(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">DCV Current Population</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="DCV Current Population" tooltip="Actual current occupancy for Demand Controlled Ventilation. Dynamically impacts the allowable CO2 setpoint." />
               <ValidatedInput type="number" min={0} value={dcvPop} onChange={(e) => setDcvPop(Number(e.target.value))} />
             </div>
             <div>
@@ -125,11 +126,11 @@ export default function IAQCalc() {
               <ValidatedInput type="number" min={0} value={area} onChange={(e) => setArea(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">CO₂ Generation Rate ({isMetric ? 'L/s/person' : 'cfm/person'})</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label={`CO₂ Generation Rate (${isMetric ? 'L/s/person' : 'cfm/person'})`} tooltip="Metabolic CO2 generation. Depends on the occupant activity level (e.g., resting, office work, heavy exercise per ASHRAE guidelines)." />
               <ValidatedInput type="number" min={0} step={0.001} value={activityLevel} onChange={(e) => setActivityLevel(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Outdoor CO₂ (ppm)</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Outdoor CO₂ (ppm)" tooltip="Baseline outdoor ambient CO2 concentration. Typically 400-500 ppm in urban areas." />
               <ValidatedInput type="number" min={300} value={outdoorCO2} onChange={(e) => setOutdoorCO2(Number(e.target.value))} />
             </div>
           </div>

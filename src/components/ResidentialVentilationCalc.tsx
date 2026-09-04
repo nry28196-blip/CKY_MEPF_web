@@ -3,6 +3,7 @@ import { Home, Wind, CheckCircle2, AlertTriangle, Droplets, ChefHat, Activity, B
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import TooltipLabel from './TooltipLabel';
+import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 
 export default function ResidentialVentilationCalc() {
   const { t } = useLanguage();
@@ -16,22 +17,26 @@ export default function ResidentialVentilationCalc() {
   
   const [totalAirflow, setTotalAirflow] = useState<number>(0);
   
+  const [qInf, setQInf] = useState<number>(0);
+  const [phi, setPhi] = useState<number>(1.0);
+  const [qFan, setQFan] = useState<number>(0);
   const [kitchenMode, setKitchenMode] = useState<'intermittent'|'continuous'>('intermittent');
   const [bathrooms, setBathrooms] = useState<number>(2);
   const [bathroomMode, setBathroomMode] = useState<'intermittent'|'continuous'>('intermittent');
 
   useEffect(() => {
-    // ASHRAE 62.2 Whole-Dwelling Ventilation
-    // Eq: Qtot = 0.03 * A_floor + 7.5 * (N_br + 1) (CFM)
-    // Metric: Qtot = 0.15 * A_floor + 3.5 * (N_br + 1) (L/s)
-    let qTot = 0;
-    if (isMetric) {
-      qTot = 0.15 * floorArea + 3.5 * (bedrooms + 1);
-    } else {
-      qTot = 0.03 * floorArea + 7.5 * (bedrooms + 1);
-    }
-    setTotalAirflow(Math.max(0, qTot));
-  }, [floorArea, bedrooms, isMetric]);
+    import('../calculations/ventilation/Ashrae622Service').then(({ Ashrae622Service }) => {
+       const res = Ashrae622Service.calculateVentilation({
+          floorArea,
+          bedrooms,
+          isMetric,
+          qInf,
+          phi
+       });
+       setTotalAirflow(res.qTot);
+       setQFan(res.qFan);
+    });
+  }, [floorArea, bedrooms, isMetric, qInf, phi]);
 
   const flowUnit = isMetric ? 'L/s' : 'CFM';
   const areaUnit = isMetric ? 'm²' : 'ft²';
@@ -85,6 +90,16 @@ export default function ResidentialVentilationCalc() {
               <TooltipLabel label={`Floor Area (${areaUnit})`} className="text-[10px] font-bold text-slate-400 uppercase mb-1.5" />
               <input type="number" min="0" step={isMetric ? 10 : 100} value={floorArea} onChange={(e) => setFloorArea(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 font-mono border border-slate-800 focus:border-purple-500 text-sm" />
             </div>
+            
+            <div>
+              <TooltipLabel label="Infiltration (Qinf)" className="text-[10px] font-bold text-slate-400 uppercase mb-1.5" />
+              <input type="number" min="0" value={qInf} onChange={(e) => setQInf(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 font-mono border border-slate-800 focus:border-purple-500 text-sm" />
+            </div>
+            <div>
+              <TooltipLabel label="Infiltration Credit Factor (Φ)" className="text-[10px] font-bold text-slate-400 uppercase mb-1.5" />
+              <input type="number" min="0" max="1" step="0.1" value={phi} onChange={(e) => setPhi(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 font-mono border border-slate-800 focus:border-purple-500 text-sm" />
+            </div>
+
             <div>
               <TooltipLabel label="Bedrooms" className="text-[10px] font-bold text-slate-400 uppercase mb-1.5" />
               <input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 font-mono border border-slate-800 focus:border-purple-500 text-sm" />
@@ -97,7 +112,31 @@ export default function ResidentialVentilationCalc() {
                 {Math.ceil(totalAirflow).toLocaleString()}
                 <span className="text-sm font-bold text-purple-400 uppercase tracking-widest ml-1">{flowUnit}</span>
               </p>
-              <p className="text-[10px] text-slate-500 mt-2 z-10 text-center">Eq. 4.1.1</p>
+              <p className="text-[10px] text-slate-500 mt-2 z-10 text-center">Qtot (Eq. 4.1.1)</p>
+              <div className="mt-4 pt-4 border-t border-purple-900/30 w-full text-center z-10">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Required Fan Airflow (Qfan)</p>
+                <p className="text-3xl font-black text-white font-mono tracking-tight drop-shadow-md">
+                  {Math.ceil(qFan).toLocaleString()}
+                  <span className="text-sm font-bold text-purple-400 uppercase tracking-widest ml-1">{flowUnit}</span>
+                </p>
+                <p className="text-[10px] text-slate-500 mt-2">Qfan = Qtot - Φ * Qinf</p>
+              
+              <div className="mt-4 pt-4 border-t border-purple-900/30 w-full z-10 text-left">
+                 <EngineeringAuditTrail
+                    codeReference="ASHRAE 62.2"
+                    title="Whole-Dwelling Audit Trail"
+                    trail={[
+                       { symbol: 'A_floor', name: 'Floor Area', value: floorArea, unit: areaUnit },
+                       { symbol: 'N_br', name: 'Bedrooms', value: bedrooms, unit: '' },
+                       { symbol: 'Qtot', name: 'Total Required Ventilation Rate', formula: isMetric ? '0.15 × A_floor + 3.5 × (N_br + 1)' : '0.03 × A_floor + 7.5 × (N_br + 1)', value: Math.ceil(totalAirflow), unit: flowUnit, reference: 'Eq. 4.1.1' },
+                       { symbol: 'Qinf', name: 'Infiltration Rate', value: qInf, unit: flowUnit },
+                       { symbol: 'Φ', name: 'Infiltration Credit Factor', value: phi, unit: '' },
+                       { symbol: 'Qfan', name: 'Required Fan Airflow', formula: 'Qtot - Φ × Qinf', value: Math.ceil(qFan), unit: flowUnit, reference: 'Eq. 4.1.2' }
+                    ]}
+                 />
+              </div>
+
+              </div>
             </div>
           </div>
         </div>

@@ -1202,7 +1202,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
               {/* Project Type & Validation */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Project Type</label>
+                  <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Project Type" tooltip="Determines peak usage patterns and diversity factors for water demand calculation (e.g., Hunter's Curve probabilities vary by building use)." />
                   <select
                     value={projectType}
                     onChange={(e) => setProjectType(e.target.value as any)}
@@ -1219,7 +1219,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
               {/* Dynamic Sizing Constraints */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">People (Occupants)</label>
+                  <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="People (Occupants)" tooltip="Total building population used for macroscopic water storage volume calculations." />
                   <input
                     type="number"
                     min="1"
@@ -1323,7 +1323,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     <div>
                       <div className="flex justify-between items-center mb-1.5 relative">
                         <div className="flex items-center gap-1.5 group">
-                          <label className="block text-[10px] font-extrabold text-slate-400 uppercase">Pipe Material</label>
+                          <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 uppercase" label="Pipe Material" tooltip="Determines the absolute pipe roughness (e.g., PVC is smoother than Cast Iron) used in the Colebrook-White or Hazen-Williams friction equations." />
                           <span className="cursor-help text-slate-500 hover:text-cyan-400 pb-0.5">
                             <Info className="w-3.5 h-3.5" />
                           </span>
@@ -1375,11 +1375,11 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Avail. Pressure (bar)</label>
+                      <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Avail. Pressure (bar)" tooltip="Static pressure available at the source connection." />
                       <input type="number" min="0.1" step="0.1" value={availablePressure} onChange={(e) => setAvailablePressure(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Req. Residual (bar)</label>
+                      <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Req. Residual (bar)" tooltip="Minimum pressure required at the furthest/highest fixture for proper operation." />
                       <input type="number" min="0.1" step="0.1" value={requiredResidual} onChange={(e) => setRequiredResidual(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                     </div>
                   </div>
@@ -1387,16 +1387,16 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   {hydraulicMode === 'auto' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Main Pipe Length (m)</label>
+                        <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Main Pipe Length (m)" tooltip="Linear length of the pipe run. Used to calculate friction loss." />
                         <input type="number" min="1" value={pipeLength} onChange={(e) => setPipeLength(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Elevation Change (m)</label>
+                        <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Elevation Change (m)" tooltip="Vertical rise (+ value) or drop (- value). Used to calculate hydrostatic pressure loss/gain (approx 0.098 bar per meter)." />
                         <input type="number" value={elevationChange} onChange={(e) => setElevationChange(e.target.value === '' ? 0 : Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                       </div>
                       <div className="col-span-1 md:col-span-2 space-y-3">
                         <div className="flex items-center justify-between">
-                          <label className="block text-[10px] font-extrabold text-slate-400 uppercase">Fittings & Valves (Equivalent Length)</label>
+                          <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 uppercase" label="Fittings & Valves (Equivalent Length)" tooltip="Additional friction from fittings modeled as an equivalent length of straight pipe." />
                           <button 
                             onClick={() => setFittings([...fittings, { id: Date.now().toString(), typeId: 'elbow_90', qty: 1 }])}
                             className="text-[10px] flex items-center gap-1 bg-cyan-900/30 text-cyan-400 px-2 py-1 rounded border border-cyan-800/50 hover:bg-cyan-800/50 transition-colors cursor-pointer uppercase font-bold"
@@ -1565,7 +1565,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Building Occupants Count</label>
+                  <TooltipLabel className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" label="Building Occupants Count" tooltip="Used to size the water tank based on daily per-capita usage standards." />
                   <input
                     type="number"
                     min="1"
@@ -1605,7 +1605,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   )}
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Water Storage Buffer (Days)</label>
+                  <TooltipLabel className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" label="Water Storage Buffer (Days)" tooltip="The required number of days the tank can supply the building without municipal makeup." />
                   <input
                     type="number"
                     min="1"
@@ -1645,7 +1645,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   )}
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Desludging Interval (Years)</label>
+                  <TooltipLabel className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" label="Desludging Interval (Years)" tooltip="Frequency of tank maintenance. Impacts the required sludge retention volume." />
                   <input
                     type="number"
                     min="1"
@@ -1697,7 +1697,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   <h4 className="text-[11px] font-bold uppercase text-cyan-400 tracking-wide">1. Domestic Water Booster Pump Set</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-[9px] text-slate-400 font-bold uppercase mb-1">Building Static Height (m)</label>
+                      <TooltipLabel className="block text-[9px] text-slate-400 font-bold uppercase mb-1" label="Building Static Height (m)" tooltip="Determines the hydrostatic pump head (0.098 bar / m)." />
                       <input
                         type="number"
                     min="1"
@@ -1738,7 +1738,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       )}
                     </div>
                     <div>
-                      <label className="block text-[9px] text-slate-400 font-bold uppercase mb-1">Friction Loss Allowance (%)</label>
+                      <TooltipLabel className="block text-[9px] text-slate-400 font-bold uppercase mb-1" label="Friction Loss Allowance (%)" tooltip="An estimated allowance added to the static head to account for dynamic pipe friction during flow." />
                       <input
                         type="number"
                     min="5"

@@ -6,6 +6,7 @@ import { useUnit } from '../lib/UnitContext';
 
 import { Ashrae621Service, ZoneVentilationInput, ZoneVentilationResult } from '../calculations/ventilation/Ashrae621Service';
 import ValidatedInput from './ValidatedInput';
+import TooltipLabel from './TooltipLabel';
 import EngineeringWarning from './EngineeringWarning';
 import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
@@ -16,7 +17,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
 
-  const [systemType, setSystemType] = useState<'single' | 'multi'>('single');
+  const [systemType, setSystemType] = useState<'single' | 'multi_simplified' | 'multi_alternative'>('single');
   const [systemPopulation, setSystemPopulation] = useState<number | ''>('');
   const [systemPrimaryAirflow, setSystemPrimaryAirflow] = useState<number | ''>('');
       const [altitude, setAltitude] = useState<number>(0);
@@ -112,21 +113,19 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
 
   // Calculate system result
   const systemResult = useMemo(() => {
-    if (systemType !== 'multi') return null;
+    if (!systemType.startsWith('multi')) return null;
     
-    const multiInputs: MultiZoneInput[] = zoneResults.map(zr => ({
-      zoneId: zr.input.id,
-      name: zr.input.name,
-      zoneResult: zr.result,
-      primaryAirflow: zr.input.primaryAirflow,
-      vpzMin: zr.input.vpzMin !== '' ? Number(zr.input.vpzMin) : undefined
-    }));
+    const multiInputs = { zones: zoneResults.map(zr => ({
+      input: zr.input,
+      result: zr.result
+    })) };
     
     return MultiZoneVentilationService.calculateMultiZoneSystem(
       multiInputs, 
       systemPopulation === '' ? null : Number(systemPopulation), 
       systemPrimaryAirflow === '' ? null : Number(systemPrimaryAirflow),
-      densityRatio
+      densityRatio,
+      systemType === 'multi_simplified' ? 'simplified' : 'alternative'
     );
   }, [systemType, zoneResults, systemPopulation, systemPrimaryAirflow, densityRatio]);
 
@@ -138,7 +137,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         id: 'missing-ps',
         severity: 'warning',
         title: 'Engineering Assumptions',
-        validate: (s) => !(s.systemType === 'multi' && s.systemPopulation === ''),
+        validate: (s) => !(s.systemType.startsWith('multi') && s.systemPopulation === ''),
         message: (s) => `Peak System Population (Ps) was not provided. Assumed equal to sum of peak zone populations (ΣPz = ${Math.ceil(s.sumPz)}). Diversity Ratio (D) = 1.00.`,
         reference: `ASHRAE 62.1-${edition}`
       },
@@ -146,7 +145,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         id: 'missing-vps',
         severity: 'warning',
         title: 'Engineering Assumptions',
-        validate: (s) => !(s.systemType === 'multi' && s.systemPrimaryAirflow === ''),
+        validate: (s) => !(s.systemType.startsWith('multi') && s.systemPrimaryAirflow === ''),
         message: (s) => `System Primary Airflow (Vps) was not provided. Assumed equal to sum of zone minimum primary airflows (ΣVpz-min = ${Math.ceil(s.sumVpzMin)}).`,
         reference: `ASHRAE 62.1-${edition}`
       },
@@ -154,7 +153,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         id: 'missing-vpzmin',
         severity: 'warning',
         title: 'Engineering Assumptions',
-        validate: (s) => !(s.systemType === 'multi' && s.zones.some((z: any) => z.vpzMin === '')),
+        validate: (s) => !(s.systemType.startsWith('multi') && s.zones.some((z: any) => z.vpzMin === '')),
         message: 'Zone Minimum Primary Airflow (Vpz-min) was not provided for one or more zones. Assumed equal to Vpz (Constant Volume condition). If this is a VAV system, you must manually provide the minimum primary airflow.',
         reference: `ASHRAE 62.1-${edition}`
       },
@@ -162,7 +161,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         id: 'critical-zpz',
         severity: 'error',
         title: 'Critical System Failure: Zpz > 1.0',
-        validate: (s) => !(s.systemType === 'multi' && s.systemResult && s.systemResult.zdMax > 1.0),
+        validate: (s) => !(s.systemType.startsWith('multi') && s.systemResult && s.systemResult.zdMax > 1.0),
         message: 'One or more zones have a Maximum Zone Fraction (Zpz) greater than 1.0. This means the Minimum Primary Airflow (Vpz-min) is less than the Required Outdoor Air (Voz) for that zone. To resolve this, increase the Design Vpz or Vpz-min for the critical zone(s).',
         reference: 'ASHRAE 62.1 § 6.2.5.3.3'
       }
@@ -240,30 +239,31 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Elevation ({isMetric ? 'm' : 'ft'})</label>
+            <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label={`Elevation (${isMetric ? 'm' : 'ft'})`} tooltip="Used to calculate the local air density ratio (Eρ) per normative Appendix B. Affects the conversion between mass and volume flow rates." />
             <ValidatedInput type="number" min={-1000} errorMsg="Altitude must be >= -1000" value={altitude} onChange={(e) => setAltitude(Number(e.target.value))} />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Air Temp ({isMetric ? '°C' : '°F'})</label>
+            <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label={`Air Temp (${isMetric ? '°C' : '°F'})`} tooltip="Used with elevation to calculate the air density correction factor." />
             <ValidatedInput type="number" min={-60} max={150} errorMsg="Valid range: -60 to 150" value={airTemp} onChange={(e) => setAirTemp(Number(e.target.value))} />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">System Type</label>
+            <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="System Type" tooltip="Single-Zone: One zone per system. Simplified/Alternative: Multi-zone systems with varying methods for calculating system ventilation efficiency (Ev)." />
             <select 
               value={systemType}
-              onChange={(e) => setSystemType(e.target.value as 'single' | 'multi')}
+              onChange={(e) => setSystemType(e.target.value as 'single' | 'multi_simplified' | 'multi_alternative')}
               className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-sky-500"
             >
               <option value="single">Single Zone System</option>
-              <option value="multi">Multi-Zone System (VAV/CV)</option>
+              <option value="multi_simplified">Multi-Zone Simplified Procedure (6.2.5.3)</option>
+              <option value="multi_alternative">Multi-Zone Alternative Procedure (Appendix A)</option>
             </select>
           </div>
         </div>
 
-        {systemType === 'multi' && (
+        {systemType.startsWith('multi') && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pt-4 border-t border-slate-800/60">
             <div>
-              <label className="block text-xs font-bold text-sky-400 mb-1.5 uppercase">Peak System Population Ps (Optional)</label>
+              <TooltipLabel className="block text-xs font-bold text-sky-400 mb-1.5 uppercase" label="Peak System Population Ps (Optional)" tooltip="If known, the peak total population of the entire system can be used instead of the sum of zone populations to reduce required outdoor air through population diversity." />
               <ValidatedInput 
                 type="number" min={0} placeholder="Defaults to ΣPz"
                 max={Math.ceil(zoneResults.reduce((sum, z) => sum + z.result.pz, 0))}
@@ -275,7 +275,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               <p className="text-xs text-slate-500 mt-1">Evaluates Occupant Diversity Ratio (D = Ps / ΣPz)</p>
             </div>
             <div>
-              <label className="block text-xs font-bold text-sky-400 mb-1.5 uppercase">Min System Primary Airflow Vps (Optional)</label>
+              <TooltipLabel className="block text-xs font-bold text-sky-400 mb-1.5 uppercase" label="Min System Primary Airflow Vps (Optional)" tooltip="System primary airflow rate. Required for alternative procedure Ev calculations. Enter the minimum expected supply airflow for VAV systems." />
               <ValidatedInput 
                 type="number" min={systemResult ? Math.ceil(systemResult.sumVpzMin) : 0} placeholder="Defaults to ΣVpz-min"
                 errorMsg="System Primary Airflow (Vps) must be ≥ sum of zone minimum primary airflows (ΣVpz-min)"
@@ -288,10 +288,10 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
           </div>
         )}
 
-        {systemType === 'multi' && (
+        {systemType.startsWith('multi') && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pt-4 border-t border-slate-800/60">
             <div>
-              <label className="block text-xs font-bold text-sky-400 mb-1.5 uppercase">Peak System Population Ps (Optional)</label>
+              <TooltipLabel className="block text-xs font-bold text-sky-400 mb-1.5 uppercase" label="Peak System Population Ps (Optional)" tooltip="If known, the peak total population of the entire system can be used instead of the sum of zone populations to reduce required outdoor air through population diversity." />
               <ValidatedInput 
                 type="number" min={0} placeholder="Defaults to ΣPz"
                 max={Math.ceil(zoneResults.reduce((sum, z) => sum + z.result.pz, 0))}
@@ -303,7 +303,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               <p className="text-xs text-slate-500 mt-1">Evaluates Occupant Diversity Ratio (D = Ps / ΣPz)</p>
             </div>
             <div>
-              <label className="block text-xs font-bold text-sky-400 mb-1.5 uppercase">Min System Primary Airflow Vps (Optional)</label>
+              <TooltipLabel className="block text-xs font-bold text-sky-400 mb-1.5 uppercase" label="Min System Primary Airflow Vps (Optional)" tooltip="System primary airflow rate. Required for alternative procedure Ev calculations. Enter the minimum expected supply airflow for VAV systems." />
               <ValidatedInput 
                 type="number" min={systemResult ? Math.ceil(systemResult.sumVpzMin) : 0} placeholder="Defaults to ΣVpz-min"
                 errorMsg="System Primary Airflow (Vps) must be ≥ sum of zone minimum primary airflows (ΣVpz-min)"
@@ -335,11 +335,11 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
             
             <h4 className="text-sm font-semibold text-white mb-4 flex items-center">
               <Users className="w-4 h-4 mr-2 text-indigo-400" />
-              {systemType === 'multi' ? `Zone ${index + 1}: ` : ''} {zr.input.name}
+              {systemType.startsWith('multi') ? `Zone ${index + 1}: ` : ''} {zr.input.name}
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {systemType === 'multi' && (
+              {systemType.startsWith('multi') && (
                 <div className="col-span-full">
                   <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Zone Name</label>
                   <input 
@@ -351,7 +351,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                 </div>
               )}
               <div className="lg:col-span-2">
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Space Type (Table 6.2.2.1)</label>
+                <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Space Type (Table 6.2.2.1)" tooltip="ASHRAE 62.1 space categorization. Determines the breathing zone outdoor air rates for people (Rp) and area (Ra)." />
                 <select 
                   value={zr.input.spaceTypeId}
                   onChange={(e) => updateZone(zr.input.id, 'spaceTypeId', e.target.value)}
@@ -373,7 +373,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Zone Ez (Table 6.2.2.2)</label>
+                <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Zone Ez (Table 6.2.2.2)" tooltip="Zone Air Distribution Effectiveness. Varies based on air distribution configuration (e.g., ceiling supply/return = 1.0, floor supply = 1.2)." />
                 <select 
                   value={zr.input.ezId}
                   onChange={(e) => updateZone(zr.input.id, 'ezId', e.target.value)}
@@ -411,10 +411,10 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                 </div>
               </div>
               
-              {systemType === 'multi' && (
+              {systemType.startsWith('multi') && (
                 <div className="lg:col-span-2 grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-amber-400 mb-1.5 uppercase">Design Vpz ({flowUnit})</label>
+                    <TooltipLabel className="block text-xs font-bold text-amber-400 mb-1.5 uppercase" label={`Design Vpz (${flowUnit})`} tooltip="Design zone primary airflow. Typically the peak cooling/heating supply airflow to the zone." />
                     <ValidatedInput 
                       type="number" min={Math.ceil(zr.result.voz)}
                       errorMsg="Design primary airflow (Vpz) must be ≥ required zone outdoor air (Voz) to maintain Zpz ≤ 1.0"
@@ -424,7 +424,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-amber-500 mb-1.5 uppercase">Min Vpz-min</label>
+                    <TooltipLabel className="block text-xs font-bold text-amber-500 mb-1.5 uppercase" label="Min Vpz-min" tooltip="Minimum zone primary airflow. Crucial for VAV systems to determine the worst-case primary outdoor air fraction (Zp)." />
                     <ValidatedInput 
                       type="number" min={Math.ceil(zr.result.voz)} max={zr.input.primaryAirflow > 0 ? zr.input.primaryAirflow : undefined}
                       placeholder="Auto (VAV)"
@@ -528,7 +528,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
           </div>
         ))}
         
-        {systemType === 'multi' && (
+        {systemType.startsWith('multi') && (
           <button 
             onClick={addZone}
             className="w-full py-3 border border-dashed border-slate-700 rounded-xl text-sm text-slate-400 hover:text-white hover:border-slate-500 hover:bg-slate-800/50 transition-all flex items-center justify-center"
@@ -545,7 +545,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       )}
 
       {/* Multi-Zone System Results */}
-      {systemType === 'multi' && systemResult && (
+      {systemType.startsWith('multi') && systemResult && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg">
           <h3 className="text-sm font-semibold text-white mb-5 flex items-center">
             <Activity className="w-4 h-4 mr-2 text-sky-400" />

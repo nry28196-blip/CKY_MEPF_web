@@ -1,4 +1,4 @@
-export type TabType = 'mechanical' | 'electrical' | 'plumbing' | 'fire' | 'bulk';
+export type TabType = 'mechanical' | 'electrical' | 'plumbing' | 'fire' | 'bulk' | 'cost';
 
 export interface HistoryItem {
   id: string;

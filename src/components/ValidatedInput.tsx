@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import TooltipLabel from './TooltipLabel';
 
 interface ValidatedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'min' | 'max'> {
   min?: number;
   max?: number;
   errorMsg?: string;
   label?: string;
+  tooltip?: React.ReactNode;
   containerClassName?: string;
   isMetric?: boolean;
 }
 
 export default function ValidatedInput({ 
-  min, max, errorMsg, label, className, containerClassName = "", isMetric, value, ...props 
+  min, max, errorMsg, label, tooltip, className, containerClassName = "", isMetric, value, ...props 
 }: ValidatedInputProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const numValue = Number(value);
@@ -22,7 +24,7 @@ export default function ValidatedInput({
 
   return (
     <div className={`relative ${containerClassName}`}>
-      {label && <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">{label}</label>}
+      {label && <TooltipLabel className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" label={label} tooltip={tooltip} />}
       <div 
         className="relative flex items-center"
         onMouseEnter={() => setShowTooltip(true)}

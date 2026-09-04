@@ -4,13 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Wind, MessageSquare, Pencil, Zap, Droplet, Flame, Calculator, Sparkles, History, Trash2, Clock, BookOpen, Sun, Moon, Scale, CheckSquare, Square, Languages, PanelRightOpen, PanelRightClose, Layers, Download, Ruler } from 'lucide-react';
+import { Wind, MessageSquare, Pencil, Zap, Droplet, Flame, Calculator, Sparkles, History, Trash2, Clock, BookOpen, Sun, Moon, Scale, CheckSquare, Square, Languages, PanelRightOpen, PanelRightClose, Layers, Download, Ruler, DollarSign } from 'lucide-react';
 import { TabType, HistoryItem } from './types';
 import MechanicalCalc from './components/MechanicalCalc';
 import ElectricalCalc from './components/ElectricalCalc';
 import PlumbingCalc from './components/PlumbingCalc';
 import FireCalc from './components/FireCalc';
 import BulkCalc from './components/BulkCalc';
+import CostCalc from './components/CostCalc';
 import EngineeringUnitConverter from './components/EngineeringUnitConverter';
 import ReferenceModal from './components/ReferenceModal';
 import CompareModal from './components/CompareModal';
@@ -211,7 +212,11 @@ export default function App() {
         );
       case 'bulk': 
         return (
-          <BulkCalc  />
+          <BulkCalc history={history} />
+        );
+      case 'cost':
+        return (
+          <CostCalc history={history} />
         );
       default: 
         return (

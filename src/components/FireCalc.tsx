@@ -752,7 +752,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                   )}
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">External Hydrants Count</label>
+                  <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="External Hydrants Count" tooltip="Number of hydrants in the design area. Flow rates per hydrant vary significantly by standard (NFPA 13 vs BS EN 12845)." />
                   <input
                     type="number"
                     min="0"
@@ -770,7 +770,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                   )}
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase">Breeching Inlets</label>
+                  <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Breeching Inlets" tooltip="Connections for fire department apparatus. Does not generally add to the base pump demand but dictates Siamese connection sizing." />
                   <input
                     type="number"
                     value={breechingInletsCount || ''}
@@ -850,7 +850,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     )}
                   </div>
                   <div>
-                    <label className="block text-[9px] text-slate-400 font-bold uppercase mb-1">Design Area Heads</label>
+                    <TooltipLabel className="block text-[9px] text-slate-400 font-bold uppercase mb-1" label="Design Area Heads" tooltip="The number of sprinklers calculated to operate simultaneously in the hydraulically most demanding area." />
                     <input
                       type="number"
                     min="1"
@@ -1072,7 +1072,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase">Static Head Friction Loss (%)</label>
+                  <TooltipLabel className="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase" label="Static Head Friction Loss (%)" tooltip="An estimated percentage of static head to add as dynamic pipe friction for initial pump sizing." />
                   <input
                     type="number"
                     min="5"

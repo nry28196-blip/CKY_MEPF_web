@@ -6,6 +6,7 @@ import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { SystemPerformanceService, SystemPerformanceInput, SystemPerformanceResult } from '../calculations/ventilation/SystemPerformanceService';
 import { Ashrae621Service } from '../calculations/ventilation/Ashrae621Service';
 import ValidatedInput from './ValidatedInput';
+import TooltipLabel from './TooltipLabel';
 
 export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTemp = 20, qOutdoorAirProp }: { globalAltitude?: number, globalAirTemp?: number, qOutdoorAirProp?: number }) {
   const { unitSystem } = useUnit();
@@ -86,19 +87,19 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Critical Length ({lengthUnit})</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label={`Critical Length (${lengthUnit})`} tooltip="The longest or most hydraulically restrictive duct run from the fan to the furthest terminal." />
               <ValidatedInput type="number" min={1} errorMsg="Length must be >= 1" value={criticalDuctLength} onChange={(e) => setCriticalDuctLength(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Friction ({frictionUnit})</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label={`Friction (${frictionUnit})`} tooltip="Design friction loss rate per unit length of duct (e.g., typically 0.1 in.wg/100ft or 1.0 Pa/m)." />
               <ValidatedInput type="number" step="0.01" min={0.01} max={5} errorMsg="Standard friction: 0.01 to 5.0" value={ductFrictionRate} onChange={(e) => setDuctFrictionRate(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Fitting Loss ({pressureUnit})</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label={`Fitting Loss (${pressureUnit})`} tooltip="Sum of dynamic pressure drops through all fittings (elbows, transitions) in the critical path." />
               <ValidatedInput type="number" step="0.1" min={0} errorMsg="Loss must be >= 0" value={fittingLosses} onChange={(e) => setFittingLosses(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Equip. Drop ({pressureUnit})</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label={`Equip. Drop (${pressureUnit})`} tooltip="Internal pressure drop of the air handling unit (coils, filters, dampers) at design airflow." />
               <ValidatedInput type="number" step="0.1" min={0} errorMsg="Pressure drop must be >= 0" value={equipmentPressureDrop} onChange={(e) => setEquipmentPressureDrop(Number(e.target.value))} />
             </div>
           </div>
@@ -114,11 +115,11 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Fan Eff. (%)</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Fan Eff. (%)" tooltip="Aerodynamic efficiency of the fan impeller/housing." />
               <ValidatedInput type="number" min={1} max={100} errorMsg="Efficiency: 1% to 100%" value={fanEfficiency} onChange={(e) => setFanEfficiency(Number(e.target.value))} />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Motor Eff. (%)</label>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Motor Eff. (%)" tooltip="Electrical to mechanical conversion efficiency of the fan motor." />
               <ValidatedInput type="number" min={1} max={100} errorMsg="Efficiency: 1% to 100%" value={motorEfficiency} onChange={(e) => setMotorEfficiency(Number(e.target.value))} />
             </div>
           </div>

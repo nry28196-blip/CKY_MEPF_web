@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Zap, AlertTriangle, Info } from 'lucide-react';
+import TooltipLabel from './TooltipLabel';
 import InputAlert from './InputAlert';
 
 export default function VoltageDropCalc() {
@@ -46,30 +47,30 @@ export default function VoltageDropCalc() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">System Voltage (V)</label>
+                <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="System Voltage (V)" tooltip="Line-to-Line voltage for 3-phase, or Line-to-Neutral for 1-phase." />
                 <input type="number" value={voltage} onChange={e => setVoltage(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500 outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Phase</label>
+                <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Phase" tooltip="Determines the formula multiplier: 2 for 1-phase, √3 (1.732) for 3-phase." />
                 <select value={phase} onChange={e => setPhase(e.target.value as any)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500 outline-none">
                   <option value="single">Single Phase</option>
                   <option value="three">Three Phase</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Load Current (A)</label>
+                <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Load Current (A)" tooltip="The continuous design load current flowing through the cable." />
                 <input type="number" value={current} onChange={e => setCurrent(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500 outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Cable Length (m)</label>
+                <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Cable Length (m)" tooltip="One-way physical length of the cable run from source to load." />
                 <input type="number" value={length} onChange={e => setLength(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500 outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Resistance (Ω/km)</label>
+                <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Resistance (Ω/km)" tooltip="AC resistance of the cable at operating temperature. Found in manufacturer datasheets." />
                 <input type="number" step="0.01" value={cableResistance} onChange={e => setCableResistance(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500 outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Reactance (Ω/km)</label>
+                <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Reactance (Ω/km)" tooltip="Inductive reactance of the cable. Crucial for larger cables (usually > 16mm²) where AC skin effect and induction matter." />
                 <input type="number" step="0.01" value={cableReactance} onChange={e => setCableReactance(Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500 outline-none" />
               </div>
             </div>
