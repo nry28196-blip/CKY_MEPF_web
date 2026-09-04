@@ -32,7 +32,8 @@ export default function ResidentialVentilationCalc() {
           isMetric,
           qInf,
           phi,
-          edition: edition as "2019" | "2022" | "2025"
+          edition: edition as "2019" | "2022" | "2025",
+          localExhaustDeficit: 0
        });
        setTotalAirflow(res.qTot);
        setQFan(res.qFan);

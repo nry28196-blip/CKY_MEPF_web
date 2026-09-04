@@ -1,42 +1,123 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/components/Ashrae621VentilationCalc.tsx', 'utf8');
+let code = fs.readFileSync('src/components/MechanicalCalc.tsx', 'utf-8');
 
-// Import the new component
-if (!code.includes('EngineeringAuditTrail')) {
-  code = code.replace(
-    "import EngineeringWarning from './EngineeringWarning';",
-    "import EngineeringWarning from './EngineeringWarning';\nimport EngineeringAuditTrail, { AuditVariable } from './EngineeringAuditTrail';"
-  );
+// The request is to explicitly display 'INCOMPLETE' for any intermediate calculation step where required inputs were missing
+// So wherever we display `Math.round(results.X)`, we should display `results.status === 'INCOMPLETE' ? 'INCOMPLETE' : Math.round(results.X)`.
+
+const fieldsToPatch = [
+    'peopleSensible', 'peopleLatent',
+    'lightingSensible', 'equipmentSensible',
+    'wallSensible', 'roofSensible', 'windowCondSensible',
+    'solarSensible',
+    'ventSensible', 'ventLatent',
+    'infiltrationSensible', 'infiltrationLatent',
+    'totalSensible', 'totalLatent',
+    'calculatedTotal'
+];
+
+// E.g., {Math.round(results.peopleSensible)} -> {results.status === 'INCOMPLETE' ? 'INCOMPLETE' : Math.round(results.peopleSensible)}
+// However, the text says `W` after it. So it might be better to output `INCOMPLETE` without `W` or just `INCOMPLETE W`. 
+// "explicitly display 'INCOMPLETE' for any intermediate calculation step"
+// Let's replace: {Math.round(results.peopleSensible)} W / {Math.round(results.peopleLatent)} W
+// with: {results.status === 'INCOMPLETE' ? 'INCOMPLETE' : Math.round(results.peopleSensible) + ' W / ' + Math.round(results.peopleLatent) + ' W'}
+// Wait, the template looks like:
+// <div className="text-right">{Math.round(results.peopleSensible)} W / {Math.round(results.peopleLatent)} W</div>
+// Let's just do a string replacement on that specific section.
+
+const oldSection = `
+                        <div className="text-slate-500">People:</div>
+                        <div className="text-right">{Math.round(results.peopleSensible)} W / {Math.round(results.peopleLatent)} W</div>
+                        
+                        <div className="text-slate-500">Lighting/Equip:</div>
+                        <div className="text-right">{Math.round(results.lightingSensible + results.equipmentSensible)} W / 0 W</div>
+                        
+                        <div className="text-slate-500">Envelope:</div>
+                        <div className="text-right">{Math.round(results.wallSensible + results.roofSensible + results.windowCondSensible)} W / 0 W</div>
+                        
+                        <div className="text-slate-500">Solar (SHGC):</div>
+                        <div className="text-right">{Math.round(results.solarSensible)} W / 0 W</div>
+                        
+                        <div className="text-slate-500">Ventilation:</div>
+                        <div className="text-right">{Math.round(results.ventSensible)} W / {Math.round(results.ventLatent)} W</div>
+                        
+                        <div className="text-slate-500">Infiltration:</div>
+                        <div className="text-right">{Math.round(results.infiltrationSensible)} W / {Math.round(results.infiltrationLatent)} W</div>
+                        
+                        <div className="text-slate-500 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">Total Unfactored:</div>
+                        <div className="text-right font-bold text-slate-100 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{Math.round(results.totalSensible)} W / {Math.round(results.totalLatent)} W</div>
+                        <div className="text-slate-500 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">Calculated Final:</div>
+                        <div className="text-right font-bold text-amber-400 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{Math.round(results.calculatedTotal)} W</div>
+`;
+
+const newSection = `
+                        <div className="text-slate-500">People:</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.peopleSensible)} W / \${Math.round(results.peopleLatent)} W\`}</div>
+                        
+                        <div className="text-slate-500">Lighting/Equip:</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.lightingSensible + results.equipmentSensible)} W / 0 W\`}</div>
+                        
+                        <div className="text-slate-500">Envelope:</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.wallSensible + results.roofSensible + results.windowCondSensible)} W / 0 W\`}</div>
+                        
+                        <div className="text-slate-500">Solar (SHGC):</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.solarSensible)} W / 0 W\`}</div>
+                        
+                        <div className="text-slate-500">Ventilation:</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.ventSensible)} W / \${Math.round(results.ventLatent)} W\`}</div>
+                        
+                        <div className="text-slate-500">Infiltration:</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.infiltrationSensible)} W / \${Math.round(results.infiltrationLatent)} W\`}</div>
+                        
+                        <div className="text-slate-500 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">Total Unfactored:</div>
+                        <div className="text-right font-bold text-slate-100 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.totalSensible)} W / \${Math.round(results.totalLatent)} W\`}</div>
+                        <div className="text-slate-500 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">Calculated Final:</div>
+                        <div className="text-right font-bold text-amber-400 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.calculatedTotal)} W\`}</div>
+`;
+
+if(code.indexOf(oldSection.trim()) === -1) {
+    console.log("Could not find exact block. Let's just use regex.");
 }
 
-// Build the replacement text
-const oldAuditRegex = /\{\/\* System Audit Trail \*\/\}([\s\S]*?)<\/div>\n          <\/div>\n          <div className="mt-6 pt-4 border-t border-slate-800\/60">/m;
+// Regex replace instead just in case whitespace differs
+code = code.replace(
+    /\{Math\.round\(results\.peopleSensible\)\} W \/ \{Math\.round\(results\.peopleLatent\)\} W/g,
+    `{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.peopleSensible)} W / \${Math.round(results.peopleLatent)} W\`}`
+);
 
-const newAuditText = `{/* System Audit Trail */}
-          <div className="mt-6 pt-4 border-t border-slate-800/60">
-            <EngineeringAuditTrail
-              codeReference={\`ASHRAE 62.1-\${edition}\`}
-              variables={[
-                { symbol: 'ΣPz', name: 'Sum of Zone Populations', value: Math.ceil(systemResult.sumPz), unit: 'people' },
-                { symbol: 'Ps', name: 'Peak System Population', value: Math.ceil(systemResult.ps), unit: 'people' },
-                { symbol: 'D', name: 'Diversity Ratio', formula: 'Ps / ΣPz', value: systemResult.d.toFixed(3), reference: 'Eq. 6.2.5.3.1' },
-                { symbol: 'Vou', name: 'Uncorrected Outdoor Air', formula: 'D×Σ(Rp×Pz) + Σ(Ra×Az)', value: Math.round(systemResult.vou), unit: flowUnit, reference: 'Eq. 6.2.5.3' },
-                { symbol: 'Vps', name: 'System Primary Airflow', value: Math.round(systemResult.vps), unit: flowUnit },
-                { symbol: 'Xs', name: 'System Primary Fraction', formula: 'Vou / Vps', value: systemResult.xs.toFixed(3) },
-                { symbol: 'Zd', name: 'Max Zone Fraction', formula: 'Max(Zpz)', value: systemResult.zdMax.toFixed(3) },
-                { symbol: 'Ev', name: 'System Ventilation Efficiency', formula: 'Min(Evz)', value: systemResult.ev.toFixed(3), reference: 'Eq. 6.2.5.4.1 / App. A' },
-                { symbol: 'Vot', name: 'Standard Required System Outdoor Air', formula: 'Vou / Ev', value: Math.round(systemResult.vot), unit: flowUnit, reference: 'Eq. 6.2.5.1' },
-                { symbol: 'Eρ', name: 'Density Ratio', formula: 'ρ_actual / ρ_standard', value: densityRatio.toFixed(3) },
-                { symbol: 'Vot_actual', name: 'Density Corrected Required Outdoor Air', formula: 'Vot / Eρ', value: Math.ceil(systemResult.votActual || systemResult.vot), unit: flowUnit },
-              ]}
-            />
-          </div>
-          <div className="mt-6 pt-4 border-t border-slate-800/60">`;
+code = code.replace(
+    /\{Math\.round\(results\.lightingSensible \+ results\.equipmentSensible\)\} W \/ 0 W/g,
+    `{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.lightingSensible + results.equipmentSensible)} W / 0 W\`}`
+);
 
-if (code.match(oldAuditRegex)) {
-  code = code.replace(oldAuditRegex, newAuditText);
-  fs.writeFileSync('src/components/Ashrae621VentilationCalc.tsx', code);
-  console.log("Replaced system audit trail");
-} else {
-  console.log("Regex not matched");
-}
+code = code.replace(
+    /\{Math\.round\(results\.wallSensible \+ results\.roofSensible \+ results\.windowCondSensible\)\} W \/ 0 W/g,
+    `{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.wallSensible + results.roofSensible + results.windowCondSensible)} W / 0 W\`}`
+);
+
+code = code.replace(
+    /\{Math\.round\(results\.solarSensible\)\} W \/ 0 W/g,
+    `{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.solarSensible)} W / 0 W\`}`
+);
+
+code = code.replace(
+    /\{Math\.round\(results\.ventSensible\)\} W \/ \{Math\.round\(results\.ventLatent\)\} W/g,
+    `{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.ventSensible)} W / \${Math.round(results.ventLatent)} W\`}`
+);
+
+code = code.replace(
+    /\{Math\.round\(results\.infiltrationSensible\)\} W \/ \{Math\.round\(results\.infiltrationLatent\)\} W/g,
+    `{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.infiltrationSensible)} W / \${Math.round(results.infiltrationLatent)} W\`}`
+);
+
+code = code.replace(
+    /\{Math\.round\(results\.totalSensible\)\} W \/ \{Math\.round\(results\.totalLatent\)\} W/g,
+    `{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.totalSensible)} W / \${Math.round(results.totalLatent)} W\`}`
+);
+
+code = code.replace(
+    /\{Math\.round\(results\.calculatedTotal\)\} W/g,
+    `{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : \`\${Math.round(results.calculatedTotal)} W\`}`
+);
+
+
+fs.writeFileSync('src/components/MechanicalCalc.tsx', code);

@@ -395,6 +395,11 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                       disabled={zr.input.useDefaultOccupancy}
                       className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
+                    {zr.input.useDefaultOccupancy && (
+                      <div className="text-[10px] text-amber-500 mt-1 leading-tight">
+                        ASHRAE default occupancy density used.
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center h-full pt-4">
@@ -442,23 +447,23 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Rp × Pz = Vbp</span>
-                  <span className="font-mono text-slate-300">{zr.result.rp} × {Math.round(zr.result.pz)} = {Math.round(zr.result.vbp)}</span>
+                  <span className="font-mono text-slate-300">{zr.result.rp} × {zr.result.pz.toFixed(1)} = {zr.result.vbp.toFixed(1)}</span>
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Ra × Az = Vba</span>
-                  <span className="font-mono text-slate-300">{zr.result.ra} × {zr.result.az} = {Math.round(zr.result.vba)}</span>
+                  <span className="font-mono text-slate-300">{zr.result.ra} × {zr.result.az} = {zr.result.vba.toFixed(1)}</span>
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Vbp + Vba = Vbz</span>
-                  <span className="font-mono text-indigo-400 font-bold">{Math.round(zr.result.vbz)} {flowUnit}</span>
+                  <span className="font-mono text-indigo-400 font-bold">{zr.result.vbz.toFixed(1)} {flowUnit}</span>
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Vbz / Ez = Voz (Std)</span>
-                  <span className="font-mono text-sky-400 font-bold">{Math.round(zr.result.voz)} {flowUnit}</span>
+                  <span className="font-mono text-sky-400 font-bold">{zr.result.voz.toFixed(1)} {flowUnit}</span>
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Voz (Actual)</span>
-                  <span className="font-mono text-indigo-400 font-bold">{Math.round(zr.result.voz || zr.result.voz)} {flowUnit}</span>
+                  <span className="font-mono text-indigo-400 font-bold">{(zr.result.voz * densityRatio).toFixed(1)} {flowUnit}</span>
                 </div>
               </div>
             </div>
@@ -473,7 +478,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                 <div className="p-4 space-y-2.5">
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Governing Code</span>
-                    <span className="text-xs font-mono text-sky-400 font-bold">ASHRAE 62.1-{edition}</span>
+                    <span className="text-xs font-mono text-sky-400 font-bold">ASHRAE 62.1-{edition}{edition === '2025' ? ' (incl. published addenda/errata)' : ''}</span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Methodology</span>
@@ -481,11 +486,11 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Vbz Formula (ASHRAE 62.1 Eq. 6.2.2.1)</span>
-                    <span className="text-xs font-mono text-slate-400">Rp×Pz + Ra×Az = {Math.round(zr.result.vbz)}</span>
+                    <span className="text-xs font-mono text-slate-400">Rp×Pz + Ra×Az = {zr.result.vbz.toFixed(1)}</span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Voz Formula (ASHRAE 62.1 Eq. 6.2.2.3)</span>
-                    <span className="text-xs font-mono text-slate-400">Vbz / Ez = {Math.round(zr.result.voz)}</span>
+                    <span className="text-xs font-mono text-slate-400">Vbz / Ez = {zr.result.voz.toFixed(1)}</span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Rp (People Rate)</span>
@@ -497,7 +502,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Pz (Zone Population)</span>
-                    <span className="text-xs font-mono text-slate-400">{Math.round(zr.result.pz)} <span className="text-slate-600">({zr.result.occupancySource === 'default' ? 'Code Default' : 'User Design'})</span></span>
+                    <span className="text-xs font-mono text-slate-400">{zr.result.pz.toFixed(1)} <span className="text-slate-600">({zr.result.occupancySource === 'default' ? 'Code Default' : 'User Design'})</span></span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Az (Zone Area)</span>
@@ -519,7 +524,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                    <p className="text-xs text-slate-400 mt-1">Adjusted for air density (Ratio: {densityRatio.toFixed(3)})</p>
                  </div>
                  <div className="text-right">
-                    <span className="text-3xl font-black text-white font-mono">{Math.ceil(zr.result.voz || zr.result.voz).toLocaleString()}</span>
+                    <span className="text-3xl font-black text-white font-mono">{(zr.result.voz * densityRatio).toFixed(1)}</span>
                     <span className="text-xs font-bold text-sky-400 ml-2">{flowUnit}</span>
                  </div>
               </div>
@@ -595,19 +600,19 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
           {/* System Audit Trail */}
           <div className="mt-6 pt-4 border-t border-slate-800/60">
             <EngineeringAuditTrail
-              codeReference={`ASHRAE 62.1-${edition}`}
+              codeReference={`ASHRAE 62.1-${edition}${edition === '2025' ? ' (incl. addenda)' : ''}`}
               trail={[
-                { symbol: 'ΣPz', name: 'Sum of Zone Populations', value: Math.ceil(systemResult.sumPz), unit: 'people' },
-                { symbol: 'Ps', name: 'Peak System Population', value: Math.ceil(systemResult.ps), unit: 'people' },
+                { symbol: 'ΣPz', name: 'Sum of Zone Populations', value: systemResult.sumPz.toFixed(1), unit: 'people' },
+                { symbol: 'Ps', name: 'Peak System Population', value: systemResult.ps.toFixed(1), unit: 'people' },
                 { symbol: 'D', name: 'Diversity Ratio', formula: 'Ps / ΣPz', value: systemResult.d.toFixed(3), reference: 'Eq. 6.2.5.3.1' },
-                { symbol: 'Vou', name: 'Uncorrected Outdoor Air', formula: 'D×Σ(Rp×Pz) + Σ(Ra×Az)', value: Math.round(systemResult.vou), unit: flowUnit, reference: 'Eq. 6.2.5.3' },
-                { symbol: 'Vps', name: 'System Primary Airflow', value: Math.round(systemResult.vps), unit: flowUnit },
+                { symbol: 'Vou', name: 'Uncorrected Outdoor Air', formula: 'D×Σ(Rp×Pz) + Σ(Ra×Az)', value: systemResult.vou.toFixed(1), unit: flowUnit, reference: 'Eq. 6.2.5.3' },
+                { symbol: 'Vps', name: 'System Primary Airflow', value: systemResult.vps.toFixed(1), unit: flowUnit },
                 { symbol: 'Xs', name: 'System Primary Fraction', formula: 'Vou / Vps', value: systemResult.xs.toFixed(3) },
                 { symbol: 'Zd', name: 'Max Zone Fraction', formula: 'Max(Zpz)', value: systemResult.zdMax.toFixed(3) },
                 { symbol: 'Ev', name: 'System Ventilation Efficiency', formula: 'Min(Evz)', value: systemResult.ev.toFixed(3), reference: 'Eq. 6.2.5.4.1 / App. A' },
-                { symbol: 'Vot', name: 'Standard Required System Outdoor Air', formula: 'Vou / Ev', value: Math.round(systemResult.vot), unit: flowUnit, reference: 'Eq. 6.2.5.1' },
-                { symbol: 'Eρ', name: 'Density Ratio', formula: 'ρ_actual / ρ_standard', value: densityRatio.toFixed(3) },
-                { symbol: 'Vot_actual', name: 'Density Corrected Required Outdoor Air', formula: 'Vot / Eρ', value: Math.ceil(systemResult.votActual || systemResult.vot), unit: flowUnit },
+                { symbol: 'Vot', name: 'Standard Required System Outdoor Air', formula: 'Vou / Ev', value: systemResult.vot.toFixed(1), unit: flowUnit, reference: 'Eq. 6.2.5.1' },
+                { symbol: 'Eρ', name: 'Density Ratio', formula: 'ρ_standard / ρ_actual', value: densityRatio.toFixed(3) },
+                { symbol: 'Vot_actual', name: 'Density Corrected Required Outdoor Air', formula: 'Vot × Eρ', value: (systemResult.votActual || systemResult.vot).toFixed(1), unit: flowUnit },
               ]}
             />
           </div>

@@ -187,8 +187,23 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
 
   const calculateCoolingLoad = () => {
     const dT = outdoorTemp - indoorTemp;
-    const numArea = Number(area) || 0;
-    const numOccupants = Number(occupants) || 0;
+    const numArea = area !== '' && area !== undefined ? Number(area) : NaN;
+    const numOccupants = occupants !== '' && occupants !== undefined ? Number(occupants) : NaN;
+    const numHeight = height !== '' && height !== undefined ? Number(height) : NaN;
+    
+    if (isNaN(numArea) || isNaN(numOccupants) || isNaN(numHeight)) {
+      return {
+        status: 'INCOMPLETE',
+        warning: 'Missing or invalid required geometry/occupancy parameters.',
+        peopleSensible: 0, peopleLatent: 0, lightingSensible: 0, equipmentSensible: 0,
+        wallSensible: 0, roofSensible: 0, windowCondSensible: 0, solarSensible: 0,
+        ventSensible: 0, ventLatent: 0, infiltrationSensible: 0, infiltrationLatent: 0, 
+        totalSensible: 0, totalLatent: 0,
+        calculatedTotal: 0, finalTotal: 0,
+        watts: 0, btu: 0, tons: 0
+      };
+    }
+    const status = 'PASS';
 
     // 1. People
     const peopleSensible = numOccupants * sensiblePerPerson;
@@ -233,7 +248,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     const ventLatent = (hfgVapor * ventM3s * dw) * 1000; // Convert kW to Watts
     
     // 7. Infiltration
-    const numVolume = numArea * height;
+    const numVolume = numArea * numHeight;
     const infiltrationM3s = (infiltrationACH * numVolume) / 3600;
     const infiltrationSensible = (cpAir * infiltrationM3s * dT) * 1000;
     const infiltrationLatent = (hfgVapor * infiltrationM3s * dw) * 1000;
@@ -251,7 +266,8 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
       calculatedTotal, finalTotal,
       watts: finalTotal,
       btu: finalTotal * 3.412142,
-      tons: finalTotal / 3516.85284
+      tons: finalTotal / 3516.85284,
+      status
     };
   };
 
@@ -319,7 +335,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
       if (sortedRoomsByVol.length > 0) {
         smallestRoomName = sortedRoomsByVol[0].name;
         smallestRoomVol = sortedRoomsByVol[0].vol;
-        toxicConcentration = totalCharge / (smallestRoomVol || 1);
+        toxicConcentration = totalCharge / ((smallestRoomVol > 0 ? smallestRoomVol : NaN));
         const safeLimit = refrigerantType === 'R32' ? 0.30 : 0.44; // kg/m³
         if (toxicConcentration > safeLimit) {
           toxicLimitExceeded = true;
@@ -796,33 +812,33 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Total Calculated Load</p>
-                    <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{Math.round(results.calculatedTotal || 0).toLocaleString()} <span className="text-xs font-normal text-slate-500">W</span></p>
+                    <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : Math.round(results.calculatedTotal).toLocaleString()} <span className="text-xs font-normal text-slate-500">W</span></p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Sensible Load</p>
-                    <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{Math.round(results.totalSensible || 0).toLocaleString()} <span className="text-xs font-normal text-slate-500">W</span></p>
+                    <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : Math.round(results.totalSensible).toLocaleString()} <span className="text-xs font-normal text-slate-500">W</span></p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Latent Load</p>
-                    <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{Math.round(results.totalLatent || 0).toLocaleString()} <span className="text-xs font-normal text-slate-500">W</span></p>
+                    <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : Math.round(results.totalLatent).toLocaleString()} <span className="text-xs font-normal text-slate-500">W</span></p>
                   </div>
                   
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Final Design Load</p>
-                    <p className="text-xl font-bold text-cyan-400 mt-1 font-mono">{Math.round(results.watts || 0).toLocaleString()} <span className="text-xs font-normal text-cyan-500/50">W (+{safetyFactor}%)</span></p>
+                    <p className="text-xl font-bold text-cyan-400 mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : Math.round(results.watts).toLocaleString()} <span className="text-xs font-normal text-cyan-500/50">W (+{safetyFactor}%)</span></p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">{t('btuHr')}</p>
-                    <p className="text-xl font-bold text-white mt-1 font-mono">{Math.round(results.btu || 0).toLocaleString()} <span className="text-xs font-normal text-slate-400">BTU/h</span></p>
+                    <p className="text-xl font-bold text-white mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : Math.round(results.btu).toLocaleString()} <span className="text-xs font-normal text-slate-400">BTU/h</span></p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Cooling Capacity</p>
-                    <p className="text-2xl font-black text-white mt-1 font-mono">{(results.tons || 0).toFixed(2)} <span className="text-xs font-normal text-slate-400">TR</span></p>
+                    <p className="text-2xl font-black text-white mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : (results.tons).toFixed(2)} <span className="text-xs font-normal text-slate-400">TR</span></p>
                   </div>
                   
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Rec. AC Capacity</p>
-                    <p className="text-xl font-bold text-sky-400 mt-1 font-mono">{Math.ceil((results.tons || 0) * 2) / 2} <span className="text-xs font-normal text-sky-500/50">TR</span></p>
+                    <p className="text-xl font-bold text-sky-400 mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : Math.ceil((results.tons) * 2) / 2} <span className="text-xs font-normal text-sky-500/50">TR</span></p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Req. Outdoor Air</p>
@@ -830,16 +846,16 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Req. Supply Air</p>
-                    <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{Math.round((results.totalSensible || 0) / 13.31 * 2.11888).toLocaleString()} <span className="text-xs font-normal text-slate-500">CFM</span></p>
+                    <p className="text-xl font-bold text-slate-200 mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : Math.round((results.totalSensible) / 13.31 * 2.11888).toLocaleString()} <span className="text-xs font-normal text-slate-500">CFM</span></p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Est. Electrical Input</p>
-                    <p className="text-xl font-bold text-amber-400 mt-1 font-mono">{Math.round((results.watts || 0) / 3.5).toLocaleString()} <span className="text-xs font-normal text-amber-500/50">W (COP 3.5)</span></p>
+                    <p className="text-xl font-bold text-amber-400 mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : Math.round((results.watts) / 3.5).toLocaleString()} <span className="text-xs font-normal text-amber-500/50">W (COP 3.5)</span></p>
                   </div>
                 </div>
 
 
-                {results.watts > 0 && (
+                {results.status !== 'INCOMPLETE' && results.watts > 0 && (
                   <div className="pt-4 border-t border-slate-800">
                     {chartMode === 'bar' ? (
                       <div className="flex flex-col lg:flex-row gap-6">
@@ -876,9 +892,9 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           <div className="h-48 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                               <RadarChart cx="50%" cy="50%" outerRadius="65%" data={[
-                                { metric: 'W/m²', current: Math.round(results.watts / (Number(area) || 1)), standard: 150 },
-                                { metric: 'W/Person', current: Math.round(results.watts / (Number(occupants) || 1)), standard: 100 },
-                                { metric: 'm²/Person', current: Math.round((Number(area) || 1) / (Number(occupants) || 1)), standard: 10 }
+                                { metric: 'W/m²', current: Math.round(results.watts / ((Number(area) > 0 ? Number(area) : NaN))), standard: 150 },
+                                { metric: 'W/Person', current: Math.round(results.watts / ((Number(occupants) > 0 ? Number(occupants) : NaN))), standard: 100 },
+                                { metric: 'm²/Person', current: Math.round(((Number(area) > 0 ? Number(area) : NaN)) / ((Number(occupants) > 0 ? Number(occupants) : NaN))), standard: 10 }
                               ]}>
                                 <PolarGrid stroke="#334155" />
                                 <PolarAngleAxis dataKey="metric" tick={{ fill: '#94a3b8', fontSize: 10 }} />
@@ -978,27 +994,27 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <div className="text-amber-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Load Components (Sensible / Latent)</div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-slate-300">
                         <div className="text-slate-500">People:</div>
-                        <div className="text-right">{Math.round(results.peopleSensible)} W / {Math.round(results.peopleLatent)} W</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : `${Math.round(results.peopleSensible)} W / ${Math.round(results.peopleLatent)} W`}</div>
                         
                         <div className="text-slate-500">Lighting/Equip:</div>
-                        <div className="text-right">{Math.round(results.lightingSensible + results.equipmentSensible)} W / 0 W</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : `${Math.round(results.lightingSensible + results.equipmentSensible)} W / 0 W`}</div>
                         
                         <div className="text-slate-500">Envelope:</div>
-                        <div className="text-right">{Math.round(results.wallSensible + results.roofSensible + results.windowCondSensible)} W / 0 W</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : `${Math.round(results.wallSensible + results.roofSensible + results.windowCondSensible)} W / 0 W`}</div>
                         
                         <div className="text-slate-500">Solar (SHGC):</div>
-                        <div className="text-right">{Math.round(results.solarSensible)} W / 0 W</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : `${Math.round(results.solarSensible)} W / 0 W`}</div>
                         
                         <div className="text-slate-500">Ventilation:</div>
-                        <div className="text-right">{Math.round(results.ventSensible)} W / {Math.round(results.ventLatent)} W</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : `${Math.round(results.ventSensible)} W / ${Math.round(results.ventLatent)} W`}</div>
                         
                         <div className="text-slate-500">Infiltration:</div>
-                        <div className="text-right">{Math.round(results.infiltrationSensible)} W / {Math.round(results.infiltrationLatent)} W</div>
+                        <div className="text-right">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : `${Math.round(results.infiltrationSensible)} W / ${Math.round(results.infiltrationLatent)} W`}</div>
                         
                         <div className="text-slate-500 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">Total Unfactored:</div>
-                        <div className="text-right font-bold text-slate-100 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{Math.round(results.totalSensible)} W / {Math.round(results.totalLatent)} W</div>
+                        <div className="text-right font-bold text-slate-100 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : `${Math.round(results.totalSensible)} W / ${Math.round(results.totalLatent)} W`}</div>
                         <div className="text-slate-500 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">Calculated Final:</div>
-                        <div className="text-right font-bold text-amber-400 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{Math.round(results.calculatedTotal)} W</div>
+                        <div className="text-right font-bold text-amber-400 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : `${Math.round(results.calculatedTotal)} W`}</div>
                       </div>
                     </div>
                     {ventilationDetails && (
@@ -1011,11 +1027,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         {ventilationDetails.systemType === 'single' && ventilationDetails.zoneResults && ventilationDetails.zoneResults.length > 0 && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-slate-300">
                             <div className="text-slate-500">Vbz (Breathing Zone Outdoor Air) Formula <span className="text-[8px] text-slate-600">(ASHRAE 62.1 Eq 6.2.2.1)</span>:</div>
-                            <div className="text-right text-slate-400">Rp×Pz + Ra×Az = {Math.round(ventilationDetails.zoneResults[0].result?.vbz || 0)}</div>
+                            <div className="text-right text-slate-400">Rp×Pz + Ra×Az = {ventilationDetails.zoneResults[0].result?.vbz !== undefined ? Math.round(ventilationDetails.zoneResults[0].result.vbz) : '-'}</div>
                             <div className="text-slate-500">Ez (Zone Air Distribution Effectiveness) <span className="text-[8px] text-slate-600">(Table 6.2.2.2)</span>:</div>
-                            <div className="text-right text-slate-400">{ventilationDetails.zoneResults[0].result?.ez || 1.0}</div>
+                            <div className="text-right text-slate-400">{ventilationDetails.zoneResults[0].result?.ez ?? 1.0}</div>
                             <div className="text-slate-500">Voz (Zone Outdoor Air) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.2.3)</span>:</div>
-                            <div className="text-right text-slate-400">Vbz / Ez = {Math.round(ventilationDetails.zoneResults[0].result?.voz || 0)}</div>
+                            <div className="text-right text-slate-400">Vbz / Ez = {ventilationDetails.zoneResults[0].result?.voz !== undefined ? Math.round(ventilationDetails.zoneResults[0].result.voz) : '-'}</div>
                           </div>
                         )}
 
@@ -1043,9 +1059,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   <button
                     onClick={() => {
                       if (onSaveCalculation) {
-                        const numArea = Number(area) || 0;
-                        const numVol = Number(volume) || 0;
-                        const numOcc = Number(occupants) || 0;
+                        const numArea = area !== '' && area !== undefined ? Number(area) : NaN;
+                        const numVol = volume !== '' && volume !== undefined ? Number(volume) : NaN;
+                        const numOcc = occupants !== '' && occupants !== undefined ? Number(occupants) : NaN;
+                        if (isNaN(numArea) || isNaN(numOcc)) {
+                          triggerToast('INCOMPLETE: Missing required inputs.');
+                          return;
+                        }
                         onSaveCalculation({
                           tab: 'mechanical',
                           subType: 'cooling',
@@ -1071,11 +1091,12 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   </button>
                   <button
                     onClick={() => {
+                      if (results.status === 'INCOMPLETE') { triggerToast('INCOMPLETE: Cannot export.'); return; }
                       exportCoolingLoadToCsv({
                         basis: estimationBasis,
-                        area: Number(area) || 0,
-                        volume: Number(volume) || 0,
-                        occupants: Number(occupants) || 0,
+                        area: Number(area),
+                        volume: Number(volume),
+                        occupants: Number(occupants),
                         tons: results.tons,
                         btu: results.btu,
                         watts: results.watts
@@ -1197,11 +1218,19 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         </select>
                       </div>
                     </div>
-          <EngineeringStatusHeader 
-            status="WARNING" 
-            message="Simplified cooling-load model is being used. Does not replace a full ASHRAE heat-balance calculation."
-            className="mb-4"
-          />
+          {results.status === 'INCOMPLETE' ? (
+            <EngineeringStatusHeader 
+              status="INCOMPLETE" 
+              message={results.warning || 'Missing required parameters.'}
+              className="mb-4"
+            />
+          ) : (
+            <EngineeringStatusHeader 
+              status="WARNING" 
+              message="Simplified cooling-load model is being used. Does not replace a full ASHRAE heat-balance calculation."
+              className="mb-4"
+            />
+          )}
                   </div>
 
                    <div>
@@ -1843,8 +1872,12 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         type="button"
                         onClick={() => {
                           const name = newRoomName.trim() || `Zone ${vrfRooms.length + 1}`;
-                          const size = Number(newRoomSize) || 0;
-                          const occupantsCount = Number(newRoomOccupants) || 0;
+                          const size = newRoomSize !== '' ? Number(newRoomSize) : NaN;
+                          const occupantsCount = newRoomOccupants !== '' ? Number(newRoomOccupants) : NaN;
+                          if (isNaN(size) || isNaN(occupantsCount)) {
+                            triggerToast('INCOMPLETE: Missing required room parameters.');
+                            return;
+                          }
                           
                           if (size <= 0) {
                             triggerToast("Please enter a valid space size");

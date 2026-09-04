@@ -90,8 +90,10 @@ export class Ashrae621AlternativeSystemService {
 
     let vps = input.vps;
     if (input.vps === null || input.vps === undefined || isNaN(input.vps)) {
-      if (status as string !== "FAIL" && status as string !== "INCOMPLETE") status = 'WARNING';
-      warning = (warning ? warning + ' ' : '') + `Assumed Vps = ${sumVpz} (Sum of Vpz).`;
+      if (status !== 'FAIL') {
+        status = 'INCOMPLETE';
+      }
+      warning = (warning ? warning + ' ' : '') + 'System primary airflow (Vps) is required for alternative procedure.';
       vps = sumVpz;
     }
 
@@ -108,8 +110,16 @@ export class Ashrae621AlternativeSystemService {
         error = `Zone minimum primary airflow (Vpz-min) cannot satisfy the required outdoor airflow. Zpz = ${zpz.toFixed(2)} > 1.0. Increase Vpz-min for the critical zone.`;
       }
       
-      const ep = z.ep ?? 1.0;
-      const er = z.er ?? 0.0;
+      if (z.ep === undefined || isNaN(z.ep)) {
+        if (status !== 'FAIL') status = 'INCOMPLETE';
+        warning = 'Primary air fraction (Ep) is missing for one or more zones.';
+      }
+      const ep = z.ep !== undefined && !isNaN(z.ep) ? z.ep : 1.0;
+      if (z.er === undefined || isNaN(z.er)) {
+        if (status !== 'FAIL') status = 'INCOMPLETE';
+        warning = 'Secondary recirculation fraction (Er) is missing for one or more zones.';
+      }
+      const er = z.er !== undefined && !isNaN(z.er) ? z.er : 0.0;
       const ez = z.zoneResult.ez;
       
       const fa = ep + (1 - ep) * er;
@@ -138,7 +148,7 @@ export class Ashrae621AlternativeSystemService {
     const vot = ev > 0 ? vou / ev : 0;
 
     return {
-      ps, sumPz, d, vou, vps: vps || 0, xs, ev, vot, status, warning, error, zoneResults, sumVpzMin, sumVpz
+      ps, sumPz, d, vou, vps: vps === undefined || isNaN(vps) ? 0 : vps, xs, ev, vot, status, warning, error, zoneResults, sumVpzMin, sumVpz
     };
   }
 

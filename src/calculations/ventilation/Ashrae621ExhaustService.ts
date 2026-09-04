@@ -49,8 +49,8 @@ export class Ashrae621ExhaustService {
 
     const ashraeReq = ashraeRate * input.quantity;
     const imcReq = imcRate * input.quantity;
-    const projectReq = input.projectOverride || 0;
-    const mfgReq = input.mfgOverride || 0;
+    const projectReq = input.projectOverride !== undefined ? input.projectOverride : 0;
+    const mfgReq = input.mfgOverride !== undefined ? input.mfgOverride : 0;
 
     let governingRequired = 0;
     let governingSource = '';

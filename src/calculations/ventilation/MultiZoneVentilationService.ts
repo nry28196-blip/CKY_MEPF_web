@@ -66,8 +66,8 @@ export class MultiZoneVentilationService {
          zoneResult: z.result,
          vpz: z.input.primaryAirflow,
          vpzMin: z.input.vpzMin !== '' && z.input.vpzMin !== undefined ? Number(z.input.vpzMin) : undefined,
-         ep: z.input.ep !== undefined ? Number(z.input.ep) : 1.0,
-         er: z.input.er !== undefined ? Number(z.input.er) : 0.0
+         ep: z.input.ep !== '' && z.input.ep !== undefined ? Number(z.input.ep) : undefined,
+         er: z.input.er !== '' && z.input.er !== undefined ? Number(z.input.er) : undefined
        }));
        const res = Ashrae621AlternativeSystemService.calculate({
          zones: mappedZones,

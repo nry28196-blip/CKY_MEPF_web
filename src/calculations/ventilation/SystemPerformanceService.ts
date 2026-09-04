@@ -34,7 +34,7 @@ export class SystemPerformanceService {
     // 2. Apply Air Density Integration (E_rho) to find Actual Supply Air
     // Q_actual = Q_standard / densityRatio
     const densityRatio = input.densityRatio > 0 ? input.densityRatio : 1.0;
-    const qSupplyActual = qSupplyStandard / densityRatio;
+    const qSupplyActual = qSupplyStandard * densityRatio;
 
     // 3. Duct Network & Critical Path Static Pressure
     // Pressure loss = (Friction Rate * Length / 100) + Fitting Losses + Equipment Drops

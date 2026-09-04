@@ -82,4 +82,23 @@ export class AirDensityService {
     if (!erho || erho <= 0) return actualFlow;
     return actualFlow / erho;
   }
+  
+  static getDensityAuditTrail(densityRatio: number, isMetric: boolean): any[] {
+    return [
+      {
+        symbol: 'Eρ',
+        name: 'Density Ratio',
+        formula: 'ρ_standard / ρ_actual',
+        value: densityRatio.toFixed(3),
+        unit: ''
+      },
+      {
+        symbol: 'Vot_actual',
+        name: 'Density Corrected Required Outdoor Air',
+        formula: 'Vot_standard × Eρ',
+        value: undefined, // this needs to be populated by the caller
+        unit: isMetric ? 'L/s' : 'CFM'
+      }
+    ];
+  }
 }

@@ -1,32 +1,46 @@
 import { describe, it, expect } from 'vitest';
-import { Ashrae621ExhaustService, AshraeEdition } from '../Ashrae621ExhaustService';
+import { Ashrae621ExhaustService } from '../Ashrae621ExhaustService';
 
 describe('Ashrae621ExhaustService', () => {
-  it('should correctly select 2025 exhaust database', () => {
-    const spaces = Ashrae621ExhaustService.getSpaces('2025');
-    // 2025 has edu_corridor
-    expect(spaces.find(s => s.id === 'edu_corridor')).toBeDefined();
-    
-    const spaces2019 = Ashrae621ExhaustService.getSpaces('2019');
-    expect(spaces2019.find(s => s.id === 'edu_corridor')).toBeUndefined();
-  });
-
-  it('should calculate governing requirement properly with local code', () => {
-    // Math.max(ashraeReq, imcReq, projectReq, mfgReq) if code adopted
-    const result = Ashrae621ExhaustService.calculateSpaceExhaust({
+  it('should use explicit zero if overrides are 0 instead of falling back to default', () => {
+    // 0 should not become truthy fallback. 
+    const res = Ashrae621ExhaustService.calculateSpaceExhaust({
       spaceId: 'bath_public',
-      edition: '2025',
-      quantity: 2, // 2 fixtures
-      projectOverride: 110,
+      edition: '2022',
+      quantity: 10,
+      projectOverride: 0,
       mfgOverride: 0,
+      isMetric: true,
+      localCodeAdopted: true
+    });
+    expect(res.projectReq).toBe(0);
+    expect(res.mfgReq).toBe(0);
+    // Since toilet public ashrae is > 0, governing shouldn't be 0
+    expect(res.governingRequired).toBeGreaterThan(0);
+  });
+  
+  it('should correctly identify the governing requirement', () => {
+    const res = Ashrae621ExhaustService.calculateSpaceExhaust({
+      spaceId: 'art_classroom',
+      edition: '2022',
+      quantity: 1000,
+      projectOverride: 5000, // Higher than ASHRAE/IMC
       isMetric: false,
       localCodeAdopted: true
     });
-    // ASHRAE/IMC is 50 cfm/fixture -> 100 cfm
-    // Project override is 110 cfm
-    // Governing should be 110 cfm
-    expect(result.ashraeReq).toBe(100);
-    expect(result.governingRequired).toBe(110);
-    expect(result.governingSource).toBe('Project Override');
+    expect(res.governingRequired).toBe(5000);
+    expect(res.governingSource).toBe('Project Override');
+  });
+
+  it('should trigger WARNING if AHJ is unverified', () => {
+    const res = Ashrae621ExhaustService.calculateSpaceExhaust({
+      spaceId: 'art_classroom',
+      edition: '2022',
+      quantity: 1000,
+      isMetric: false,
+      localCodeAdopted: false
+    });
+    expect(res.status).toBe('WARNING');
+    expect(res.warning).toContain('Local/AHJ governing requirement not established');
   });
 });

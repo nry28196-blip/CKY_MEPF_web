@@ -39,15 +39,15 @@ export class Ashrae621ZoneService {
       return this.emptyResult('FAIL', 'Occupancy cannot be negative');
     }
 
-    const rp = input.spaceType.rpMetric || 0;
-    const ra = input.spaceType.raMetric || 0;
+    const rp = input.spaceType.rpMetric !== undefined ? input.spaceType.rpMetric : 0;
+    const ra = input.spaceType.raMetric !== undefined ? input.spaceType.raMetric : 0;
     
     let pz = input.designOccupancy;
     let occupancySource: 'design' | 'default' = 'design';
     let warning = undefined;
     
     if (input.useDefaultOccupancy) {
-      const defaultDensity = input.spaceType.defaultOccupancyMetric || 0;
+      const defaultDensity = input.spaceType.defaultOccupancyMetric !== undefined ? input.spaceType.defaultOccupancyMetric : 0;
       // Do not arbitrarily round intermediate occupancy unless required.
       // ASHRAE 62.1 does not mandate rounding Pz for the calculation of Vbz.
       pz = (input.area / 100) * defaultDensity; 
@@ -58,7 +58,7 @@ export class Ashrae621ZoneService {
     const vba = ra * input.area;
     const vbz = vbp + vba;
     
-    const ez = input.ezConfig?.ez || 1.0;
+    const ez = input.ezConfig?.ez !== undefined ? input.ezConfig.ez : 1.0;
     const voz = ez > 0 ? vbz / ez : 0;
     
     if (ez <= 0 || ez > 2.0) {

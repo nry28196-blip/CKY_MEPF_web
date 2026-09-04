@@ -48,23 +48,30 @@ export class Ashrae621SimplifiedSystemService {
       sumPz += pz;
       sumRpPz += (z.zoneResult.rp * pz);
       sumRaAz += (z.zoneResult.ra * z.zoneResult.az);
-      sumVpz += (z.vpz || 0);
-      sumVpzMin += (z.vpzMin || 0);
+      if (z.vpz !== undefined && !isNaN(z.vpz)) sumVpz += z.vpz;
+      if (z.vpzMin !== undefined && !isNaN(z.vpzMin)) sumVpzMin += z.vpzMin;
       
       // Calculate required Vpz-min for VAV systems (1.5 * Voz)
       const requiredVpzMin = z.zoneResult.voz * 1.5;
-      if (z.vpzMin !== undefined && z.vpzMin > 0) {
+      if (z.vpzMin !== undefined) {
         if (z.vpzMin < requiredVpzMin) {
           status = 'FAIL';
           error = `Zone Vpz-min (${z.vpzMin.toFixed(1)}) is less than required 1.5 * Voz (${requiredVpzMin.toFixed(1)})`;
+        }
+      } else {
+        if (status !== 'FAIL') {
+          status = 'WARNING';
+          warning = 'One or more zones missing Vpz-min. If this is a VAV system, you must provide Vpz-min. Evaluated as constant volume.';
         }
       }
     }
 
     let ps = input.systemPopulation !== null && input.systemPopulation !== undefined ? input.systemPopulation : sumPz;
-    if (input.systemPopulation === null || input.systemPopulation === undefined) {
-      if (status as string !== 'FAIL') status = 'WARNING';
-      warning = 'Ps not provided — calculation assumes D = 1.00.';
+    if (input.systemPopulation === null || input.systemPopulation === undefined || isNaN(input.systemPopulation)) {
+      if (status !== 'FAIL') {
+        status = 'INCOMPLETE';
+      }
+      warning = 'System population (Ps) not provided. Calculation requires explicit Ps.';
     }
 
     if (ps > sumPz) {
