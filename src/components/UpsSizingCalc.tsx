@@ -319,13 +319,13 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
               </div>
               <div className="flex items-end gap-2">
                 <span className="text-4xl font-light tracking-tight text-white font-mono">
-                  {results.kva.toFixed(1)}
+                  {(results.kva || 0).toFixed(1)}
                 </span>
                 <span className="text-sm text-slate-500 font-bold mb-1">kVA</span>
               </div>
               <div className="mt-3 flex items-center justify-between text-xs border-t border-slate-800 pt-3">
                 <span className="text-slate-500">Design Capacity ({appliedDesignMargin}x)</span>
-                <span className="text-slate-300 font-mono font-bold">{results.recommendedKva.toFixed(1)} kVA</span>
+                <span className="text-slate-300 font-mono font-bold">{(results.recommendedKva || 0).toFixed(1)} kVA</span>
               </div>
             </div>
 
@@ -359,7 +359,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
                 <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Required Capacity</div>
-                <div className="text-xl font-mono text-slate-200">{results.requiredAh.toFixed(1)} <span className="text-xs text-slate-500">Ah</span></div>
+                <div className="text-xl font-mono text-slate-200">{(results.requiredAh || 0).toFixed(1)} <span className="text-xs text-slate-500">Ah</span></div>
               </div>
               <div className="bg-blue-950/20 border border-blue-900/30 rounded-lg p-4 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-8 h-8 bg-blue-500/10 rounded-bl-full" />
@@ -391,9 +391,9 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
             <div className="h-48 w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
-                  { name: 'Active Load', value: parseFloat(results.kva.toFixed(1)), fill: '#38bdf8' },
-                  { name: 'Design Margin', value: parseFloat((results.recommendedKva - results.kva).toFixed(1)), fill: '#fbbf24' },
-                  { name: 'Unused Capacity', value: parseFloat((results.standardUps - results.recommendedKva).toFixed(1)), fill: '#10b981' }
+                  { name: 'Active Load', value: parseFloat((results.kva || 0).toFixed(1)), fill: '#38bdf8' },
+                  { name: 'Design Margin', value: parseFloat(((results.recommendedKva - results.kva) || 0).toFixed(1)), fill: '#fbbf24' },
+                  { name: 'Unused Capacity', value: parseFloat(((results.standardUps - results.recommendedKva) || 0).toFixed(1)), fill: '#10b981' }
                 ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                   <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
@@ -423,13 +423,13 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
               trail={[
                 { symbol: 'P_kw', name: 'Applied Load', value: appliedLoadKw, unit: 'kW' },
                 { symbol: 'PF', name: 'Power Factor', value: appliedLoadPf, unit: '' },
-                { symbol: 'S_kva', name: 'Apparent Power', formula: 'P_kw / PF', value: results.kva.toFixed(2), unit: 'kVA' },
+                { symbol: 'S_kva', name: 'Apparent Power', formula: 'P_kw / PF', value: (results.kva || 0).toFixed(2), unit: 'kVA' },
                 { symbol: 'M', name: 'Design Margin', value: appliedDesignMargin, unit: '' },
-                { symbol: 'S_req', name: 'Required Capacity', formula: 'S_kva × M', value: results.recommendedKva.toFixed(2), unit: 'kVA' },
+                { symbol: 'S_req', name: 'Required Capacity', formula: 'S_kva × M', value: (results.recommendedKva || 0).toFixed(2), unit: 'kVA' },
                 { symbol: 't', name: 'Backup Time', value: appliedBackupTime, unit: 'min' },
                 { symbol: 'V_dc', name: 'DC Bus Voltage', value: appliedDcBusVoltage, unit: 'V' },
                 { symbol: 'η', name: 'Inverter Efficiency', value: appliedInverterEff, unit: '' },
-                { symbol: 'C_ah', name: 'Required Battery Capacity', formula: '(P_kw × 1000 × (t/60)) / (V_dc × η)', value: results.requiredAh.toFixed(2), unit: 'Ah' },
+                { symbol: 'C_ah', name: 'Required Battery Capacity', formula: '(P_kw × 1000 × (t/60)) / (V_dc × η)', value: (results.requiredAh || 0).toFixed(2), unit: 'Ah' },
                 { symbol: 'N_blocks', name: 'Blocks per String', formula: 'V_dc / V_battery', value: results.blocksPerString, unit: 'blocks' }
               ]}
             />

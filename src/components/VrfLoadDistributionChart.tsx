@@ -132,7 +132,7 @@ export default function VrfLoadDistributionChart({ rooms }: VrfLoadDistributionC
         const relY = event.clientY - containerRect.top;
           
         tooltip.transition().duration(200).style('opacity', 1);
-        tooltip.html(`<strong style="color: ${color(d.data.name)}">${d.data.name}</strong><br/>${d.data.value.toFixed(2)} TR`)
+        tooltip.html(`<strong style="color: ${color(d.data.name)}">${d.data.name}</strong><br/>${(d.data.value || 0).toFixed(2)} TR`)
           .style('left', (relX + 15) + 'px')
           .style('top', (relY - 30) + 'px');
       })
@@ -179,7 +179,7 @@ export default function VrfLoadDistributionChart({ rooms }: VrfLoadDistributionC
     g.append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', '1em')
-      .text(`${totalTons.toFixed(1)} TR`)
+      .text(`${(totalTons || 0).toFixed(1)} TR`)
       .style('fill', '#34d399')
       .style('font-size', '18px')
       .style('font-weight', 'bold')

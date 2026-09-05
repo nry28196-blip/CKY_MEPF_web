@@ -124,13 +124,13 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
                 <div className="md:col-span-1">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase">ASHRAE 62.1 Total</label>
                   <div className="w-full bg-slate-900/50 text-xs rounded p-2 text-slate-400 border border-slate-800/50 font-mono">
-                    {e.result.ashraeRequired.toFixed(1)}
+                    {(e.result.ashraeRequired || 0).toFixed(1)}
                   </div>
                 </div>
                 <div className="md:col-span-1">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase">IMC Total</label>
                   <div className="w-full bg-slate-900/50 text-xs rounded p-2 text-slate-400 border border-slate-800/50 font-mono">
-                    {e.result.imcRequired.toFixed(1)}
+                    {(e.result.imcRequired || 0).toFixed(1)}
                   </div>
                 </div>
                 <div className="md:col-span-1">
@@ -139,7 +139,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
                 </div>
                 <div className="md:col-span-1 bg-slate-800/50 p-2 rounded flex flex-col justify-center items-end border border-slate-700/50">
                   <span className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">{e.result.governingSource}</span>
-                  <span className="text-lg font-mono font-black text-white">{e.result.governingRequired.toFixed(1)} <span className="text-xs text-sky-400">{flowUnit}</span></span>
+                  <span className="text-lg font-mono font-black text-white">{(e.result.governingRequired || 0).toFixed(1)} <span className="text-xs text-sky-400">{flowUnit}</span></span>
                   <span className="text-[9px] text-slate-400 uppercase mt-1">Class: {e.result.classification}</span>
                 </div>
               </div>

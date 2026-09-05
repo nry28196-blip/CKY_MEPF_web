@@ -79,7 +79,7 @@ export function exportDuctSizingToCsv(params: {
     { section: "Main Duct Input", parameter: "Prescribed Duct Height", value: params.ductHeight, unit: "inches", notes: "Kept uniform for ceiling clearance" },
     
     { section: "Main Duct Output", parameter: "Main Duct Width", value: params.widthMain, unit: "inches", notes: "Calculated aspect dimension" },
-    { section: "Main Duct Output", parameter: "Equivalent Circular Diam.", value: params.deMain.toFixed(2), unit: "inches", notes: "Huebscher relation equivalent" },
+    { section: "Main Duct Output", parameter: "Equivalent Circular Diam.", value: (params.deMain || 0).toFixed(2), unit: "inches", notes: "Huebscher relation equivalent" },
     { section: "Main Duct Output", parameter: "Circular Duct Velocity", value: Math.round(params.velRoundMain), unit: "FPM", notes: "Estimated pure round flow velocity" },
     { section: "Main Duct Output", parameter: "Actual Rectangular Velocity", value: Math.round(params.velRectMain), unit: "FPM", notes: "Final velocity in main rectangular section" },
   ];
@@ -89,7 +89,7 @@ export function exportDuctSizingToCsv(params: {
     rows.push(
       { section: bName, parameter: "Airflow Share", value: b.pct, unit: "%", notes: "Recursive flow split" },
       { section: bName, parameter: "Calculated Airflow", value: Math.round(b.cfm), unit: "CFM", notes: "Share of main airflow" },
-      { section: bName, parameter: "Equivalent Circular Diam.", value: b.de.toFixed(2), unit: "inches", notes: "" },
+      { section: bName, parameter: "Equivalent Circular Diam.", value: (b.de || 0).toFixed(2), unit: "inches", notes: "" },
       { section: bName, parameter: "Rectangular Width", value: b.width, unit: "inches", notes: `With same uniform height of ${params.ductHeight} inches` },
       { section: bName, parameter: "Circular Velocity", value: Math.round(b.velocityRound), unit: "FPM", notes: "" },
       { section: bName, parameter: "Rectangular Velocity", value: Math.round(b.velocityRect), unit: "FPM", notes: "" }
@@ -114,7 +114,7 @@ export function exportCoolingLoadToCsv(params: {
     { section: "Space Parameters", parameter: "Room Volume", value: params.volume, unit: "m³", notes: "" },
     { section: "Space Parameters", parameter: "Occupants Count", value: params.occupants, unit: "Persons", notes: "Sensible & Latent load contribution" },
     
-    { section: "Cooling Load Output", parameter: "Required Cooling Capacity", value: params.tons.toFixed(2), unit: "TR (Tons of Refrigeration)", notes: "Standard HVAC unit of measure" },
+    { section: "Cooling Load Output", parameter: "Required Cooling Capacity", value: (params.tons || 0).toFixed(2), unit: "TR (Tons of Refrigeration)", notes: "Standard HVAC unit of measure" },
     { section: "Cooling Load Output", parameter: "Thermal Power Output", value: Math.round(params.btu), unit: "BTU/hr", notes: "" },
     { section: "Cooling Load Output", parameter: "Electric Power Requirement", value: Math.round(params.watts), unit: "W (Thermal)", notes: "Heat transfer rating" },
   ];
@@ -136,7 +136,7 @@ export function exportElectricalToCsv(params: {
     { section: "Electrical Input", parameter: "Power Factor (cos φ)", value: params.powerFactor, unit: "N/A", notes: "Displacement power factor" },
     { section: "Electrical Input", parameter: "Phase Configuration", value: params.phase === 'three' ? "3-Phase" : "1-Phase", unit: "N/A", notes: "" },
     
-    { section: "Electrical Output", parameter: "Full Load Current (FLC)", value: params.current.toFixed(3), unit: "Amperes", notes: "I = P / (V * cos φ) for 1-Phase, I = P / (√3 * V * cos φ) for 3-Phase" },
+    { section: "Electrical Output", parameter: "Full Load Current (FLC)", value: (params.current || 0).toFixed(3), unit: "Amperes", notes: "I = P / (V * cos φ) for 1-Phase, I = P / (√3 * V * cos φ) for 3-Phase" },
     { section: "Electrical Output", parameter: "Suggested Circuit Breaker", value: params.breaker, unit: "Amps", notes: "Sized at 125% FLC rating for safety buffer" },
   ];
 
@@ -168,10 +168,10 @@ export function exportPlumbingToCsv(params: {
   });
 
   rows.push(
-    { section: "Plumbing Output", parameter: "Cumulative Fixture Units", value: params.totalUnits.toFixed(1), unit: params.standard === 'ipc' ? "WSFU" : "LU", notes: "Total combined supply loading" },
-    { section: "Plumbing Output", parameter: "Estimated Flow Demand", value: params.flowRate.toFixed(2), unit: "L/s", notes: "Peak demand flow rate" },
+    { section: "Plumbing Output", parameter: "Cumulative Fixture Units", value: (params.totalUnits || 0).toFixed(1), unit: params.standard === 'ipc' ? "WSFU" : "LU", notes: "Total combined supply loading" },
+    { section: "Plumbing Output", parameter: "Estimated Flow Demand", value: (params.flowRate || 0).toFixed(2), unit: "L/s", notes: "Peak demand flow rate" },
     { section: "Plumbing Output", parameter: "Design Flow Velocity", value: params.velocity, unit: "m/s", notes: "Target flow speed in pipe" },
-    { section: "Plumbing Output", parameter: "Calculated Pipe Diameter", value: params.pipeDiameter.toFixed(1), unit: "mm", notes: "Required inner pipe diameter to avoid cavitation/noise" }
+    { section: "Plumbing Output", parameter: "Calculated Pipe Diameter", value: (params.pipeDiameter || 0).toFixed(1), unit: "mm", notes: "Required inner pipe diameter to avoid cavitation/noise" }
   );
 
   downloadCsv("plumbing_sizing_calculation", "Plumbing Supply Flow and Pipe Sizing Report", rows);
@@ -190,10 +190,10 @@ export function exportFireToCsv(params: {
     { section: "Fire Protection Parameters", parameter: "Remote Design Area", value: params.area, unit: "m²", notes: "Most hydraulically demanding zone" },
     { section: "Fire Protection Parameters", parameter: "Required Discharge Density", value: params.density, unit: "mm/min (L/min/m²)", notes: "Constant sprinkler water application" },
     
-    { section: "Fire Protection Output", parameter: "Required System Flow Rate", value: params.flow.toFixed(1), unit: "L/min", notes: "Design area * discharge density + hose allowance" },
-    { section: "Fire Protection Output", parameter: "Calculated System Flow (Lps)", value: (params.flow / 60).toFixed(2), unit: "L/s", notes: "Volumetric rate per second" },
+    { section: "Fire Protection Output", parameter: "Required System Flow Rate", value: (params.flow || 0).toFixed(1), unit: "L/min", notes: "Design area * discharge density + hose allowance" },
+    { section: "Fire Protection Output", parameter: "Calculated System Flow (Lps)", value: ((params.flow || 0) / 60).toFixed(2), unit: "L/s", notes: "Volumetric rate per second" },
     { section: "Fire Protection Output", parameter: "Minimum Firefighting Duration", value: params.duration, unit: "minutes", notes: "Required continuous water feed duration" },
-    { section: "Fire Protection Output", parameter: "Minimum Water Storage Volume", value: params.storage.toFixed(1), unit: "m³", notes: "Minimum reservoir tank size" },
+    { section: "Fire Protection Output", parameter: "Minimum Water Storage Volume", value: (params.storage || 0).toFixed(1), unit: "m³", notes: "Minimum reservoir tank size" },
     { section: "Fire Protection Output", parameter: "Total Water Weight", value: Math.round(params.storage * 1000).toLocaleString(), unit: "kg (Litres)", notes: "Water structural load weight" },
   ];
 
@@ -213,18 +213,18 @@ export function exportVrfToCsv(params: {
 }) {
   const rows: CsvRow[] = [
     { section: "VRF System Parameters", parameter: "Diversity Factor", value: params.diversityFactor, unit: "Ratio", notes: "Coincidence load adjustment" },
-    { section: "VRF System Parameters", parameter: "Total Connected IDU Capacity", value: params.totalConnectedTons.toFixed(2), unit: "TR", notes: "Sum of all individual indoor unit capacities" },
-    { section: "VRF System Parameters", parameter: "Coincident Design Peak Load", value: params.coincidentTons.toFixed(2), unit: "TR", notes: "Peak load on ODU after diversity filter" },
-    { section: "VRF System Parameters", parameter: "Recommended Outdoor Unit Size", value: `${params.oduSizeHp} HP (${params.oduSizeTons.toFixed(1)} TR)`, unit: "HP", notes: "Nominal recommended VRF ODU size" },
-    { section: "VRF System Parameters", parameter: "Actual Combination Ratio (CR)", value: `${params.combinationRatio.toFixed(1)}%`, unit: "%", notes: "Connection ratio of Connected IDU to Recommended ODU" },
+    { section: "VRF System Parameters", parameter: "Total Connected IDU Capacity", value: (params.totalConnectedTons || 0).toFixed(2), unit: "TR", notes: "Sum of all individual indoor unit capacities" },
+    { section: "VRF System Parameters", parameter: "Coincident Design Peak Load", value: (params.coincidentTons || 0).toFixed(2), unit: "TR", notes: "Peak load on ODU after diversity filter" },
+    { section: "VRF System Parameters", parameter: "Recommended Outdoor Unit Size", value: `${params.oduSizeHp} HP (${(params.oduSizeTons || 0).toFixed(1)} TR)`, unit: "HP", notes: "Nominal recommended VRF ODU size" },
+    { section: "VRF System Parameters", parameter: "Actual Combination Ratio (CR)", value: `${(params.combinationRatio || 0).toFixed(1)}%`, unit: "%", notes: "Connection ratio of Connected IDU to Recommended ODU" },
     { section: "VRF System Parameters", parameter: "Total Liquid Line Piping Length", value: params.pipingLength, unit: "m", notes: "Length for additional refrigerant estimation" },
-    { section: "VRF System Parameters", parameter: "Est. Additional Refrigerant Charge", value: params.refrigerantCharge.toFixed(2), unit: "kg", notes: "Calculated at 0.055 kg/m" },
+    { section: "VRF System Parameters", parameter: "Est. Additional Refrigerant Charge", value: (params.refrigerantCharge || 0).toFixed(2), unit: "kg", notes: "Calculated at 0.055 kg/m" },
   ];
 
   params.rooms.forEach((r) => {
     rows.push(
       { section: `Indoor Unit - ${r.name}`, parameter: `Floor Sizing Metric`, value: r.size, unit: r.basis === 'area' ? 'm²' : 'm³', notes: `Occupants: ${r.occupants}` },
-      { section: `Indoor Unit - ${r.name}`, parameter: `Calculated Thermal Load`, value: r.tons.toFixed(2), unit: "TR", notes: "Required peak space cooling load" }
+      { section: `Indoor Unit - ${r.name}`, parameter: `Calculated Thermal Load`, value: (r.tons || 0).toFixed(2), unit: "TR", notes: "Required peak space cooling load" }
     );
   });
 

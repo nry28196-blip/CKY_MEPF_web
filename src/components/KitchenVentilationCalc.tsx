@@ -317,10 +317,10 @@ export default function KitchenVentilationCalc() {
             </h3>
             <div className="flex space-x-2">
               <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest border border-slate-800 px-2 py-1 rounded bg-slate-950">
-                L: {hoodLength.toFixed(2)} {lenUnit}
+                L: {(hoodLength || 0).toFixed(2)} {lenUnit}
               </span>
               <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest border border-slate-800 px-2 py-1 rounded bg-slate-950">
-                D: {hoodDepth.toFixed(2)} {lenUnit}
+                D: {(hoodDepth || 0).toFixed(2)} {lenUnit}
               </span>
             </div>
           </div>

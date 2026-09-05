@@ -264,10 +264,10 @@ export default function StaticPressureCalc() {
                       {secRes && (
                         <div className="mt-3 pt-3 border-t border-slate-800/60 flex flex-wrap gap-4 text-[10px] font-mono text-slate-400">
                           <span>Vel: {Math.round(secRes.friction.velocity)} {isMetric ? 'm/s' : 'FPM'}</span>
-                          <span>Pv: {secRes.friction.velocityPressure.toFixed(2)} {pressUnit}</span>
-                          <span>ΔP Str: {secRes.friction.pressureDrop.toFixed(2)} {pressUnit}</span>
-                          <span>ΔP Fit: {secRes.fittingLoss.toFixed(2)} {pressUnit}</span>
-                          <span className="text-white font-bold">Total: {secRes.total.toFixed(2)} {pressUnit}</span>
+                          <span>Pv: {(secRes.friction.velocityPressure || 0).toFixed(2)} {pressUnit}</span>
+                          <span>ΔP Str: {(secRes.friction.pressureDrop || 0).toFixed(2)} {pressUnit}</span>
+                          <span>ΔP Fit: {(secRes.fittingLoss || 0).toFixed(2)} {pressUnit}</span>
+                          <span className="text-white font-bold">Total: {(secRes.total || 0).toFixed(2)} {pressUnit}</span>
                         </div>
                       )}
                     </div>
@@ -283,7 +283,7 @@ export default function StaticPressureCalc() {
                 <div className="mt-4 bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
                   <span className="text-xs font-bold text-slate-400 uppercase">Path Total Pressure</span>
                   <span className={`text-lg font-mono font-bold ${isCritical ? 'text-indigo-400' : 'text-slate-300'}`}>
-                    {pathRes.totalPressure.toFixed(2)} <span className="text-[10px]">{pressUnit}</span>
+                    {(pathRes.totalPressure || 0).toFixed(2)} <span className="text-[10px]">{pressUnit}</span>
                   </span>
                 </div>
               )}
@@ -308,14 +308,14 @@ export default function StaticPressureCalc() {
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent" />
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 z-10">Design Static Pressure</p>
             <p className="text-5xl font-black text-white font-mono tracking-tight drop-shadow-md z-10">
-              {designPressure.toFixed(2)}
+              {(designPressure || 0).toFixed(2)}
             </p>
             <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest mt-1 z-10">{pressUnit}</p>
             
             <div className="mt-4 pt-4 border-t border-slate-800/60 z-10 space-y-1 text-[10px]">
               <div className="flex justify-between text-slate-400">
                 <span>Critical Path SP</span>
-                <span className="font-mono">{result.maxPressure.toFixed(2)}</span>
+                <span className="font-mono">{(result.maxPressure || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Safety Allowance</span>
@@ -357,7 +357,7 @@ export default function StaticPressureCalc() {
                       if (path) {
                         const sec = path.sections.find(s => s.id === fittingSelectorOpen.sectionId);
                         if (sec) {
-                          updateSection(path.id, sec.id, 'fittingLossCoeff', Number((sec.fittingLossCoeff + fit.lossCoefficient).toFixed(2)));
+                          updateSection(path.id, sec.id, 'fittingLossCoeff', Number(((sec.fittingLossCoeff + fit.lossCoefficient) || 0).toFixed(2)));
                         }
                       }
                       setFittingSelectorOpen(null);

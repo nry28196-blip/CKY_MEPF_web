@@ -19,6 +19,7 @@ import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
 import { AirDensityService } from '../calculations/services/AirDensityService';
+import { UnitConversionService } from '../calculations/services/UnitConversionService';
 import { VentilationValidator } from '../validation/VentilationValidator';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 
@@ -109,8 +110,12 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const [autoCalcPiping, setAutoCalcPiping] = useState<boolean>(true);
 
   const calcRoomTonsAndWatts = (basis: 'area' | 'volume', size: number, occupants: number) => {
-    const watts = (basis === 'area' ? size * baseLoadPerSqm : size * baseLoadPerCum) + (occupants * loadPerPerson);
-    const btu = watts * 3.412;
+    const canonicalSize = isMetric 
+      ? size 
+      : (basis === 'area' ? UnitConversionService.sqftToSqM(size) : UnitConversionService.cuFtToCuM(size));
+      
+    const watts = (basis === 'area' ? canonicalSize * baseLoadPerSqm : canonicalSize * baseLoadPerCum) + (occupants * loadPerPerson);
+    const btu = watts * 3.412142;
     const tons = btu / 12000;
     return { watts, tons };
   };
@@ -185,8 +190,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     }
   }, [restoredParams, loadedHistoryId]);
 
-  const calculateCoolingLoad = () => {
-    const dT = outdoorTemp - indoorTemp;
+    const calculateCoolingLoad = () => {
     const numArea = area !== '' && area !== undefined ? Number(area) : NaN;
     const numOccupants = occupants !== '' && occupants !== undefined ? Number(occupants) : NaN;
     const numHeight = height !== '' && height !== undefined ? Number(height) : NaN;
@@ -205,12 +209,24 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     }
     const status = 'PASS';
 
+    // 1. Convert User Inputs to Canonical Metric
+    const canonicalArea = isMetric ? numArea : UnitConversionService.sqftToSqM(numArea);
+    const canonicalVolume = estimationBasis === 'volume' 
+      ? (isMetric ? (volume !== '' ? Number(volume) : NaN) : UnitConversionService.cuFtToCuM(volume !== '' ? Number(volume) : NaN))
+      : (canonicalArea * numHeight);
+    
+    const altMeters = isMetric ? altitude : UnitConversionService.ftToM(altitude);
+    const canonicalVentLps = isMetric ? ventilationLps : UnitConversionService.cfmToLs(ventilationLps);
+
+    // Hardcoded environmental state (already metric)
+    const dT = outdoorTemp - indoorTemp; 
+
     // 1. People
     const peopleSensible = numOccupants * sensiblePerPerson;
     const peopleLatent = numOccupants * latentPerPerson;
     
     // 2. Lighting
-    const lightingSensible = numArea * lightingWpm2;
+    const lightingSensible = canonicalArea * lightingWpm2;
     
     // 3. Equipment
     const equipmentSensible = equipmentWatts;
@@ -225,31 +241,22 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     const solarSensible = windowArea * windowShgc * solarIrradiance;
     
     // 6. Ventilation (Sensible & Latent)
-    // Psychrometric state calculations
-    const altMeters = isMetric ? altitude : altitude * 0.3048;
-    
-    // Explicit psychrometric calculations for both states
     const outdoorProps = AirDensityService.getAirProperties(altMeters, outdoorTemp, relativeHumidity);
     const indoorProps = AirDensityService.getAirProperties(altMeters, indoorTemp, indoorRelativeHumidity);
     
     const densityRatio = useAltitudeAdj ? outdoorProps.densityRatio : 1.0;
     const actualAirDensity = useAltitudeAdj ? outdoorProps.densityKgM3 : outdoorProps.standardDensityKgM3;
     
-    // Calculate dw based on actual psychrometric state
     const dw = Math.max(0, outdoorProps.humidityRatioKgKg - indoorProps.humidityRatioKgKg);
+    const cpAir = 1.026 * actualAirDensity; 
+    const hfgVapor = 2501 * actualAirDensity; 
     
-    // Specific heat of dry air ~ 1006 J/kgK + vapor contribution. Simplification: 1026 J/kgK for moist air.
-    const cpAir = 1.026 * actualAirDensity; // kJ/s (kW) per m3/s per K
-    const hfgVapor = 2501 * actualAirDensity; // kJ/kg -> kW per (kg/s) -> using air density to get volumetric coefficient
-    
-    // Convert flow to m3/s for SI calculation
-    const ventM3s = ventilationLps / 1000;
-    const ventSensible = (cpAir * ventM3s * dT) * 1000; // Convert kW to Watts
-    const ventLatent = (hfgVapor * ventM3s * dw) * 1000; // Convert kW to Watts
+    const ventM3s = canonicalVentLps / 1000;
+    const ventSensible = (cpAir * ventM3s * dT) * 1000; 
+    const ventLatent = (hfgVapor * ventM3s * dw) * 1000; 
     
     // 7. Infiltration
-    const numVolume = numArea * numHeight;
-    const infiltrationM3s = (infiltrationACH * numVolume) / 3600;
+    const infiltrationM3s = (infiltrationACH * canonicalVolume) / 3600;
     const infiltrationSensible = (cpAir * infiltrationM3s * dT) * 1000;
     const infiltrationLatent = (hfgVapor * infiltrationM3s * dw) * 1000;
 
@@ -274,16 +281,27 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const results = calculateCoolingLoad();
   const validationResult = !isVrf ? VentilationValidator.validate({ area, volume, occupants, ventilationLps, outdoorTemp, indoorTemp }) : null;
 
+  
   const getVrfCalculations = () => {
     let totalConnectedTons = 0;
     let totalConnectedWatts = 0;
     let totalOccupants = 0;
     
-    vrfRooms.forEach(r => {
+    const enrichedRooms = vrfRooms.map(r => {
+      const loads = calcRoomTonsAndWatts(r.basis, r.size, r.occupants);
+      return {
+        ...r,
+        tons: loads.tons,
+        watts: loads.watts
+      };
+    });
+
+    enrichedRooms.forEach(r => {
       totalConnectedTons += r.tons;
       totalConnectedWatts += r.watts;
       totalOccupants += r.occupants;
     });
+
     
     const coincidentTons = totalConnectedTons / diversityFactor;
     const coincidentWatts = totalConnectedWatts / diversityFactor;
@@ -363,8 +381,10 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
       toxicConcentration,
       smallestRoomName,
       smallestRoomVol,
+      
       baseOduCharge,
-      totalCharge
+      totalCharge,
+      enrichedRooms
     };
   };
 
@@ -691,7 +711,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         const val = e.target.value === '' ? '' : Number(e.target.value);
                         setVolume(val);
                         if (typeof val === 'number') {
-                          setArea(Number((val / 3).toFixed(1)));
+                          setArea(Number(((val / 3) || 0).toFixed(1)));
                         }
                       }}
                       placeholder="e.g., 150"
@@ -739,10 +759,10 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   {occupants !== '' && area !== '' && Number(occupants) >= 1 && Number(occupants) <= 1000 && (
                     (() => {
                       const density = Number(area) / Number(occupants);
-                      if (projectType === 'Residential' && density < 30) return <InputAlert type="warning" message={`Density ${density.toFixed(1)} m²/person exceeds typical residential bounds (≥ 30)`} />;
-                      if (projectType === 'Commercial' && density < 10) return <InputAlert type="warning" message={`Density ${density.toFixed(1)} m²/person exceeds typical office bounds (≥ 10)`} />;
-                      if (projectType === 'Healthcare' && density < 15) return <InputAlert type="warning" message={`Density ${density.toFixed(1)} m²/person exceeds typical healthcare bounds (≥ 15)`} />;
-                      if (projectType === 'Industrial' && density < 50) return <InputAlert type="warning" message={`Density ${density.toFixed(1)} m²/person exceeds typical industrial bounds (≥ 50)`} />;
+                      if (projectType === 'Residential' && density < 30) return <InputAlert type="warning" message={`Density ${(density || 0).toFixed(1)} m²/person exceeds typical residential bounds (≥ 30)`} />;
+                      if (projectType === 'Commercial' && density < 10) return <InputAlert type="warning" message={`Density ${(density || 0).toFixed(1)} m²/person exceeds typical office bounds (≥ 10)`} />;
+                      if (projectType === 'Healthcare' && density < 15) return <InputAlert type="warning" message={`Density ${(density || 0).toFixed(1)} m²/person exceeds typical healthcare bounds (≥ 15)`} />;
+                      if (projectType === 'Industrial' && density < 50) return <InputAlert type="warning" message={`Density ${(density || 0).toFixed(1)} m²/person exceeds typical industrial bounds (≥ 50)`} />;
                       return null;
                     })()
                   )}
@@ -750,7 +770,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
               </div>
 
               <motion.div
-                key={`${results.tons.toFixed(4)}-${results.btu}`}
+                key={`${(results.tons || 0).toFixed(4)}-${results.btu}`}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -833,7 +853,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wider">Cooling Capacity</p>
-                    <p className="text-2xl font-black text-white mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : (results.tons).toFixed(2)} <span className="text-xs font-normal text-slate-400">TR</span></p>
+                    <p className="text-2xl font-black text-white mt-1 font-mono">{results.status === 'INCOMPLETE' ? '-' : (results.tons || 0).toFixed(2)} <span className="text-xs font-normal text-slate-400">TR</span></p>
                   </div>
                   
                   <div>
@@ -980,13 +1000,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <div className="text-cyan-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Intermediate Variables</div>
                       <div className="grid grid-cols-2 gap-2 text-slate-300">
                         <div className="text-slate-500">ΔT (Outdoor - Indoor):</div>
-                        <div className="text-right">{(outdoorTemp - indoorTemp).toFixed(1)} {isMetric ? '°C' : '°F'}</div>
+                        <div className="text-right">{((outdoorTemp - indoorTemp) || 0).toFixed(1)} {isMetric ? '°C' : '°F'}</div>
                         <div className="text-slate-500">Air Density Ratio (ρ):</div>
-                        <div className="text-right">{useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : altitude * 0.3048, outdoorTemp, relativeHumidity).densityRatio.toFixed(3) : '1.000'}</div>
+                        <div className="text-right">{useAltitudeAdj ? (AirDensityService.getAirProperties(isMetric ? altitude : UnitConversionService.ftToM(altitude), outdoorTemp, relativeHumidity).densityRatio || 0).toFixed(3) : '1.000'}</div>
                         <div className="text-slate-500">Specific Heat (Cp):</div>
-                        <div className="text-right">{((useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : altitude * 0.3048, outdoorTemp, relativeHumidity).densityRatio : 1.0) * 1.21).toFixed(3)} kJ/kg·K</div>
+                        <div className="text-right">{(((useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : UnitConversionService.ftToM(altitude), outdoorTemp, relativeHumidity).densityRatio : 1.0) * 1.21) || 0).toFixed(3)} kJ/kg·K</div>
                         <div className="text-slate-500">Latent Heat (hfg):</div>
-                        <div className="text-right">{((useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : altitude * 0.3048, outdoorTemp, relativeHumidity).densityRatio : 1.0) * 3010).toFixed(0)} kJ/kg</div>
+                        <div className="text-right">{(((useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : UnitConversionService.ftToM(altitude), outdoorTemp, relativeHumidity).densityRatio : 1.0) * 3010) || 0).toFixed(0)} kJ/kg</div>
                       </div>
                     </div>
                     
@@ -1038,16 +1058,16 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         {ventilationDetails.systemType === 'multi' && ventilationDetails.systemResult && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-slate-300">
                             <div className="text-slate-500">Vou (Uncorrected Outdoor Air) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.5.3)</span>:</div>
-                            <div className="text-right text-slate-400">D×Σ(Rp×Pz) + Σ(Ra×Az) = {Math.round(ventilationDetails.systemResult.vou)}</div>
+                            <div className="text-right text-slate-400">D×Σ(Rp×Pz) + Σ(Ra×Az) = {Math.round(ventilationDetails.systemResult.vou || 0)}</div>
                             
                             <div className="text-slate-500">Max Zpz (Critical Zone Fraction) <span className="text-[8px] text-slate-600">(Max(Voz/Vpz))</span>:</div>
-                            <div className="text-right text-slate-400">{ventilationDetails.systemResult.zd.toFixed(3)}</div>
+                            <div className="text-right text-slate-400">{((ventilationDetails.systemResult.zdMax !== undefined && ventilationDetails.systemResult.zdMax !== null ? ventilationDetails.systemResult.zdMax : 0) || 0).toFixed(3) || "0.000"}</div>
                             
                             <div className="text-slate-500">Ev (System Vent. Efficiency) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.5.4.1)</span>:</div>
-                            <div className="text-right text-slate-400">1 + Xs - Zd = {ventilationDetails.systemResult.ev.toFixed(3)}</div>
+                            <div className="text-right text-slate-400">1 + Xs - Zd = {((ventilationDetails.systemResult.ev !== undefined && ventilationDetails.systemResult.ev !== null ? ventilationDetails.systemResult.ev : 0) || 0).toFixed(3) || "0.000"}</div>
                             
                             <div className="text-slate-500">Vot (System Outdoor Air) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.5.1)</span>:</div>
-                            <div className="text-right text-slate-400">Vou / Ev = {Math.round(ventilationDetails.systemResult.vot)}</div>
+                            <div className="text-right text-slate-400">Vou / Ev = {Math.round(ventilationDetails.systemResult.vot || 0)}</div>
                           </div>
                         )}
                       </div>
@@ -1071,8 +1091,8 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           subType: 'cooling',
                           title: estimationBasis === 'area' ? `Cooling Load (${numArea} m²)` : `Cooling Load (${numVol} m³)`,
                           summary: estimationBasis === 'area' 
-                            ? `${numArea} m² | ${numOcc} Occ. | ${results.tons.toFixed(1)} TR`
-                            : `${numVol} m³ | ${numOcc} Occ. | ${results.tons.toFixed(1)} TR`,
+                            ? `${numArea} m² | ${numOcc} Occ. | ${(results.tons || 0).toFixed(1)} TR`
+                            : `${numVol} m³ | ${numOcc} Occ. | ${(results.tons || 0).toFixed(1)} TR`,
                           parameters: { 
                             isVrf: false,
                             area: numArea, 
@@ -1116,7 +1136,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         `- Estimation Basis: ${estimationBasis === 'area' ? 'Floor Area' : 'Room Volume'}\n` +
                         `- Size: ${estimationBasis === 'area' ? area : volume} ${estimationBasis === 'area' ? 'm²' : 'm³'}\n` +
                         `- Occupant Count: ${occupants}\n` +
-                        `- Estimated Cooling Capacity: ${results.tons.toFixed(2)} TR (${Math.round(results.btu).toLocaleString()} BTU/hr)\n` +
+                        `- Estimated Cooling Capacity: ${(results.tons || 0).toFixed(2)} TR (${Math.round(results.btu).toLocaleString()} BTU/hr)\n` +
                         `- Total Power: ${Math.round(results.watts).toLocaleString()} W th\n` +
                         `- Estimated Electrical Input: ${Math.round(results.watts / 3.5).toLocaleString()} W (COP 3.5)\n\n` +
                         `Generated on ${new Date().toLocaleString()}\n` +
@@ -1156,7 +1176,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           tooltip={t("vrfDiversityTooltip")} 
                           className="text-slate-400 uppercase"
                         />
-                        <span className="font-mono text-cyan-400 font-bold">{diversityFactor.toFixed(2)}x</span>
+                        <span className="font-mono text-cyan-400 font-bold">{(diversityFactor || 0).toFixed(2)}x</span>
                       </div>
                       <input
                         type="range"
@@ -1336,7 +1356,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           className="w-full bg-slate-950 text-white rounded-lg px-3 py-1.5 text-xs font-mono border border-slate-800 focus:outline-none focus:border-cyan-500 cursor-pointer"
                         >
                           {[8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60].map(hp => (
-                            <option key={hp} value={hp}>{hp} HP ({ (hp * 0.8).toFixed(1) } TR)</option>
+                            <option key={hp} value={hp}>{hp} HP ({ ((hp * 0.8) || 0).toFixed(1) } TR)</option>
                           ))}
                         </select>
                         <p className="text-xs text-slate-500 mt-1">
@@ -1400,7 +1420,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                 {/* Right Side: VRF System Sizing Output */}
               <div className="w-full h-full">
                 <motion.div
-                  key={`${vrfResults.totalConnectedTons.toFixed(4)}-${vrfResults.coincidentTons.toFixed(4)}`}
+                  key={`${(vrfResults.totalConnectedTons || 0).toFixed(4)}-${(vrfResults.coincidentTons || 0).toFixed(4)}`}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -1414,14 +1434,14 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     <div className="bg-slate-950/30 p-3 rounded-xl border border-slate-850/50">
                       <p className="text-xs text-slate-500 uppercase tracking-wider">Total IDU connected</p>
                       <p className="text-2xl font-black text-white mt-1 font-mono">
-                        {vrfResults.totalConnectedTons.toFixed(2)}{' '}
+                        {(vrfResults.totalConnectedTons || 0).toFixed(2)}{' '}
                         <span className="text-xs font-normal text-slate-400">TR</span>
                       </p>
                     </div>
                     <div className="bg-slate-950/30 p-3 rounded-xl border border-slate-850/50">
                       <p className="text-xs text-slate-500 uppercase tracking-wider">Coincident peak load</p>
                       <p className="text-2xl font-black text-white mt-1 font-mono text-cyan-400">
-                        {vrfResults.coincidentTons.toFixed(2)}{' '}
+                        {(vrfResults.coincidentTons || 0).toFixed(2)}{' '}
                         <span className="text-xs font-normal text-slate-400">TR</span>
                       </p>
                     </div>
@@ -1433,7 +1453,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <p className="text-xl font-black text-white mt-1 font-mono">
                         {vrfResults.oduHP}{' '}
                         <span className="text-xs font-normal text-slate-400">HP</span>
-                        <span className="block text-xs text-slate-500 font-normal font-sans">({vrfResults.oduTons.toFixed(1)} TR capacity)</span>
+                        <span className="block text-xs text-slate-500 font-normal font-sans">({(vrfResults.oduTons || 0).toFixed(1)} TR capacity)</span>
                       </p>
                     </div>
                     <div className="bg-slate-950/30 p-3 rounded-xl border border-slate-850/50">
@@ -1445,7 +1465,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           ? 'text-amber-400'
                           : 'text-cyan-400'
                       }`}>
-                        {vrfResults.combinationRatio.toFixed(1)}{' '}
+                        {(vrfResults.combinationRatio || 0).toFixed(1)}{' '}
                         <span className="text-xs font-normal text-slate-400">%</span>
                       </p>
                     </div>
@@ -1478,7 +1498,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           <span className={`font-bold uppercase block mb-0.5 ${
                             vrfResults.combinationRatio <= maxAllowedCr && vrfResults.combinationRatio >= 50 ? 'text-cyan-400' : vrfResults.combinationRatio > maxAllowedCr ? 'text-rose-400 font-extrabold' : 'text-amber-400'
                           }`}>
-                            Connection Ratio: {vrfResults.combinationRatio.toFixed(1)}% (Max Allowed: {maxAllowedCr}%)
+                            Connection Ratio: {(vrfResults.combinationRatio || 0).toFixed(1)}% (Max Allowed: {maxAllowedCr}%)
                           </span>
                           {vrfResults.combinationRatio <= maxAllowedCr && vrfResults.combinationRatio >= 50 ? (
                             <span>Sizing meets manufacturer tolerances. Combination ratio is within safe limits (50% – {maxAllowedCr}%).</span>
@@ -1511,12 +1531,12 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             </span>
                             {!vrfResults.hasCapacityDeficit ? (
                               <span>
-                                Delivered capacity is safe. ODU maintains {vrfResults.deratedOduCapacityTons.toFixed(2)} TR capacity after a {Math.round((1 - vrfResults.deratingFactor) * 100)}% piping loss penalty (Design Peak: {vrfResults.coincidentTons.toFixed(2)} TR).
+                                Delivered capacity is safe. ODU maintains {(vrfResults.deratedOduCapacityTons || 0).toFixed(2)} TR capacity after a {Math.round((1 - vrfResults.deratingFactor) * 100)}% piping loss penalty (Design Peak: {(vrfResults.coincidentTons || 0).toFixed(2)} TR).
                               </span>
                             ) : (
                               <span>
                                 <strong>CAPACITY PENALTY DEFICIT:</strong> Due to a {pipingLength}m long piping length, a {Math.round((1 - vrfResults.deratingFactor) * 100)}% friction/suction drop capacity loss occurred. 
-                                Actual delivered capacity is only {vrfResults.deratedOduCapacityTons.toFixed(2)} TR, failing to satisfy the {vrfResults.coincidentTons.toFixed(2)} TR peak target.
+                                Actual delivered capacity is only {(vrfResults.deratedOduCapacityTons || 0).toFixed(2)} TR, failing to satisfy the {(vrfResults.coincidentTons || 0).toFixed(2)} TR peak target.
                                 <span className="block mt-1 text-rose-400 font-medium">To resolve, upgrade outdoor unit capacity or shorten piping lines.</span>
                               </span>
                             )}
@@ -1540,11 +1560,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             </span>
                             {!vrfResults.toxicLimitExceeded ? (
                               <span>
-                                Pass. A leak into the smallest room ({vrfResults.smallestRoomName}) produces a concentration of {vrfResults.toxicConcentration.toFixed(3)} kg/m³ (limit: {refrigerantType === 'R32' ? '0.30' : '0.44'} kg/m³).
+                                Pass. A leak into the smallest room ({vrfResults.smallestRoomName}) produces a concentration of {(vrfResults.toxicConcentration || 0).toFixed(3)} kg/m³ (limit: {refrigerantType === 'R32' ? '0.30' : '0.44'} kg/m³).
                               </span>
                             ) : (
                               <span>
-                                <strong>REFRIGERANT SAFETY WARNING:</strong> Smallest volume room ({vrfResults.smallestRoomName}, {vrfResults.smallestRoomVol} m³) faces toxic/flammable concentration risk of {vrfResults.toxicConcentration.toFixed(3)} kg/m³ if a complete system rupture happens. Limit is {refrigerantType === 'R32' ? '0.30' : '0.44'} kg/m³.
+                                <strong>REFRIGERANT SAFETY WARNING:</strong> Smallest volume room ({vrfResults.smallestRoomName}, {vrfResults.smallestRoomVol} m³) faces toxic/flammable concentration risk of {(vrfResults.toxicConcentration || 0).toFixed(3)} kg/m³ if a complete system rupture happens. Limit is {refrigerantType === 'R32' ? '0.30' : '0.44'} kg/m³.
                                 <span className="block mt-1 text-rose-400 font-medium">To resolve: Break into separate circuits or increase room volume.</span>
                               </span>
                             )}
@@ -1567,7 +1587,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     </div>
                     <div className="flex justify-between border-t border-slate-800/40 pt-1.5 font-bold">
                       <span className="text-white">Est. Additional Charge:</span>
-                      <span className="font-mono text-sky-400 text-xs">{vrfResults.additionalCharge.toFixed(2)} kg</span>
+                      <span className="font-mono text-sky-400 text-xs">{(vrfResults.additionalCharge || 0).toFixed(2)} kg</span>
                     </div>
                   </div>
 
@@ -1579,7 +1599,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             tab: 'mechanical',
                             subType: 'cooling',
                             title: `VRF System (${vrfRooms.length} Zones)`,
-                            summary: `${vrfRooms.length} Zones | ${vrfResults.totalConnectedTons.toFixed(1)} TR | Rec: ${vrfResults.oduHP} HP`,
+                            summary: `${vrfRooms.length} Zones | ${(vrfResults.totalConnectedTons || 0).toFixed(1)} TR | Rec: ${vrfResults.oduHP} HP`,
                             parameters: {
                               isVrf: true,
                               vrfRooms,
@@ -1633,13 +1653,13 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         const body = encodeURIComponent(
                           `Dear Team,\n\nHere is the Multi-Zone VRF/VRV Sizing Report generated from CKY_MEPF:\n\n` +
                           `- Total Connected Zones: ${vrfRooms.length}\n` +
-                          `- Total Connected IDU Capacity: ${vrfResults.totalConnectedTons.toFixed(2)} TR\n` +
+                          `- Total Connected IDU Capacity: ${(vrfResults.totalConnectedTons || 0).toFixed(2)} TR\n` +
                           `- Diversity / Coincidence Factor: ${diversityFactor}x\n` +
-                          `- Coincident Design Peak ODU Load: ${vrfResults.coincidentTons.toFixed(2)} TR\n` +
-                          `- Recommended VRF Outdoor Unit: ${vrfResults.oduHP} HP (${vrfResults.oduTons.toFixed(1)} TR capacity)\n` +
-                          `- Sizing Connection Ratio: ${vrfResults.combinationRatio.toFixed(1)}%\n` +
+                          `- Coincident Design Peak ODU Load: ${(vrfResults.coincidentTons || 0).toFixed(2)} TR\n` +
+                          `- Recommended VRF Outdoor Unit: ${vrfResults.oduHP} HP (${(vrfResults.oduTons || 0).toFixed(1)} TR capacity)\n` +
+                          `- Sizing Connection Ratio: ${(vrfResults.combinationRatio || 0).toFixed(1)}%\n` +
                           `- Liquid Line Piping: ${pipingLength} meters\n` +
-                          `- Est. Additional Charge: ${vrfResults.additionalCharge.toFixed(2)} kg (${refrigerantType})\n\n` +
+                          `- Est. Additional Charge: ${(vrfResults.additionalCharge || 0).toFixed(2)} kg (${refrigerantType})\n\n` +
                           `Generated on ${new Date().toLocaleString()}\n` +
                           `Regards,\n` +
                           `Engineering Team`
@@ -1659,7 +1679,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
               <div className="w-full">
                 {/* 2D System Topology Canvas */}
                 <VrfTopologyCanvas isDarkMode={isDarkMode} 
-                  vrfRooms={vrfRooms}
+                  vrfRooms={vrfResults.enrichedRooms}
                   setVrfRooms={setVrfRooms}
                   vrfResults={vrfResults}
                   maxAllowedCr={maxAllowedCr}
@@ -1688,7 +1708,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">Connected Indoor Units ({vrfRooms.length})</h3>
                     </div>
                     <span className="text-xs bg-cyan-950/40 text-cyan-400 px-2.5 py-1 rounded-full border border-cyan-500/20 font-bold font-mono">
-                      Sum IDU: {vrfResults.totalConnectedTons.toFixed(2)} TR
+                      Sum IDU: {(vrfResults.totalConnectedTons || 0).toFixed(2)} TR
                     </span>
                   </div>
 
@@ -1727,7 +1747,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                               />
                             </td>
                             <td className="p-3 text-right font-mono font-bold text-cyan-400">
-                              {room.tons.toFixed(2)} TR
+                              {(room.tons || 0).toFixed(2)} TR
                             </td>
                             <td className="p-3 text-center flex items-center justify-center gap-1">
                               <button

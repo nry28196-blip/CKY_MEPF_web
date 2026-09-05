@@ -89,7 +89,7 @@ export class AirDensityService {
         symbol: 'Eρ',
         name: 'Density Ratio',
         formula: 'ρ_standard / ρ_actual',
-        value: densityRatio.toFixed(3),
+        value: (densityRatio || 0).toFixed(3),
         unit: ''
       },
       {

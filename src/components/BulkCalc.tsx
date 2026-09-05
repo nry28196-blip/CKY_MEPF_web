@@ -47,28 +47,28 @@ export default function BulkCalc({ history = [] }: { history?: HistoryItem[] }) 
         if (systemType === 'duct') {
           if (unitSystem === 'metric') {
             newRow.in1 = Math.round(r.in1 * CONVERSIONS.CFM_TO_LPS);
-            newRow.in2 = Number((r.in2 * CONVERSIONS.IN100FT_TO_PAM).toFixed(2));
+            newRow.in2 = Number(((r.in2 * CONVERSIONS.IN100FT_TO_PAM) || 0).toFixed(2));
             newRow.in3 = Math.round(r.in3 * CONVERSIONS.IN_TO_MM);
           } else {
             newRow.in1 = Math.round(r.in1 * CONVERSIONS.LPS_TO_CFM);
-            newRow.in2 = Number((r.in2 * CONVERSIONS.PAM_TO_IN100FT).toFixed(3));
+            newRow.in2 = Number(((r.in2 * CONVERSIONS.PAM_TO_IN100FT) || 0).toFixed(3));
             newRow.in3 = Math.round(r.in3 * CONVERSIONS.MM_TO_IN);
           }
         } else if (systemType === 'cooling') {
           if (unitSystem === 'metric') {
              newRow.in1 = Math.round(r.in1 * CONVERSIONS.CFM_TO_LPS);
-             newRow.in2 = Number(deltaFahrenheitToCelsius(r.in2).toFixed(1));
+             newRow.in2 = Number((deltaFahrenheitToCelsius(r.in2) || 0).toFixed(1));
           } else {
              newRow.in1 = Math.round(r.in1 * CONVERSIONS.LPS_TO_CFM);
-             newRow.in2 = Number(deltaCelsiusToFahrenheit(r.in2).toFixed(1));
+             newRow.in2 = Number((deltaCelsiusToFahrenheit(r.in2) || 0).toFixed(1));
           }
         } else if (systemType === 'pipe') {
           if (unitSystem === 'metric') {
-            newRow.in1 = Number((r.in1 * CONVERSIONS.GPM_TO_LPS).toFixed(2));
+            newRow.in1 = Number(((r.in1 * CONVERSIONS.GPM_TO_LPS) || 0).toFixed(2));
             newRow.in2 = Math.round(r.in2 * CONVERSIONS.IN_TO_MM);
           } else {
             newRow.in1 = Math.round(r.in1 * CONVERSIONS.LPS_TO_GPM);
-            newRow.in2 = Number((r.in2 * CONVERSIONS.MM_TO_IN).toFixed(2));
+            newRow.in2 = Number(((r.in2 * CONVERSIONS.MM_TO_IN) || 0).toFixed(2));
           }
         }
         return newRow;
@@ -177,10 +177,10 @@ export default function BulkCalc({ history = [] }: { history?: HistoryItem[] }) 
     const headerRow = getHeaders().inputs.map(h => h.name).concat(getHeaders().outputs.map(h => h.name));
     const dataRows = calculatedRows.map(r => {
       const vals = [];
-      if (systemType === 'duct') vals.push(r.in1, r.in2, r.in3, r.out1.toFixed(2), r.out2, r.out3.toFixed(0));
-      if (systemType === 'cooling') vals.push(r.in1, r.in2, r.out1.toFixed(2));
-      if (systemType === 'flc') vals.push(r.in1, r.in2, r.in3, r.in4, r.out1.toFixed(2));
-      if (systemType === 'pipe') vals.push(r.in1, r.in2, r.out1.toFixed(2));
+      if (systemType === 'duct') vals.push(r.in1, r.in2, r.in3, (r.out1 || 0).toFixed(2), r.out2, (r.out3 || 0).toFixed(0));
+      if (systemType === 'cooling') vals.push(r.in1, r.in2, (r.out1 || 0).toFixed(2));
+      if (systemType === 'flc') vals.push(r.in1, r.in2, r.in3, r.in4, (r.out1 || 0).toFixed(2));
+      if (systemType === 'pipe') vals.push(r.in1, r.in2, (r.out1 || 0).toFixed(2));
       return vals.join(',');
     });
     
@@ -261,7 +261,7 @@ export default function BulkCalc({ history = [] }: { history?: HistoryItem[] }) 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg flex flex-col items-center justify-center">
             <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2">Total Cooling Capacity</span>
-            <span className="text-4xl font-black text-sky-400 font-mono">{totalCooling.toFixed(1)} <span className="text-lg">TR</span></span>
+            <span className="text-4xl font-black text-sky-400 font-mono">{(totalCooling || 0).toFixed(1)} <span className="text-lg">TR</span></span>
           </div>
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg flex flex-col items-center justify-center">
             <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2">Total Airflow</span>
@@ -325,7 +325,7 @@ export default function BulkCalc({ history = [] }: { history?: HistoryItem[] }) 
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      label={({ name, percent }) => `${name} (${((percent * 100) || 0).toFixed(0)}%)`}
                     >
                       {fireData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -416,10 +416,10 @@ export default function BulkCalc({ history = [] }: { history?: HistoryItem[] }) 
                   {/* Render Outputs */}
                   {systemType === 'duct' && (
                     <>
-                      <td className="px-4 py-3 font-mono font-bold text-white">{r.out1.toFixed(2)}</td>
+                      <td className="px-4 py-3 font-mono font-bold text-white">{(r.out1 || 0).toFixed(2)}</td>
                       <td className="px-4 py-3 font-mono font-bold text-emerald-400">{r.out2}</td>
                       <td className="px-4 py-3 font-mono font-bold text-white flex items-center space-x-2">
-                        <span>{r.out3.toFixed(0)}</span>
+                        <span>{(r.out3 || 0).toFixed(0)}</span>
                         {r.status === 'optimal' && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
                         {r.status === 'warning' && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
                         {r.status === 'danger' && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
@@ -427,13 +427,13 @@ export default function BulkCalc({ history = [] }: { history?: HistoryItem[] }) 
                     </>
                   )}
                   {systemType === 'cooling' && (
-                    <td className="px-4 py-3 font-mono font-bold text-emerald-400">{r.out1.toFixed(2)}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-emerald-400">{(r.out1 || 0).toFixed(2)}</td>
                   )}
                   {systemType === 'flc' && (
-                    <td className="px-4 py-3 font-mono font-bold text-emerald-400">{r.out1.toFixed(2)}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-emerald-400">{(r.out1 || 0).toFixed(2)}</td>
                   )}
                   {systemType === 'pipe' && (
-                    <td className="px-4 py-3 font-mono font-bold text-emerald-400">{r.out1.toFixed(2)}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-emerald-400">{(r.out1 || 0).toFixed(2)}</td>
                   )}
 
                   <td className="px-4 py-3 text-right">

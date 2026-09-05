@@ -140,7 +140,7 @@ export default function IAQCalc() {
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Design State (Max Occupancy)</h4>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-slate-300">Required Airflow</span>
-                <span className="text-sm font-mono font-bold text-white">{designAirflow.toFixed(1)} {flowUnit}</span>
+                <span className="text-sm font-mono font-bold text-white">{(designAirflow || 0).toFixed(1)} {flowUnit}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-300">Est. Indoor CO₂</span>
@@ -154,7 +154,7 @@ export default function IAQCalc() {
               <h4 className="text-xs font-bold text-emerald-500/70 uppercase tracking-wider mb-3">DCV State (Current Occupancy)</h4>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-slate-300">DCV Airflow</span>
-                <span className="text-sm font-mono font-bold text-emerald-400">{dcvAirflow.toFixed(1)} {flowUnit}</span>
+                <span className="text-sm font-mono font-bold text-emerald-400">{(dcvAirflow || 0).toFixed(1)} {flowUnit}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-300">Est. Indoor CO₂</span>
@@ -168,7 +168,7 @@ export default function IAQCalc() {
           <div className="mt-4 pt-4 border-t border-slate-800/50 flex justify-between items-center">
              <span className="text-xs text-slate-400 uppercase tracking-wider font-bold">DCV Airflow Reduction</span>
              <span className="text-xl font-black text-emerald-400">
-               {(((designAirflow - dcvAirflow) / designAirflow) * 100).toFixed(1)}%
+               {((((designAirflow - dcvAirflow) / designAirflow) * 100) || 0).toFixed(1)}%
              </span>
           </div>
         </div>

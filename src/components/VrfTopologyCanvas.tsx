@@ -301,10 +301,10 @@ export default function VrfTopologyCanvas({
     });
 
     Object.entries(liquidPipes).forEach(([size, len]) => {
-      csv += `Pipe,Liquid Line,${pipeMaterial},${size},${len.toFixed(2)},meters\n`;
+      csv += `Pipe,Liquid Line,${pipeMaterial},${size},${(len || 0).toFixed(2)},meters\n`;
     });
     Object.entries(gasPipes).forEach(([size, len]) => {
-      csv += `Pipe,Suction Gas Line,${pipeMaterial},${size},${len.toFixed(2)},meters\n`;
+      csv += `Pipe,Suction Gas Line,${pipeMaterial},${size},${(len || 0).toFixed(2)},meters\n`;
     });
     Object.entries(yBranchesLiquid).forEach(([size, count]) => {
       csv += `Fitting,Y-Branch Refnet (Liquid),Copper,${size},${count},pcs\n`;
@@ -413,7 +413,7 @@ export default function VrfTopologyCanvas({
         let shortName = room.name;
         if (shortName.length > 12) shortName = shortName.substring(0, 11) + '…';
         addText(roomPos.x - 40, roomPos.y - 2, shortName, 10, 'TEXT');
-        addText(roomPos.x - 40, roomPos.y + 12, '${room.tons.toFixed(1)} TR', 10, 'TEXT');
+        addText(roomPos.x - 40, roomPos.y + 12, '${(room.tons || 0).toFixed(1)} TR', 10, 'TEXT');
         
         prevBranchPoint = branchPoint;
       });
@@ -999,7 +999,7 @@ export default function VrfTopologyCanvas({
             ctx.font = 'bold 9px monospace';
             const midX = (edge.startX + edge.endX) / 2;
             const midY = (edge.startY + edge.endY) / 2;
-            ctx.fillText(`${edge.downstreamTons.toFixed(1)} TR`, midX, midY - 10);
+            ctx.fillText(`${(edge.downstreamTons || 0).toFixed(1)} TR`, midX, midY - 10);
             
             const sizes = getPipeSizes(edge.downstreamTons);
             ctx.fillStyle = theme.textMuted;
@@ -1051,7 +1051,7 @@ export default function VrfTopologyCanvas({
 
         ctx.fillStyle = theme.ok;
         ctx.font = 'bold 11px monospace';
-        ctx.fillText(`${room.tons.toFixed(1)} TR`, roomPos.x, roomPos.y + 8);
+        ctx.fillText(`${(room.tons || 0).toFixed(1)} TR`, roomPos.x, roomPos.y + 8);
         
         // Branch Pipe Length Tag
         if (isAutoLayout) {
@@ -1152,7 +1152,7 @@ export default function VrfTopologyCanvas({
       
       ctx.fillStyle = theme.textMuted;
       ctx.font = '10px monospace';
-      ctx.fillText(`(${vrfResults.oduTons.toFixed(1)} TR)`, oduPos.x, oduPos.y - 8);
+      ctx.fillText(`(${(vrfResults.oduTons || 0).toFixed(1)} TR)`, oduPos.x, oduPos.y - 8);
 
       if (isOduCrCritical) {
         ctx.fillStyle = theme.toxic;
@@ -1165,7 +1165,7 @@ export default function VrfTopologyCanvas({
         ctx.fillRect(oduPos.x - 45, oduPos.y + 32, 90, 14);
         ctx.fillStyle = theme.ok;
         ctx.font = 'bold 10px sans-serif';
-        ctx.fillText(`CR: ${vrfResults.combinationRatio.toFixed(0)}% OK`, oduPos.x, oduPos.y + 42);
+        ctx.fillText(`CR: ${(vrfResults.combinationRatio || 0).toFixed(0)}% OK`, oduPos.x, oduPos.y + 42);
       }
       
       // Main Pipe Length Tag
@@ -1222,7 +1222,7 @@ export default function VrfTopologyCanvas({
             <div className={`w-px h-6 bg-slate-800`}></div>
             <div className={`flex flex-col`}>
               <span className={`text-[9px] text-slate-500 font-bold uppercase`}>Est. Total Pressure Drop</span>
-              <span className={`text-xs font-mono text-sky-400`}>{pressureDropStats.totalDrop.toFixed(1)} kPa</span>
+              <span className={`text-xs font-mono text-sky-400`}>{(pressureDropStats.totalDrop || 0).toFixed(1)} kPa</span>
             </div>
           </div>
 
@@ -1417,24 +1417,24 @@ export default function VrfTopologyCanvas({
               </div>
               <div className={`flex justify-between`}>
                 <span>Sum IDU Load:</span>
-                <span className={`font-mono text-white`}>{vrfResults.totalConnectedTons.toFixed(2)} TR</span>
+                <span className={`font-mono text-white`}>{(vrfResults.totalConnectedTons || 0).toFixed(2)} TR</span>
               </div>
               <div className={`flex justify-between`}>
                 <span>Diversity factor:</span>
-                <span className={`font-mono text-slate-400`}>{diversityFactor.toFixed(2)}x</span>
+                <span className={`font-mono text-slate-400`}>{(diversityFactor || 0).toFixed(2)}x</span>
               </div>
               <div className={`flex justify-between border-t border-slate-800/60 pt-1`}>
                 <span>Coincident Peak Load:</span>
-                <span className={`font-mono text-white font-semibold`}>{vrfResults.coincidentTons.toFixed(2)} TR</span>
+                <span className={`font-mono text-white font-semibold`}>{(vrfResults.coincidentTons || 0).toFixed(2)} TR</span>
               </div>
               <div className={`flex justify-between`}>
                 <span>ODU Size Selection:</span>
-                <span className={`font-mono text-sky-400 font-semibold`}>{vrfResults.oduHP} HP ({vrfResults.oduTons.toFixed(1)} TR)</span>
+                <span className={`font-mono text-sky-400 font-semibold`}>{vrfResults.oduHP} HP ({(vrfResults.oduTons || 0).toFixed(1)} TR)</span>
               </div>
               <div className={`flex justify-between`}>
                 <span>Combination Ratio:</span>
                 <span className={`font-mono font-bold ${vrfResults.combinationRatio > maxAllowedCr ? (isDarkMode ? 'text-rose-400' : 'text-rose-600') : (isDarkMode ? 'text-emerald-400' : 'text-emerald-600')}`}>
-                  {vrfResults.combinationRatio.toFixed(1)}%
+                  {(vrfResults.combinationRatio || 0).toFixed(1)}%
                 </span>
               </div>
               {/* Configure Main Trunk Line Length directly on ODU node */}
@@ -1453,19 +1453,19 @@ export default function VrfTopologyCanvas({
                 <span className={`font-bold uppercase text-slate-300 block mb-1`}>Charge calculation ({refrigerantType}):</span>
                 <div className={`flex justify-between`}>
                   <span>Base pre-charge:</span>
-                  <span className={`font-mono text-white`}>{(vrfResults.baseOduCharge).toFixed(2)} kg</span>
+                  <span className={`font-mono text-white`}>{(vrfResults.baseOduCharge || 0).toFixed(2)} kg</span>
                 </div>
                 <div className={`flex justify-between`}>
                   <span>Main line charge ({refrigerantType === 'R32' ? '50g/m' : '55g/m'}):</span>
-                  <span className={`font-mono text-white`}>{(mainPipingLength * (refrigerantType === 'R32' ? 0.050 : 0.055)).toFixed(2)} kg</span>
+                  <span className={`font-mono text-white`}>{((mainPipingLength * (refrigerantType === 'R32' ? 0.050 : 0.055)) || 0).toFixed(2)} kg</span>
                 </div>
                 <div className={`flex justify-between`}>
                   <span>Branch lines charge:</span>
-                  <span className={`font-mono text-white`}>{(vrfRooms.reduce((sum, r) => sum + (r.pipeLength ?? 15), 0) * (refrigerantType === 'R32' ? 0.050 : 0.055)).toFixed(2)} kg</span>
+                  <span className={`font-mono text-white`}>{((vrfRooms.reduce((sum, r) => sum + (r.pipeLength ?? 15), 0) * (refrigerantType === 'R32' ? 0.050 : 0.055)) || 0).toFixed(2)} kg</span>
                 </div>
                 <div className={`flex justify-between border-t border-slate-800/40 pt-1 font-bold text-emerald-400 text-[10px]`}>
                   <span>Total System Charge:</span>
-                  <span className={`font-mono`}>{vrfResults.totalCharge.toFixed(2)} kg</span>
+                  <span className={`font-mono`}>{(vrfResults.totalCharge || 0).toFixed(2)} kg</span>
                 </div>
               </div>
             </div>
@@ -1488,7 +1488,7 @@ export default function VrfTopologyCanvas({
               <span className={`text-right font-mono`}>{hoveredPipe.length} {typeof hoveredPipe.length === 'number' ? 'm' : ''}</span>
               
               <span className={`text-slate-500`}>Downstream Load:</span>
-              <span className={`text-right font-mono`}>{hoveredPipe.downstreamTons.toFixed(2)} TR</span>
+              <span className={`text-right font-mono`}>{(hoveredPipe.downstreamTons || 0).toFixed(2)} TR</span>
               
               <span className={`text-slate-500`}>Liquid Line (OD):</span>
               <span className={`text-right font-mono text-sky-400`}>{getPipeSizes(hoveredPipe.downstreamTons).liquid}</span>

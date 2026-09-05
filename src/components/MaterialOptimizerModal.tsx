@@ -59,9 +59,9 @@ export default function MaterialOptimizerModal({
       if (residualBar >= appliedRequiredResidual) {
         return {
           size: dia,
-          frictionLossBar: (frictionLossM / 10.197).toFixed(2),
-          elevationLossBar: (appliedElevationChange / 10.197).toFixed(2),
-          residualBar: residualBar.toFixed(2),
+          frictionLossBar: ((frictionLossM / 10.197) || 0).toFixed(2),
+          elevationLossBar: ((appliedElevationChange / 10.197) || 0).toFixed(2),
+          residualBar: (residualBar || 0).toFixed(2),
           failed: false
         };
       }
@@ -80,9 +80,9 @@ export default function MaterialOptimizerModal({
     const totalHeadLossBar = (Hf * totalLength + appliedElevationChange) / 10.197;
     return {
       size: maxDia,
-      frictionLossBar: (Hf * totalLength / 10.197).toFixed(2),
-      elevationLossBar: (appliedElevationChange / 10.197).toFixed(2),
-      residualBar: (appliedAvailablePressure - totalHeadLossBar).toFixed(2),
+      frictionLossBar: ((Hf * totalLength / 10.197) || 0).toFixed(2),
+      elevationLossBar: ((appliedElevationChange / 10.197) || 0).toFixed(2),
+      residualBar: ((appliedAvailablePressure - totalHeadLossBar) || 0).toFixed(2),
       failed: true
     };
   };
@@ -181,7 +181,7 @@ export default function MaterialOptimizerModal({
                         <div className="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-800">
                           <span className="text-[10px] text-slate-400 uppercase font-bold">Elevation {Number(mat.result.elevationLossBar) < 0 ? 'Gain' : 'Loss'}</span>
                           <span className={`text-xs font-mono ${Number(mat.result.elevationLossBar) < 0 ? 'text-cyan-400' : 'text-orange-400'}`}>
-                            {Number(mat.result.elevationLossBar) < 0 ? '+' : '-'}{Math.abs(Number(mat.result.elevationLossBar)).toFixed(2)} bar
+                            {Number(mat.result.elevationLossBar) < 0 ? '+' : '-'}{(Math.abs(Number(mat.result.elevationLossBar)) || 0).toFixed(2)} bar
                           </span>
                         </div>
                       )}

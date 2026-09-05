@@ -12,6 +12,7 @@ export interface AlternativeSystemInput {
   zones: AlternativeZoneInput[];
   systemPopulation?: number | null; // Ps
   vps?: number | null; // System primary airflow
+  config?: 'single-supply' | 'secondary-recirculation';
 }
 
 export interface AlternativeSystemResult {
@@ -22,7 +23,7 @@ export interface AlternativeSystemResult {
   vps: number;
   xs: number;
   ev: number;
-  vot: number;
+  vot: number | null;
   status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE';
   warning?: string;
   error?: string;
@@ -107,19 +108,25 @@ export class Ashrae621AlternativeSystemService {
       
       if (zpz > 1.0) {
         status = 'FAIL';
-        error = `Zone minimum primary airflow (Vpz-min) cannot satisfy the required outdoor airflow. Zpz = ${zpz.toFixed(2)} > 1.0. Increase Vpz-min for the critical zone.`;
+        error = `Zone minimum primary airflow (Vpz-min) cannot satisfy the required outdoor airflow. Zpz = ${(zpz || 0).toFixed(2)} > 1.0. Increase Vpz-min for the critical zone.`;
       }
       
-      if (z.ep === undefined || isNaN(z.ep)) {
-        if (status !== 'FAIL') status = 'INCOMPLETE';
-        warning = 'Primary air fraction (Ep) is missing for one or more zones.';
+      let ep = 1.0;
+      let er = 0.0;
+      if (input.config === 'secondary-recirculation') {
+        if (z.ep === undefined || isNaN(z.ep)) {
+          if (status !== 'FAIL') status = 'INCOMPLETE';
+          warning = 'Primary air fraction (Ep) is missing for one or more zones in Secondary Recirculation system.';
+        } else {
+          ep = z.ep;
+        }
+        if (z.er === undefined || isNaN(z.er)) {
+          if (status !== 'FAIL') status = 'INCOMPLETE';
+          warning = 'Secondary recirculation fraction (Er) is missing for one or more zones in Secondary Recirculation system.';
+        } else {
+          er = z.er;
+        }
       }
-      const ep = z.ep !== undefined && !isNaN(z.ep) ? z.ep : 1.0;
-      if (z.er === undefined || isNaN(z.er)) {
-        if (status !== 'FAIL') status = 'INCOMPLETE';
-        warning = 'Secondary recirculation fraction (Er) is missing for one or more zones.';
-      }
-      const er = z.er !== undefined && !isNaN(z.er) ? z.er : 0.0;
       const ez = z.zoneResult.ez;
       
       const fa = ep + (1 - ep) * er;
@@ -142,10 +149,10 @@ export class Ashrae621AlternativeSystemService {
     // Do NOT clamp invalid Ev.
     if (ev <= 0 || ev > 1.0 || isNaN(ev)) {
       status = 'FAIL';
-      error = (error ? error + ' ' : '') + `Calculated Ev is invalid (${ev.toFixed(2)}). Check Xs, Zpz and zone parameters.`;
+      error = (error ? error + ' ' : '') + `Calculated Ev is invalid (${(ev || 0).toFixed(2)}). Check Xs, Zpz and zone parameters.`;
     }
 
-    const vot = ev > 0 ? vou / ev : 0;
+    const vot = ev > 0 && ev <= 1.0 ? vou / ev : null;
 
     return {
       ps, sumPz, d, vou, vps: vps === undefined || isNaN(vps) ? 0 : vps, xs, ev, vot, status, warning, error, zoneResults, sumVpzMin, sumVpz
@@ -154,7 +161,7 @@ export class Ashrae621AlternativeSystemService {
 
   private static emptyResult(status: any, warning: string): AlternativeSystemResult {
     return {
-      ps: 0, sumPz: 0, d: 1, vou: 0, vps: 0, xs: 0, ev: 1, vot: 0, status, warning, zoneResults: [], sumVpzMin: 0, sumVpz: 0
+      ps: 0, sumPz: 0, d: 1, vou: 0, vps: 0, xs: 0, ev: 1, vot: null, status, warning, zoneResults: [], sumVpzMin: 0, sumVpz: 0
     };
   }
 }

@@ -79,7 +79,7 @@ function formatValue(key: string, value: any): string {
   }
   
   if (typeof value === 'number') {
-    return Number(value.toFixed(2)).toString();
+    return Number((value || 0).toFixed(2)).toString();
   }
   
   if (key === 'phase') {

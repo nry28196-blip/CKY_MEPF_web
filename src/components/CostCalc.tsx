@@ -98,7 +98,7 @@ export default function CostCalc({ history = [] }: CostCalcProps) {
                   onChange={(e) => setRates({...rates, cooling: Number(e.target.value)})}
                   className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:outline-none focus:border-sky-500 transition-colors"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">Aggregated TR: {totals.cooling.toFixed(1)}</p>
+                <p className="text-[10px] text-slate-500 mt-1">Aggregated TR: {(totals.cooling || 0).toFixed(1)}</p>
               </div>
 
               <div>
@@ -122,7 +122,7 @@ export default function CostCalc({ history = [] }: CostCalcProps) {
                   onChange={(e) => setRates({...rates, electrical: Number(e.target.value)})}
                   className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:outline-none focus:border-amber-500 transition-colors"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">Aggregated kW: {totals.electrical.toFixed(1)}</p>
+                <p className="text-[10px] text-slate-500 mt-1">Aggregated kW: {(totals.electrical || 0).toFixed(1)}</p>
               </div>
 
               <div>

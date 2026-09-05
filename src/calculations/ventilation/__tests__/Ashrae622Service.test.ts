@@ -43,7 +43,7 @@ describe('Ashrae622Service', () => {
       localExhaustDeficit: 0
     });
     expect(res.status).toBe('WARNING');
-    expect(res.warning).toContain('2025 infiltration credit requires strict verification');
+    expect(res.notEvaluatedItems).toContain('2025 Strict Infiltration Verification');
   });
 
   it('should add local exhaust deficit to whole-dwelling rate', () => {

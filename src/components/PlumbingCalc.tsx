@@ -420,7 +420,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     if (wsfu >= 500) {
       const baseGPM = type === 'valve' ? 143 : 124;
       const extrapolated = baseGPM + ((wsfu - 500) * 0.15); // Standard extrapolation
-      const log = `Extrapolated: WSFU=${wsfu.toFixed(1)} => ${extrapolated.toFixed(2)} GPM`;
+      const log = `Extrapolated: WSFU=${(wsfu || 0).toFixed(1)} => ${(extrapolated || 0).toFixed(2)} GPM`;
       console.log(`Hunter's Curve ${log}`);
       return {gpm: extrapolated, log};
     }
@@ -430,17 +430,17 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
       const [x2, y2] = data[i + 1];
       if (wsfu >= x1 && wsfu <= x2) {
         if (wsfu === x1) {
-          const log = `Exact Match: WSFU=${wsfu.toFixed(1)} exactly matches IPC row [x: ${x1}, y: ${y1}] => ${y1} GPM`;
+          const log = `Exact Match: WSFU=${(wsfu || 0).toFixed(1)} exactly matches IPC row [x: ${x1}, y: ${y1}] => ${y1} GPM`;
           console.log(`Hunter's Curve ${log}`);
           return {gpm: y1, log};
         }
         if (wsfu === x2) {
-          const log = `Exact Match: WSFU=${wsfu.toFixed(1)} exactly matches IPC row [x: ${x2}, y: ${y2}] => ${y2} GPM`;
+          const log = `Exact Match: WSFU=${(wsfu || 0).toFixed(1)} exactly matches IPC row [x: ${x2}, y: ${y2}] => ${y2} GPM`;
           console.log(`Hunter's Curve ${log}`);
           return {gpm: y2, log};
         }
         const interpolated = y1 + ((wsfu - x1) * (y2 - y1) / (x2 - x1));
-        const log = `Interpolated: WSFU=${wsfu.toFixed(1)} lies between IPC row [x: ${x1}, y: ${y1}] and [x: ${x2}, y: ${y2}] => ${interpolated.toFixed(2)} GPM`;
+        const log = `Interpolated: WSFU=${(wsfu || 0).toFixed(1)} lies between IPC row [x: ${x1}, y: ${y1}] and [x: ${x2}, y: ${y2}] => ${(interpolated || 0).toFixed(2)} GPM`;
         console.log(`Hunter's Curve ${log}`);
         return {gpm: interpolated, log};
       }
@@ -450,8 +450,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
   
   const totalFixtures = appliedFixtures.reduce((sum, f) => sum + f.qty, 0);
-  const wsfuDensity = totalFixtures > 0 ? (totalWSFU / totalFixtures).toFixed(2) : '0.00';
-  const luDensity = totalFixtures > 0 ? (totalLU / totalFixtures).toFixed(2) : '0.00';
+  const wsfuDensity = totalFixtures > 0 ? ((totalWSFU / totalFixtures) || 0).toFixed(2) : '0.00';
+  const luDensity = totalFixtures > 0 ? ((totalLU / totalFixtures) || 0).toFixed(2) : '0.00';
   
   // Peak water supply flow rate calculation
   const hunterDebug = appliedStandard !== 'bs' ? getHuntersFlowGPM(totalWSFU, appliedSystemType) : null;
@@ -517,14 +517,14 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         segResults.push({
           id: seg.id,
           size: `${seg.diameterMm} mm (DN${seg.diameterMm})`,
-          frictionLossBar: (frictionLossM / 10.197).toFixed(3),
-          elevationLossBar: (elevationLossM / 10.197).toFixed(3),
-          velocity: vel.toFixed(2),
+          frictionLossBar: ((frictionLossM / 10.197) || 0).toFixed(3),
+          elevationLossBar: ((elevationLossM / 10.197) || 0).toFixed(3),
+          velocity: (vel || 0).toFixed(2),
           mode: 'auto',
           reynoldsNumber: reynolds.toLocaleString(),
           flowRegime: regime,
-          totalLength: totalLength.toFixed(1),
-          equivFittings: equivFittings.toFixed(1)
+          totalLength: (totalLength || 0).toFixed(1),
+          equivFittings: (equivFittings || 0).toFixed(1)
         });
       }
 
@@ -543,9 +543,9 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
       return {
         mode: 'multi',
-        frictionLossBar: (cumFrictionM / 10.197).toFixed(2),
-        elevationLossBar: (cumElevationM / 10.197).toFixed(2),
-        residualBar: residualBar.toFixed(2),
+        frictionLossBar: ((cumFrictionM / 10.197) || 0).toFixed(2),
+        elevationLossBar: ((cumElevationM / 10.197) || 0).toFixed(2),
+        residualBar: (residualBar || 0).toFixed(2),
         failed: residualBar < appliedRequiredResidual,
         segmentResults: segResults
       };
@@ -588,12 +588,12 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
         hydraulicDetails = {
           size: `${dia} mm (DN${dia})`,
-          frictionLossBar: (frictionLossM / 10.197).toFixed(2),
-          elevationLossBar: (appliedElevationChange / 10.197).toFixed(2),
-          residualBar: residualBar.toFixed(2),
-          totalLength: totalLength.toFixed(1),
-          equivFittings: equivFittings.toFixed(1),
-          velocity: vel.toFixed(2),
+          frictionLossBar: ((frictionLossM / 10.197) || 0).toFixed(2),
+          elevationLossBar: ((appliedElevationChange / 10.197) || 0).toFixed(2),
+          residualBar: (residualBar || 0).toFixed(2),
+          totalLength: (totalLength || 0).toFixed(1),
+          equivFittings: (equivFittings || 0).toFixed(1),
+          velocity: (vel || 0).toFixed(2),
           mode: 'auto',
           reynoldsNumber: reynolds.toLocaleString(),
           flowRegime: regime
@@ -633,12 +633,12 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
       hydraulicDetails = {
         size: `> DN200`,
-        frictionLossBar: (Hf * totalLength / 10.197).toFixed(2),
-        elevationLossBar: (appliedElevationChange / 10.197).toFixed(2),
-        residualBar: (appliedAvailablePressure - totalHeadLossBar).toFixed(2),
-        totalLength: totalLength.toFixed(1),
-        equivFittings: equivFittings.toFixed(1),
-        velocity: vel.toFixed(2),
+        frictionLossBar: ((Hf * totalLength / 10.197) || 0).toFixed(2),
+        elevationLossBar: ((appliedElevationChange / 10.197) || 0).toFixed(2),
+        residualBar: ((appliedAvailablePressure - totalHeadLossBar) || 0).toFixed(2),
+        totalLength: (totalLength || 0).toFixed(1),
+        equivFittings: (equivFittings || 0).toFixed(1),
+        velocity: (vel || 0).toFixed(2),
           mode: 'auto',
         reynoldsNumber: reynolds.toLocaleString(),
         flowRegime: regime,
@@ -702,19 +702,19 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
     const peakDrainageFlow = 0.7 * Math.sqrt(du);
     
     if (slopePercent === 0.5) { // 1:200
-      if (peakDrainageFlow <= 3.0) return { size: 'DN100 (4")', reason: `BS EN 12056 at 1:200 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      if (peakDrainageFlow <= 10.0) return { size: 'DN150 (6")', reason: `BS EN 12056 at 1:200 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      return { size: 'DN200+ (8"+)', reason: `BS EN 12056 at 1:200 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 3.0) return { size: 'DN100 (4")', reason: `BS EN 12056 at 1:200 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 10.0) return { size: 'DN150 (6")', reason: `BS EN 12056 at 1:200 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
+      return { size: 'DN200+ (8"+)', reason: `BS EN 12056 at 1:200 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
     } else if (slopePercent === 1.0) { // 1:100
-      if (!hasWC && peakDrainageFlow <= 1.5) return { size: 'DN75 (3")', reason: `BS EN 12056 at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      if (peakDrainageFlow <= 4.2) return { size: 'DN100 (4")', reason: `BS EN 12056 at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      if (peakDrainageFlow <= 14.5) return { size: 'DN150 (6")', reason: `BS EN 12056 at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      return { size: 'DN200+ (8"+)', reason: `BS EN 12056 at 1:100 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      if (!hasWC && peakDrainageFlow <= 1.5) return { size: 'DN75 (3")', reason: `BS EN 12056 at 1:100 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 4.2) return { size: 'DN100 (4")', reason: `BS EN 12056 at 1:100 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 14.5) return { size: 'DN150 (6")', reason: `BS EN 12056 at 1:100 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
+      return { size: 'DN200+ (8"+)', reason: `BS EN 12056 at 1:100 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
     } else { // 1:50 (2%) or higher
-      if (!hasWC && peakDrainageFlow <= 1.5) return { size: 'DN75 (3")', reason: `BS EN 12056 at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      if (peakDrainageFlow <= 5.8) return { size: 'DN100 (4")', reason: `BS EN 12056 at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      if (peakDrainageFlow <= 18.0) return { size: 'DN150 (6")', reason: `BS EN 12056 at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
-      return { size: 'DN200+ (8"+)', reason: `BS EN 12056 at 1:50 slope (Peak: ${peakDrainageFlow.toFixed(2)} L/s)` };
+      if (!hasWC && peakDrainageFlow <= 1.5) return { size: 'DN75 (3")', reason: `BS EN 12056 at 1:50 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 5.8) return { size: 'DN100 (4")', reason: `BS EN 12056 at 1:50 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
+      if (peakDrainageFlow <= 18.0) return { size: 'DN150 (6")', reason: `BS EN 12056 at 1:50 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
+      return { size: 'DN200+ (8"+)', reason: `BS EN 12056 at 1:50 slope (Peak: ${(peakDrainageFlow || 0).toFixed(2)} L/s)` };
     }
   };
 
@@ -838,8 +838,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
           ? `BS Pipe Sizing (${totalLU} LU)` 
           : `IPC Pipe Sizing (${totalWSFU} WSFU)`;
         summary = standard === 'bs'
-          ? `${totalLU} LU | Flow: ${peakFlowLps.toFixed(2)} L/s | Rec: ${recommendedWaterPipe}`
-          : `${totalWSFU} WSFU | Flow: ${peakFlowLps.toFixed(1)} L/s | Rec: ${recommendedWaterPipe}`;
+          ? `${totalLU} LU | Flow: ${(peakFlowLps || 0).toFixed(2)} L/s | Rec: ${recommendedWaterPipe}`
+          : `${totalWSFU} WSFU | Flow: ${(peakFlowLps || 0).toFixed(1)} L/s | Rec: ${recommendedWaterPipe}`;
         parameters = {
           ...parameters,
           fixtures,
@@ -849,7 +849,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         };
       } else if (subTab === 'tanks') {
         title = `Water/Septic Sizing (${occupants} Occ)`;
-        summary = `Potable: ${totalWaterStorageM3.toFixed(0)}m³ | Septic: ${totalSepticVolumeM3.toFixed(1)}m³`;
+        summary = `Potable: ${(totalWaterStorageM3 || 0).toFixed(0)}m³ | Septic: ${(totalSepticVolumeM3 || 0).toFixed(1)}m³`;
         parameters = {
           ...parameters,
           occupants,
@@ -861,7 +861,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         };
       } else {
         title = `Plumbing Pumps (Elev. ${boosterStaticHead}m)`;
-        summary = `Booster: ${boosterHP.toFixed(1)} HP | Transfer: ${transferHP.toFixed(1)} HP`;
+        summary = `Booster: ${(boosterHP || 0).toFixed(1)} HP | Transfer: ${(transferHP || 0).toFixed(1)} HP`;
         parameters = {
           ...parameters,
           boosterStaticHead,
@@ -910,10 +910,10 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         
         { section: "Tanks Sizing Output", parameter: "Daily Potable Water Demand", value: totalWaterStorageLiters / storageDays, unit: "Liters", notes: "Average consumption per 24 hours" },
         { section: "Tanks Sizing Output", parameter: "Potable Tank Capacity Required", value: totalWaterStorageLiters, unit: "Liters", notes: `Sized for ${storageDays} days` },
-        { section: "Tanks Sizing Output", parameter: "Potable Tank Volume", value: totalWaterStorageM3.toFixed(2), unit: "m³", notes: "" },
-        { section: "Tanks Sizing Output", parameter: "Septic Sludge Storage Zone", value: (septicSludgeVol / 1000).toFixed(2), unit: "m³", notes: "" },
-        { section: "Tanks Sizing Output", parameter: "Septic Settling Liquid Volume", value: (septicLiquidVol / 1000).toFixed(2), unit: "m³", notes: "" },
-        { section: "Tanks Sizing Output", parameter: "Total Septic Tank Volume Required", value: totalSepticVolumeM3.toFixed(2), unit: "m³", notes: "Total tank interior clearance volume" }
+        { section: "Tanks Sizing Output", parameter: "Potable Tank Volume", value: (totalWaterStorageM3 || 0).toFixed(2), unit: "m³", notes: "" },
+        { section: "Tanks Sizing Output", parameter: "Septic Sludge Storage Zone", value: ((septicSludgeVol / 1000) || 0).toFixed(2), unit: "m³", notes: "" },
+        { section: "Tanks Sizing Output", parameter: "Septic Settling Liquid Volume", value: ((septicLiquidVol / 1000) || 0).toFixed(2), unit: "m³", notes: "" },
+        { section: "Tanks Sizing Output", parameter: "Total Septic Tank Volume Required", value: (totalSepticVolumeM3 || 0).toFixed(2), unit: "m³", notes: "Total tank interior clearance volume" }
       ];
       import('../lib/exportCsv').then(({ downloadCsv }) => {
         downloadCsv("plumbing_tank_sizing", "Plumbing Water and Septic Tank Sizing", rows);
@@ -925,17 +925,17 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         { section: "Pump Input", parameter: "Friction Loss Allowance", value: boosterFrictionPercent, unit: "%", notes: "Allowance added to static rise" },
         { section: "Pump Input", parameter: "Pump Mech. Efficiency", value: boosterEfficiency, unit: "%", notes: "Used to determine electric motor HP" },
         
-        { section: "Booster Pump Output", parameter: "Booster Total Head (TDH)", value: boosterHeadMeters.toFixed(1), unit: "meters", notes: "" },
-        { section: "Booster Pump Output", parameter: "Booster Required Power", value: boosterHP.toFixed(2), unit: "HP (Horsepower)", notes: "Electric motor rating" },
+        { section: "Booster Pump Output", parameter: "Booster Total Head (TDH)", value: (boosterHeadMeters || 0).toFixed(1), unit: "meters", notes: "" },
+        { section: "Booster Pump Output", parameter: "Booster Required Power", value: (boosterHP || 0).toFixed(2), unit: "HP (Horsepower)", notes: "Electric motor rating" },
         
         { section: "Transfer Pump Output", parameter: "Transfer Target Fill Time", value: transferFillTime, unit: "minutes", notes: "" },
-        { section: "Transfer Pump Output", parameter: "Transfer Pump Flow Rate", value: transferFlowLps.toFixed(2), unit: "L/s", notes: "" },
-        { section: "Transfer Pump Output", parameter: "Transfer Head (TDH)", value: transferHeadMeters.toFixed(1), unit: "meters", notes: "" },
-        { section: "Transfer Pump Output", parameter: "Transfer Required Power", value: transferHP.toFixed(2), unit: "HP (Horsepower)", notes: "" },
+        { section: "Transfer Pump Output", parameter: "Transfer Pump Flow Rate", value: (transferFlowLps || 0).toFixed(2), unit: "L/s", notes: "" },
+        { section: "Transfer Pump Output", parameter: "Transfer Head (TDH)", value: (transferHeadMeters || 0).toFixed(1), unit: "meters", notes: "" },
+        { section: "Transfer Pump Output", parameter: "Transfer Required Power", value: (transferHP || 0).toFixed(2), unit: "HP (Horsepower)", notes: "" },
         
         { section: "Sump Pump Output", parameter: "Sump Peak Inflow Rate", value: sumpInflow, unit: "L/min", notes: "Stormwater or drainage peak load" },
-        { section: "Sump Pump Output", parameter: "Sump Head (TDH)", value: sumpHeadMeters.toFixed(1), unit: "meters", notes: "" },
-        { section: "Sump Pump Output", parameter: "Sump Required Power", value: sumpHP.toFixed(2), unit: "HP (Horsepower)", notes: "" },
+        { section: "Sump Pump Output", parameter: "Sump Head (TDH)", value: (sumpHeadMeters || 0).toFixed(1), unit: "meters", notes: "" },
+        { section: "Sump Pump Output", parameter: "Sump Required Power", value: (sumpHP || 0).toFixed(2), unit: "HP (Horsepower)", notes: "" },
       ];
       import('../lib/exportCsv').then(({ downloadCsv }) => {
         downloadCsv("plumbing_pump_sizing", "Plumbing Water Booster and Transfer Pump Sizing", rows);
@@ -1875,7 +1875,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
 
         {/* RIGHT COLUMN: MODULE SPECIFIC RESULTS & REPORTS (5 cols) */}
         <motion.div
-          key={`${subTab}-${peakFlowLps.toFixed(4)}-${sumpVolumeLiters.toFixed(2)}-${totalWaterStorageLiters.toFixed(2)}`}
+          key={`${subTab}-${(peakFlowLps || 0).toFixed(4)}-${(sumpVolumeLiters || 0).toFixed(2)}-${(totalWaterStorageLiters || 0).toFixed(2)}`}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -1900,7 +1900,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     <p className="text-xl font-bold text-white mt-0.5 font-mono">
                       {standard === 'bs' ? (
                         <>
-                          {totalLU.toFixed(1)} <span className="text-xs text-slate-400">LU</span>
+                          {(totalLU || 0).toFixed(1)} <span className="text-xs text-slate-400">LU</span>
                         </>
                       ) : (
                         <>
@@ -1916,7 +1916,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     <p className="text-xl font-bold text-white mt-0.5 font-mono">
                       {standard === 'bs' ? (
                         <>
-                          {totalDU.toFixed(1)} <span className="text-xs text-slate-400">DU</span>
+                          {(totalDU || 0).toFixed(1)} <span className="text-xs text-slate-400">DU</span>
                         </>
                       ) : (
                         <>
@@ -1953,8 +1953,8 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       {standard === 'bs' ? 'BS EN 806 Peak Flow (QD)' : "Hunter's Peak Flow"}
                     </span>
                     <p className="text-2xl font-extrabold text-cyan-400 font-mono mt-0.5">
-                      {peakFlowLps.toFixed(2)} <span className="text-xs text-slate-400 font-semibold">L/s</span>{' '}
-                      <span className="text-xs text-slate-500">({peakFlowGPM.toFixed(1)} GPM)</span>
+                      {(peakFlowLps || 0).toFixed(2)} <span className="text-xs text-slate-400 font-semibold">L/s</span>{' '}
+                      <span className="text-xs text-slate-500">({(peakFlowGPM || 0).toFixed(1)} GPM)</span>
                     </p>
                     {standard === 'ipc' && hunterDebug && (
                       <div className="mt-2 bg-slate-900/80 border border-slate-700/50 p-2 rounded-lg">
@@ -1963,7 +1963,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                           {hunterDebug.log}
                         </span>
                         <span className="block text-[9px] text-slate-500 font-mono mt-1 pt-1 border-t border-slate-800/50">
-                          *Raw flow = {peakFlowGPM.toFixed(2)} GPM (No implicit multipliers applied)
+                          *Raw flow = {(peakFlowGPM || 0).toFixed(2)} GPM (No implicit multipliers applied)
                         </span>
                       </div>
                     )}
@@ -1981,7 +1981,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                           </p>
                         </div>
                         <span className="block text-[10px] text-slate-500 font-mono font-normal mt-1">
-                          (Minimum internal diameter: {calculatedWaterPipeDia.toFixed(1)} mm @ {designVelocity} m/s)
+                          (Minimum internal diameter: {(calculatedWaterPipeDia || 0).toFixed(1)} mm @ {designVelocity} m/s)
                         </span>
                       </>
                     ) : (
@@ -2003,7 +2003,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                             <div className="mt-2 bg-slate-900/50 border border-slate-800 p-2.5 rounded-lg text-[10px] font-mono text-slate-400 space-y-1">
                               <div className="flex justify-between">
                                 <span>Min Vel. Diameter:</span>
-                                <span className="text-white">{calculatedWaterPipeDia.toFixed(1)} mm (@ {designVelocity} m/s)</span>
+                                <span className="text-white">{(calculatedWaterPipeDia || 0).toFixed(1)} mm (@ {designVelocity} m/s)</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Total Eq. Length:</span>
@@ -2015,7 +2015,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                               </div>
                               <div className="flex justify-between">
                                 <span>Elevation {Number(hydraulicResult.elevationLossBar) < 0 ? 'Gain' : 'Loss'}:</span>
-                                <span className="text-white">{Number(hydraulicResult.elevationLossBar) < 0 ? '+' : ''}{Math.abs(Number(hydraulicResult.elevationLossBar)).toFixed(2)} bar</span>
+                                <span className="text-white">{Number(hydraulicResult.elevationLossBar) < 0 ? '+' : ''}{(Math.abs(Number(hydraulicResult.elevationLossBar)) || 0).toFixed(2)} bar</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Calc. Velocity:</span>
@@ -2070,7 +2070,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                               <div className="flex justify-between">
                                 <span>Total Elevation {Number(hydraulicResult.elevationLossBar) < 0 ? 'Gain' : 'Loss'}:</span>
                                 <span className={Number(hydraulicResult.elevationLossBar) < 0 ? 'text-cyan-400 font-bold' : 'text-orange-400 font-bold'}>
-                                  {Number(hydraulicResult.elevationLossBar) < 0 ? '+' : '-'}{Math.abs(Number(hydraulicResult.elevationLossBar)).toFixed(2)} bar
+                                  {Number(hydraulicResult.elevationLossBar) < 0 ? '+' : '-'}{(Math.abs(Number(hydraulicResult.elevationLossBar)) || 0).toFixed(2)} bar
                                 </span>
                               </div>
                               <div className="flex justify-between border-t border-slate-700/50 pt-1 mt-1">
@@ -2182,7 +2182,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                                       <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-500/80"></span>Elev</span>
                                       <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${hydraulicResult.failed ? 'bg-red-500/80' : 'bg-orange-500/80'}`}></span>Friction</span>
                                     </div>
-                                    <span>Avail: {avail.toFixed(1)} bar</span>
+                                    <span>Avail: {(avail || 0).toFixed(1)} bar</span>
                                   </div>
                                 </div>
                               );
@@ -2213,7 +2213,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div>
                   <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Potable Water Tank Capacity</span>
                   <p className="text-2xl font-black text-cyan-400 font-mono mt-1">
-                    {totalWaterStorageM3.toFixed(1)} <span className="text-sm font-normal text-slate-400">m³</span>
+                    {(totalWaterStorageM3 || 0).toFixed(1)} <span className="text-sm font-normal text-slate-400">m³</span>
                   </p>
                   <span className="block text-[10px] text-slate-400 font-mono mt-1">
                     ({totalWaterStorageLiters.toLocaleString()} Liters for {storageDays} days)
@@ -2223,11 +2223,11 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div className="flex flex-col gap-3 pt-3 border-t border-slate-800">
                   <div className="bg-slate-950/30 p-2.5 rounded border border-slate-850">
                     <span className="block text-[8px] text-slate-500 font-bold uppercase">Ground Reservoir (2/3)</span>
-                    <span className="block text-xs font-bold font-mono text-white mt-1">{ugTankVolume.toFixed(1)} m³</span>
+                    <span className="block text-xs font-bold font-mono text-white mt-1">{(ugTankVolume || 0).toFixed(1)} m³</span>
                   </div>
                   <div className="bg-slate-950/30 p-2.5 rounded border border-slate-850">
                     <span className="block text-[8px] text-slate-500 font-bold uppercase">Roof Elev. Tank (1/3)</span>
-                    <span className="block text-xs font-bold font-mono text-white mt-1">{roofTankVolume.toFixed(1)} m³</span>
+                    <span className="block text-xs font-bold font-mono text-white mt-1">{(roofTankVolume || 0).toFixed(1)} m³</span>
                   </div>
                 </div>
 
@@ -2237,7 +2237,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       {standard === 'bs' ? 'BS 6297 Septic Tank Volume' : 'IPC/EPA Septic Tank Volume'}
                     </span>
                     <p className="text-lg font-black text-white font-mono mt-1">
-                      {totalSepticVolumeM3.toFixed(2)} <span className="text-xs text-slate-400 font-semibold">m³</span>
+                      {(totalSepticVolumeM3 || 0).toFixed(2)} <span className="text-xs text-slate-400 font-semibold">m³</span>
                     </p>
                     <span className="block text-[9px] text-slate-500 leading-normal mt-1">
                       {standard === 'bs' ? (
@@ -2253,7 +2253,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       {standard === 'bs' ? 'Sump Receiver (BS EN 12050)' : 'Submersible / Sump Tank'}
                     </span>
                     <p className="text-lg font-bold text-cyan-400 font-mono mt-1">
-                      {sumpVolumeM3.toFixed(1)} <span className="text-xs text-slate-400">m³</span>
+                      {(sumpVolumeM3 || 0).toFixed(1)} <span className="text-xs text-slate-400">m³</span>
                     </p>
                     <span className="block text-[9px] text-slate-500">
                       * Holds {sumpVolumeLiters.toLocaleString()} Liters (20 mins protection flow)
@@ -2269,12 +2269,12 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   <div>
                     <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Water Booster Pump Set</span>
                     <p className="text-xl font-extrabold text-cyan-400 font-mono mt-0.5">
-                      {boosterHP.toFixed(2)} <span className="text-xs text-slate-400">HP</span>{' '}
-                      <span className="text-xs text-slate-500">({(boosterShaftPower).toFixed(2)} kW)</span>
+                      {(boosterHP || 0).toFixed(2)} <span className="text-xs text-slate-400">HP</span>{' '}
+                      <span className="text-xs text-slate-500">({((boosterShaftPower || 0)).toFixed(2)} kW)</span>
                     </p>
                     <div className="text-[9px] text-slate-400 font-mono mt-1 space-y-0.5">
-                      <div>• Sump Peak Flow: {boosterFlowLpm.toFixed(0)} L/min ({peakFlowLps.toFixed(2)} L/s)</div>
-                      <div>• Total Calc Head: {boosterHeadMeters.toFixed(1)} meters ({ (boosterHeadMeters / 10.197).toFixed(1) } bar)</div>
+                      <div>• Sump Peak Flow: {(boosterFlowLpm || 0).toFixed(0)} L/min ({(peakFlowLps || 0).toFixed(2)} L/s)</div>
+                      <div>• Total Calc Head: {(boosterHeadMeters || 0).toFixed(1)} meters ({ ((boosterHeadMeters / 10.197) || 0).toFixed(1) } bar)</div>
                     </div>
                   </div>
                 </div>
@@ -2282,17 +2282,17 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div className="flex flex-col gap-3 pt-2.5">
                   <div className="bg-slate-950/40 p-3 rounded-lg border border-slate-850 space-y-1.5">
                     <span className="block text-[8px] text-slate-500 font-bold uppercase">Water Transfer Pump</span>
-                    <span className="block text-sm font-bold text-white font-mono">{transferHP.toFixed(2)} HP</span>
+                    <span className="block text-sm font-bold text-white font-mono">{(transferHP || 0).toFixed(2)} HP</span>
                     <div className="text-[8px] text-slate-500 leading-normal">
-                      Flow: {transferFlowLpm.toFixed(0)} Lpm<br/>Head: {transferHeadMeters.toFixed(1)}m
+                      Flow: {(transferFlowLpm || 0).toFixed(0)} Lpm<br/>Head: {(transferHeadMeters || 0).toFixed(1)}m
                     </div>
                   </div>
 
                   <div className="bg-slate-950/40 p-3 rounded-lg border border-slate-850 space-y-1.5">
                     <span className="block text-[8px] text-slate-500 font-bold uppercase">Submersible Sump Pump</span>
-                    <span className="block text-sm font-bold text-cyan-400 font-mono">{sumpHP.toFixed(2)} HP</span>
+                    <span className="block text-sm font-bold text-cyan-400 font-mono">{(sumpHP || 0).toFixed(2)} HP</span>
                     <div className="text-[8px] text-slate-500 leading-normal">
-                      Flow: {sumpFlowLpm.toFixed(0)} Lpm<br/>Head: {sumpHeadMeters.toFixed(1)}m
+                      Flow: {(sumpFlowLpm || 0).toFixed(0)} Lpm<br/>Head: {(sumpHeadMeters || 0).toFixed(1)}m
                     </div>
                   </div>
                 </div>
@@ -2301,7 +2301,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Pump-to-Service Recommended Main Pipes</span>
                   <div className="space-y-2 text-[10px] text-slate-300 font-mono">
                     <div className="border-b border-slate-850/60 pb-1.5">
-                      <span className="text-cyan-400 font-bold">Booster Main (Flow: {peakFlowLps.toFixed(2)} L/s):</span>
+                      <span className="text-cyan-400 font-bold">Booster Main (Flow: {(peakFlowLps || 0).toFixed(2)} L/s):</span>
                       <div className="flex justify-between text-[9px] text-slate-400 mt-0.5 pl-2">
                         <span>• Suction Line (≤ 1.2 m/s):</span>
                         <span className="text-white font-bold">{boosterSuctionPipe}</span>
@@ -2312,7 +2312,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                       </div>
                     </div>
                     <div>
-                      <span className="text-cyan-400 font-bold">Transfer Main (Flow: {transferFlowLps.toFixed(2)} L/s):</span>
+                      <span className="text-cyan-400 font-bold">Transfer Main (Flow: {(transferFlowLps || 0).toFixed(2)} L/s):</span>
                       <div className="flex justify-between text-[9px] text-slate-400 mt-0.5 pl-2">
                         <span>• Suction Line (≤ 1.2 m/s):</span>
                         <span className="text-white font-bold">{transferSuctionPipe}</span>
@@ -2373,7 +2373,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     `- Total Load: ${standard === 'bs' ? totalLU + ' LU | ' + totalDU + ' DU' : totalWSFU + ' WSFU | ' + totalDFU + ' DFU'}\n` +
                     `- Design Velocity: ${designVelocity} m/s\n` +
                     `- Sewage Slope: ${slope}%\n` +
-                    `- Peak Flow: ${peakFlowLps.toFixed(2)} L/s (${peakFlowGPM.toFixed(1)} GPM)\n` +
+                    `- Peak Flow: ${(peakFlowLps || 0).toFixed(2)} L/s (${(peakFlowGPM || 0).toFixed(1)} GPM)\n` +
                     (standard === 'bs' 
                       ? `- Recommended Water Pipe: ${recommendedWaterPipe}\n` 
                       : `- Preliminary Water Pipe (Velocity): ${recommendedWaterPipe} *Requires IPC friction tables for complete sizing.\n`) +
@@ -2382,17 +2382,17 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                   summaryText = `- Occupants: ${occupants}\n` +
                     `- Daily Water Use Rate: ${consumptionRate} L/person/day\n` +
                     `- Storage Days: ${storageDays}\n` +
-                    `- Required Water Storage: ${totalWaterStorageM3.toFixed(1)} m³ (${totalWaterStorageLiters.toLocaleString()} Liters)\n` +
-                    `  • Underground Tank (2/3): ${ugTankVolume.toFixed(1)} m³\n` +
-                    `  • Elevated Roof Tank (1/3): ${roofTankVolume.toFixed(1)} m³\n` +
-                    `- Required Septic Tank: ${totalSepticVolumeM3.toFixed(1)} m³ (${totalSepticVolumeLiters.toLocaleString()} Liters)\n` +
-                    `- Sump Receiver Volume: ${sumpVolumeM3.toFixed(1)} m³`;
+                    `- Required Water Storage: ${(totalWaterStorageM3 || 0).toFixed(1)} m³ (${totalWaterStorageLiters.toLocaleString()} Liters)\n` +
+                    `  • Underground Tank (2/3): ${(ugTankVolume || 0).toFixed(1)} m³\n` +
+                    `  • Elevated Roof Tank (1/3): ${(roofTankVolume || 0).toFixed(1)} m³\n` +
+                    `- Required Septic Tank: ${(totalSepticVolumeM3 || 0).toFixed(1)} m³ (${totalSepticVolumeLiters.toLocaleString()} Liters)\n` +
+                    `- Sump Receiver Volume: ${(sumpVolumeM3 || 0).toFixed(1)} m³`;
                 } else {
                   summaryText = `- Static Booster Rise: ${boosterStaticHead} m\n` +
-                    `- Booster Flow: ${boosterFlowLpm.toFixed(0)} L/min (${peakFlowLps.toFixed(2)} L/s)\n` +
-                    `- Required Booster Pump: ${boosterHP.toFixed(2)} HP (${boosterShaftPower.toFixed(2)} kW)\n` +
-                    `- Required Transfer Pump: ${transferHP.toFixed(2)} HP\n` +
-                    `- Required Sump Pump: ${sumpHP.toFixed(2)} HP`;
+                    `- Booster Flow: ${(boosterFlowLpm || 0).toFixed(0)} L/min (${(peakFlowLps || 0).toFixed(2)} L/s)\n` +
+                    `- Required Booster Pump: ${(boosterHP || 0).toFixed(2)} HP (${(boosterShaftPower || 0).toFixed(2)} kW)\n` +
+                    `- Required Transfer Pump: ${(transferHP || 0).toFixed(2)} HP\n` +
+                    `- Required Sump Pump: ${(sumpHP || 0).toFixed(2)} HP`;
                 }
                 const body = encodeURIComponent(
                   `Dear Team,\n\nHere is the Plumbing Sizing Estimate Report (${subTab === 'fixtures' ? 'Fixtures & Pipe Sizing' : subTab === 'tanks' ? 'Water & Septic Tanks' : 'Pumps & Flow Rates'}) generated from CKY_MEPF:\n\n` +

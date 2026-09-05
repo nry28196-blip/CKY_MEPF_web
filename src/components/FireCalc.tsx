@@ -425,7 +425,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
         title = standard === 'bs' 
           ? `BS EN Fire Demands (${hazard.toUpperCase()})` 
           : `NFPA Fire Demands (${hazard.toUpperCase()})`;
-        summary = `Sprinklers: ${sprinklersCount} | Flows: ${totalWaterDemandLpm.toFixed(0)} Lpm | Heads: ${activeHeadsInDesignArea}`;
+        summary = `Sprinklers: ${sprinklersCount} | Flows: ${(totalWaterDemandLpm || 0).toFixed(0)} Lpm | Heads: ${activeHeadsInDesignArea}`;
         parameters = {
           ...parameters,
           sprinklersCount,
@@ -440,7 +440,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
         title = standard === 'bs' 
           ? `BS Water Storage (${flowDuration}m)` 
           : `Fire Water Storage (${flowDuration}m)`;
-        summary = `Tank: ${storageTankVolumeM3.toFixed(0)}m³ | Duration: ${flowDuration} mins | Hydrants: ${hydrantsCount}`;
+        summary = `Tank: ${(storageTankVolumeM3 || 0).toFixed(0)}m³ | Duration: ${flowDuration} mins | Hydrants: ${hydrantsCount}`;
         parameters = {
           ...parameters,
           flowDuration,
@@ -451,7 +451,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
         title = standard === 'bs' 
           ? `BS Fire Pump (Elev. ${buildingHeight}m)` 
           : `NFPA Fire Pump (Elev. ${buildingHeight}m)`;
-        summary = `Pump: ${pumpHP.toFixed(1)} HP | Head: ${totalPumpHeadMeters.toFixed(1)}m | Flow: ${totalWaterDemandLpm.toFixed(0)} Lpm`;
+        summary = `Pump: ${(pumpHP || 0).toFixed(1)} HP | Head: ${(totalPumpHeadMeters || 0).toFixed(1)}m | Flow: ${(totalWaterDemandLpm || 0).toFixed(0)} Lpm`;
         parameters = {
           ...parameters,
           buildingHeight,
@@ -486,9 +486,9 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
         { section: "Sprinkler Flow Parameter", parameter: "Residual Head Pressure", value: residualPressure, unit: "bar / psi", notes: "" },
         { section: "Sprinkler Flow Parameter", parameter: "Active Heads in Design Area", value: activeHeadsInDesignArea, unit: "Heads", notes: "" },
         
-        { section: "Flow Demand Sizing", parameter: "Single Sprinkler Peak Flow", value: singleSprinklerFlowLpm.toFixed(1), unit: "L/min", notes: "" },
-        { section: "Flow Demand Sizing", parameter: "Design Area Sprinklers Flow", value: designAreaSprinklerFlowLpm.toFixed(0), unit: "L/min", notes: "" },
-        { section: "Flow Demand Sizing", parameter: "Total System Flow Demand", value: totalWaterDemandLpm.toFixed(0), unit: "L/min", notes: "Includes hose stream allowance" },
+        { section: "Flow Demand Sizing", parameter: "Single Sprinkler Peak Flow", value: (singleSprinklerFlowLpm || 0).toFixed(1), unit: "L/min", notes: "" },
+        { section: "Flow Demand Sizing", parameter: "Design Area Sprinklers Flow", value: (designAreaSprinklerFlowLpm || 0).toFixed(0), unit: "L/min", notes: "" },
+        { section: "Flow Demand Sizing", parameter: "Total System Flow Demand", value: (totalWaterDemandLpm || 0).toFixed(0), unit: "L/min", notes: "Includes hose stream allowance" },
       ];
       import('../lib/exportCsv').then(({ downloadCsv }) => {
         downloadCsv("fire_equipment_demands", "Fire Sprinkler and Equipment Demand Report", rows);
@@ -499,10 +499,10 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
         { section: "Hose Stream Input", parameter: "Hose Stream Allowance", value: hoseStreamAllowance, unit: "L/min / GPM", notes: "" },
         { section: "Hydrants Input", parameter: "Hydrants Count", value: hydrantsCount, unit: "Outlets", notes: "" },
         
-        { section: "Storage Output", parameter: "Total Water Demand Flow Rate", value: totalWaterDemandLpm.toFixed(0), unit: "L/min", notes: "" },
-        { section: "Storage Output", parameter: "Total Fire Water Volume (Liters)", value: storageTankVolumeLiters.toFixed(0), unit: "Liters", notes: "" },
-        { section: "Storage Output", parameter: "Total Fire Water Volume (Gallons)", value: storageTankVolumeGallons.toFixed(0), unit: "US Gallons", notes: "" },
-        { section: "Storage Output", parameter: "Total Fire Water Volume (m³)", value: storageTankVolumeM3.toFixed(2), unit: "m³", notes: "Recommended storage tank clear size" },
+        { section: "Storage Output", parameter: "Total Water Demand Flow Rate", value: (totalWaterDemandLpm || 0).toFixed(0), unit: "L/min", notes: "" },
+        { section: "Storage Output", parameter: "Total Fire Water Volume (Liters)", value: (storageTankVolumeLiters || 0).toFixed(0), unit: "Liters", notes: "" },
+        { section: "Storage Output", parameter: "Total Fire Water Volume (Gallons)", value: (storageTankVolumeGallons || 0).toFixed(0), unit: "US Gallons", notes: "" },
+        { section: "Storage Output", parameter: "Total Fire Water Volume (m³)", value: (storageTankVolumeM3 || 0).toFixed(2), unit: "m³", notes: "Recommended storage tank clear size" },
       ];
       import('../lib/exportCsv').then(({ downloadCsv }) => {
         downloadCsv("fire_water_storage_sizing", "Fire Fighting Water Reservoir Sizing Report", rows);
@@ -514,10 +514,10 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
         { section: "Pump Sizing Input", parameter: "Allowed Pipe Friction Loss", value: pipeFrictionPercent, unit: "%", notes: "" },
         { section: "Pump Sizing Input", parameter: "Pump Mech. Efficiency", value: pumpEfficiency, unit: "%", notes: "" },
         
-        { section: "Pump Output", parameter: "Static Pressure", value: (appliedStandard === 'bs' ? staticHeadBar : staticHeadPsi).toFixed(2), unit: appliedStandard === 'bs' ? "bar" : "psi", notes: "" },
-        { section: "Pump Output", parameter: "Friction Loss", value: (appliedStandard === 'bs' ? frictionLossBar : frictionLossPsi).toFixed(2), unit: appliedStandard === 'bs' ? "bar" : "psi", notes: "" },
-        { section: "Pump Output", parameter: "Total Dynamic Head (TDH)", value: totalPumpHeadMeters.toFixed(1), unit: "meters", notes: "" },
-        { section: "Pump Output", parameter: "Electric Motor Power", value: pumpHP.toFixed(2), unit: "HP (Horsepower)", notes: "" },
+        { section: "Pump Output", parameter: "Static Pressure", value: ((appliedStandard === 'bs' ? staticHeadBar : staticHeadPsi) || 0).toFixed(2), unit: appliedStandard === 'bs' ? "bar" : "psi", notes: "" },
+        { section: "Pump Output", parameter: "Friction Loss", value: ((appliedStandard === 'bs' ? frictionLossBar : frictionLossPsi) || 0).toFixed(2), unit: appliedStandard === 'bs' ? "bar" : "psi", notes: "" },
+        { section: "Pump Output", parameter: "Total Dynamic Head (TDH)", value: (totalPumpHeadMeters || 0).toFixed(1), unit: "meters", notes: "" },
+        { section: "Pump Output", parameter: "Electric Motor Power", value: (pumpHP || 0).toFixed(2), unit: "HP (Horsepower)", notes: "" },
       ];
       import('../lib/exportCsv').then(({ downloadCsv }) => {
         downloadCsv("fire_pump_sizing", "Fire Sprinkler Booster and Standpipe Pump Report", rows);
@@ -876,8 +876,8 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                 <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl flex flex-col justify-center">
                   <span className="block text-[9px] text-slate-500 uppercase font-semibold">Single Sprinkler Performance</span>
                   <p className="text-xl font-bold text-white mt-1.5 font-mono">
-                    {singleSprinklerFlowLpm.toFixed(1)} <span className="text-xs text-slate-400">Lpm</span>{' '}
-                    <span className="text-xs text-slate-500">({singleSprinklerFlowGPM.toFixed(1)} GPM)</span>
+                    {(singleSprinklerFlowLpm || 0).toFixed(1)} <span className="text-xs text-slate-400">Lpm</span>{' '}
+                    <span className="text-xs text-slate-500">({(singleSprinklerFlowGPM || 0).toFixed(1)} GPM)</span>
                   </p>
                   <span className="block text-[9px] text-slate-500 leading-normal mt-2">
                     * Evaluated at K={kFactor} and residual pressure P={residualPressure} {standard === 'bs' ? 'bar' : 'psi'}.
@@ -890,7 +890,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                       <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Design Area Sprinkler Flow</span>
                       <p className="text-lg font-extrabold text-red-400 font-mono mt-0.5">
                         {designAreaSprinklerFlowLpm.toLocaleString(undefined, {maximumFractionDigits:0})} <span className="text-xs text-slate-400">Lpm</span>{' '}
-                        <span className="text-xs text-slate-500">({designAreaSprinklerFlowGPM.toFixed(0)} GPM)</span>
+                        <span className="text-xs text-slate-500">({(designAreaSprinklerFlowGPM || 0).toFixed(0)} GPM)</span>
                       </p>
                       <span className="block text-[9px] text-slate-500 mt-1">
                         (Flow demand of {activeHeadsInDesignArea} simultaneously active heads)
@@ -901,11 +901,11 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                       <p className="text-sm font-bold text-white mt-0.5">
                         {standard === 'bs' ? (
                           <>
-                            {hoseStreamAllowance} Lpm <span className="text-[10px] text-slate-500 font-mono">({(hoseStreamAllowance / 3.7854).toFixed(0)} GPM)</span>
+                            {hoseStreamAllowance} Lpm <span className="text-[10px] text-slate-500 font-mono">({((hoseStreamAllowance / 3.7854) || 0).toFixed(0)} GPM)</span>
                           </>
                         ) : (
                           <>
-                            {(hoseStreamAllowance * 3.7854).toFixed(0)} Lpm <span className="text-[10px] text-slate-500 font-mono">({hoseStreamAllowance} GPM)</span>
+                            {((hoseStreamAllowance * 3.7854) || 0).toFixed(0)} Lpm <span className="text-[10px] text-slate-500 font-mono">({hoseStreamAllowance} GPM)</span>
                           </>
                         )}
                       </p>
@@ -913,7 +913,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     <div className="md:border-l border-t md:border-t-0 border-slate-800 md:pl-4 pt-3 md:pt-0 flex flex-col justify-center">
                       <span className="block text-[9px] text-slate-500 uppercase font-bold tracking-wider">Combined Peak System Demand</span>
                       <p className="text-base font-extrabold text-red-400 mt-0.5 font-mono">
-                        {totalWaterDemandLpm.toLocaleString(undefined, {maximumFractionDigits:0})} Lpm <span className="text-xs text-slate-500">({totalWaterDemandGPM.toFixed(0)} GPM)</span>
+                        {totalWaterDemandLpm.toLocaleString(undefined, {maximumFractionDigits:0})} Lpm <span className="text-xs text-slate-500">({(totalWaterDemandGPM || 0).toFixed(0)} GPM)</span>
                       </p>
                     </div>
                   </div>
@@ -1136,7 +1136,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
         {/* RIGHT COLUMN: REVIEWS & CALCULATIONS SUMMARY */}
         {subTab !== 'formulas' && (
           <motion.div
-            key={`${subTab}-${totalWaterDemandLpm.toFixed(2)}-${storageTankVolumeLiters.toFixed(2)}`}
+            key={`${subTab}-${(totalWaterDemandLpm || 0).toFixed(2)}-${(storageTankVolumeLiters || 0).toFixed(2)}`}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -1157,22 +1157,22 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     if (subTab === 'equipment') {
                       summaryText = `- Standard: ${standard.toUpperCase()}\n` +
                         `- Hazard Class: ${hazard.toUpperCase()}\n\n` +
-                        `- Single Sprinkler Flow: ${singleSprinklerFlowLpm.toFixed(1)} Lpm (${singleSprinklerFlowGPM.toFixed(1)} GPM)\n` +
-                        `- Design Area Sprinkler Flow: ${designAreaSprinklerFlowLpm.toFixed(1)} Lpm\n` +
-                        `- Hose Stream Allowance: ${standard === 'bs' ? hoseStreamAllowance : (hoseStreamAllowance * 3.7854).toFixed(1)} Lpm\n\n` +
-                        `- COMBINED PEAK SYSTEM DEMAND: ${totalWaterDemandLpm.toFixed(1)} Lpm (${totalWaterDemandGPM.toFixed(1)} GPM)`;
+                        `- Single Sprinkler Flow: ${(singleSprinklerFlowLpm || 0).toFixed(1)} Lpm (${(singleSprinklerFlowGPM || 0).toFixed(1)} GPM)\n` +
+                        `- Design Area Sprinkler Flow: ${(designAreaSprinklerFlowLpm || 0).toFixed(1)} Lpm\n` +
+                        `- Hose Stream Allowance: ${standard === 'bs' ? hoseStreamAllowance : ((hoseStreamAllowance * 3.7854) || 0).toFixed(1)} Lpm\n\n` +
+                        `- COMBINED PEAK SYSTEM DEMAND: ${(totalWaterDemandLpm || 0).toFixed(1)} Lpm (${(totalWaterDemandGPM || 0).toFixed(1)} GPM)`;
                     } else if (subTab === 'sizing') {
                       summaryText = `- Standard: ${standard.toUpperCase()}\n` +
                         `- Min Flow Duration: ${flowDuration} mins\n` +
-                        `- Combined Peak Demand: ${totalWaterDemandLpm.toFixed(1)} Lpm\n\n` +
-                        `- RESERVOIR STORAGE REQ: ${storageTankVolumeM3.toFixed(1)} m³\n` +
-                        `  (${storageTankVolumeLiters.toFixed(1)} Liters)\n\n` +
+                        `- Combined Peak Demand: ${(totalWaterDemandLpm || 0).toFixed(1)} Lpm\n\n` +
+                        `- RESERVOIR STORAGE REQ: ${(storageTankVolumeM3 || 0).toFixed(1)} m³\n` +
+                        `  (${(storageTankVolumeLiters || 0).toFixed(1)} Liters)\n\n` +
                         `- Hydrant Connections Needed: ${hydrantRequiredOutlets}\n` +
                         `- Breeching Inlets: ${minBreechingInletsNeeded} (${suggestedBreechingType})`;
                     } else if (subTab === 'pump') {
-                      summaryText = `- Fire Pump Rating: ${totalWaterDemandGPM.toFixed(1)} GPM @ ${totalPumpHeadPsi.toFixed(1)} psi\n` +
-                        `- Estimated Motor Power: ${pumpHP.toFixed(1)} HP (${pumpKW.toFixed(1)} kW)\n\n` +
-                        `- Jockey Pump Rating: ${jockeyFlowGPM.toFixed(1)} GPM @ ${jockeyHeadPsi.toFixed(1)} psi\n\n` +
+                      summaryText = `- Fire Pump Rating: ${(totalWaterDemandGPM || 0).toFixed(1)} GPM @ ${(totalPumpHeadPsi || 0).toFixed(1)} psi\n` +
+                        `- Estimated Motor Power: ${(pumpHP || 0).toFixed(1)} HP (${(pumpKW || 0).toFixed(1)} kW)\n\n` +
+                        `- Jockey Pump Rating: ${(jockeyFlowGPM || 0).toFixed(1)} GPM @ ${(jockeyHeadPsi || 0).toFixed(1)} psi\n\n` +
                         `- Recommended Pipe Sizes:\n` +
                         `  * Suction: ${firePumpPipes.suction}\n` +
                         `  * Discharge: ${firePumpPipes.discharge}\n` +

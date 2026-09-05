@@ -239,17 +239,17 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
     text += `- Velocity Limit: ${velocityLimit} FPM\n`;
     text += `- Assigned Duct Height: ${ductHeight} in\n\n`;
     text += `MAIN DUCT RESULTS:\n`;
-    text += `- Equivalent Round Diameter: ${lenUnitHook.getDisplayValue(deMain).toFixed(1)} in (${Math.round(deMain * 25.4)} mm)\n`;
+    text += `- Equivalent Round Diameter: ${(lenUnitHook.getDisplayValue(deMain) || 0).toFixed(1)} in (${Math.round(deMain * 25.4)} mm)\n`;
     text += `- Rectangular Sizing: ${widthMain}" x ${ductHeight}" (${Math.round(widthMain * 25.4)} x ${Math.round(ductHeight * 25.4)} mm)\n`;
-    text += `- Rectangular Velocity: ${velUnitHook.getDisplayValue(velRectMain).toFixed(0)} FPM (Status: ${statusMain.toUpperCase()})\n\n`;
+    text += `- Rectangular Velocity: ${(velUnitHook.getDisplayValue(velRectMain) || 0).toFixed(0)} FPM (Status: ${statusMain.toUpperCase()})\n\n`;
 
     if (enableSplitting) {
       text += `BRANCH DUCT RESULTS:\n`;
       branches.forEach(b => {
-        text += `- Branch #${b.id} (${b.pct}%): ${airflowUnitHook.getDisplayValue(b.cfm).toFixed(0)} CFM\n`;
-        text += `  * Eq. Round Dia: ${lenUnitHook.getDisplayValue(b.de).toFixed(1)} in\n`;
+        text += `- Branch #${b.id} (${b.pct}%): ${(airflowUnitHook.getDisplayValue(b.cfm) || 0).toFixed(0)} CFM\n`;
+        text += `  * Eq. Round Dia: ${(lenUnitHook.getDisplayValue(b.de) || 0).toFixed(1)} in\n`;
         text += `  * Rect Size: ${b.width}" x ${b.height}"\n`;
-        text += `  * Velocity: ${velUnitHook.getDisplayValue(b.velocityRect).toFixed(0)} FPM\n`;
+        text += `  * Velocity: ${(velUnitHook.getDisplayValue(b.velocityRect) || 0).toFixed(0)} FPM\n`;
       });
     }
 
@@ -329,7 +329,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
         tab: 'mechanical',
         subType: 'ductSizing',
         title: `Duct Sizing (${airflow} CFM)`,
-        summary: `${airflow} CFM | ${widthMain}"x${ductHeight}" | ${velUnitHook.getDisplayValue(velRectMain).toFixed(0)} FPM`,
+        summary: `${airflow} CFM | ${widthMain}"x${ductHeight}" | ${(velUnitHook.getDisplayValue(velRectMain) || 0).toFixed(0)} FPM`,
         parameters: {
           airflow,
           frictionRate,
@@ -627,10 +627,10 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                           Supply Air
                         </td>
                         <td className="px-3 py-2 text-right font-mono">
-                          {velUnitHook.getDisplayValue(1000).toFixed(0)} - {velUnitHook.getDisplayValue(2000).toFixed(0)}
+                          {(velUnitHook.getDisplayValue(1000) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(2000) || 0).toFixed(0)}
                         </td>
                         <td className="px-3 py-2 text-right font-mono">
-                          {velUnitHook.getDisplayValue(600).toFixed(0)} - {velUnitHook.getDisplayValue(1200).toFixed(0)}
+                          {(velUnitHook.getDisplayValue(600) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1200) || 0).toFixed(0)}
                         </td>
                       </tr>
                       <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'return' ? 'bg-purple-950/30 text-purple-200' : 'text-slate-400'}`} onClick={() => setDuctType('return')}>
@@ -639,10 +639,10 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                           Return Air
                         </td>
                         <td className="px-3 py-2 text-right font-mono">
-                          {velUnitHook.getDisplayValue(800).toFixed(0)} - {velUnitHook.getDisplayValue(1500).toFixed(0)}
+                          {(velUnitHook.getDisplayValue(800) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1500) || 0).toFixed(0)}
                         </td>
                         <td className="px-3 py-2 text-right font-mono">
-                          {velUnitHook.getDisplayValue(400).toFixed(0)} - {velUnitHook.getDisplayValue(1000).toFixed(0)}
+                          {(velUnitHook.getDisplayValue(400) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1000) || 0).toFixed(0)}
                         </td>
                       </tr>
                       <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'exhaust' ? 'bg-amber-950/30 text-amber-200' : 'text-slate-400'}`} onClick={() => setDuctType('exhaust')}>
@@ -651,10 +651,10 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                           General Exhaust
                         </td>
                         <td className="px-3 py-2 text-right font-mono">
-                          {velUnitHook.getDisplayValue(1500).toFixed(0)} - {velUnitHook.getDisplayValue(2000).toFixed(0)}
+                          {(velUnitHook.getDisplayValue(1500) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(2000) || 0).toFixed(0)}
                         </td>
                         <td className="px-3 py-2 text-right font-mono">
-                          {velUnitHook.getDisplayValue(1000).toFixed(0)} - {velUnitHook.getDisplayValue(1500).toFixed(0)}
+                          {(velUnitHook.getDisplayValue(1000) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1500) || 0).toFixed(0)}
                         </td>
                       </tr>
                     </tbody>
@@ -755,7 +755,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                     <div key={idx} className="space-y-1">
                       <div className="flex justify-between text-[11px] font-mono">
                         <span className="text-slate-400">Branch #{idx + 1} ({Math.round(airflow * pct / 100)} CFM)</span>
-                        <span className="text-emerald-400 font-bold">{pct.toFixed(1)}%</span>
+                        <span className="text-emerald-400 font-bold">{(pct || 0).toFixed(1)}%</span>
                       </div>
                       <input
                         type="range"
@@ -799,7 +799,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
 
           {/* Main Glassmorphic output panel */}
           <motion.div
-            key={`${deMain.toFixed(4)}-${widthMain}-${ductHeight}`}
+            key={`${(deMain || 0).toFixed(4)}-${widthMain}-${ductHeight}`}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -818,7 +818,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                     <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Equiv. Diameter</span>
                     <div className="flex items-end gap-1.5">
                       <span className="text-4xl font-bold text-white font-mono leading-none">
-                        {lenUnitHook.getDisplayValue(deMain).toFixed(1)}
+                        {(lenUnitHook.getDisplayValue(deMain) || 0).toFixed(1)}
                       </span>
                       <span className="text-sm text-slate-500 font-bold mb-1">in</span>
                     </div>
@@ -836,7 +836,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                     <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Rectangular Sizing</span>
                     <div className="flex items-end gap-1.5">
                       <span className="text-4xl font-bold text-emerald-400 font-mono leading-none">
-                        {lenUnitHook.getDisplayValue(widthMain).toFixed(0)}x{lenUnitHook.getDisplayValue(ductHeight).toFixed(0)}
+                        {(lenUnitHook.getDisplayValue(widthMain) || 0).toFixed(0)}x{(lenUnitHook.getDisplayValue(ductHeight) || 0).toFixed(0)}
                       </span>
                       <span className="text-sm text-slate-500 font-bold mb-1">in</span>
                     </div>
@@ -855,7 +855,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                     <div className="flex items-end gap-1.5">
                       <span className={`text-4xl font-bold font-mono leading-none ${statusMain === 'optimal' ? 'text-emerald-400' : statusMain === 'warning' ? 'text-amber-400' : 'text-red-500' }>
                         }`}>
-                        {velUnitHook.getDisplayValue(velRectMain).toFixed(0)}
+                        {(velUnitHook.getDisplayValue(velRectMain) || 0).toFixed(0)}
                       </span>
                       <span className="text-sm text-slate-500 font-bold mb-1">{velUnit}</span>
                     </div>
@@ -944,8 +944,8 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                                  
                                  <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none drop-shadow-xl">
                                    <rect x={155} y={yPos + 8} width="85" height="32" fill="#0f172a" stroke="#334155" strokeWidth="1" rx="3" />
-                                   <text x={160} y={yPos + 19} fill="#e2e8f0" fontSize="7" fontWeight="bold">Size: {lenUnitHook.getDisplayValue(b.width).toFixed(1)}{lenUnit} x {lenUnitHook.getDisplayValue(b.height).toFixed(1)}{lenUnit}</text>
-                                   <text x={160} y={yPos + 29} fill="#94a3b8" fontSize="7">Vel: {velUnitHook.getDisplayValue(b.velocityRect).toFixed(0)} {velUnit}</text>
+                                   <text x={160} y={yPos + 19} fill="#e2e8f0" fontSize="7" fontWeight="bold">Size: {(lenUnitHook.getDisplayValue(b.width) || 0).toFixed(1)}{lenUnit} x {(lenUnitHook.getDisplayValue(b.height) || 0).toFixed(1)}{lenUnit}</text>
+                                   <text x={160} y={yPos + 29} fill="#94a3b8" fontSize="7">Vel: {(velUnitHook.getDisplayValue(b.velocityRect) || 0).toFixed(0)} {velUnit}</text>
                                  </g>
                                </g>
                              </g>
@@ -976,8 +976,8 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                            <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none drop-shadow-xl z-50">
                              <rect x="190" y="92" width="90" height="42" fill="#0f172a" stroke="#334155" strokeWidth="1" rx="4" />
                              <text x="197" y="105" fill="#e2e8f0" fontSize="8" fontWeight="bold">Terminal Run</text>
-                             <text x="197" y="116" fill="#94a3b8" fontSize="7.5">Size: {lenUnitHook.getDisplayValue(widthMain).toFixed(1)}{lenUnit} x {lenUnitHook.getDisplayValue(ductHeight).toFixed(1)}{lenUnit}</text>
-                             <text x="197" y="126" fill="#94a3b8" fontSize="7.5">Vel: {velUnitHook.getDisplayValue(velRectMain).toFixed(0)} {velUnit}</text>
+                             <text x="197" y="116" fill="#94a3b8" fontSize="7.5">Size: {(lenUnitHook.getDisplayValue(widthMain) || 0).toFixed(1)}{lenUnit} x {(lenUnitHook.getDisplayValue(ductHeight) || 0).toFixed(1)}{lenUnit}</text>
+                             <text x="197" y="126" fill="#94a3b8" fontSize="7.5">Vel: {(velUnitHook.getDisplayValue(velRectMain) || 0).toFixed(0)} {velUnit}</text>
                            </g>
                          </g>
                        </g>
@@ -998,8 +998,8 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                        <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none drop-shadow-xl z-50">
                          <rect x="85" y="92" width="90" height="42" fill="#0f172a" stroke="#334155" strokeWidth="1" rx="4" />
                          <text x="92" y="105" fill="#e2e8f0" fontSize="8" fontWeight="bold">Main Duct</text>
-                         <text x="92" y="116" fill="#94a3b8" fontSize="7.5">Size: {lenUnitHook.getDisplayValue(widthMain).toFixed(1)}{lenUnit} x {lenUnitHook.getDisplayValue(ductHeight).toFixed(1)}{lenUnit}</text>
-                         <text x="92" y="126" fill="#94a3b8" fontSize="7.5">Vel: {velUnitHook.getDisplayValue(velRectMain).toFixed(0)} {velUnit}</text>
+                         <text x="92" y="116" fill="#94a3b8" fontSize="7.5">Size: {(lenUnitHook.getDisplayValue(widthMain) || 0).toFixed(1)}{lenUnit} x {(lenUnitHook.getDisplayValue(ductHeight) || 0).toFixed(1)}{lenUnit}</text>
+                         <text x="92" y="126" fill="#94a3b8" fontSize="7.5">Vel: {(velUnitHook.getDisplayValue(velRectMain) || 0).toFixed(0)} {velUnit}</text>
                        </g>
                      </g>
 
@@ -1025,7 +1025,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                       </defs>
                       <circle cx="60" cy="60" r={Math.min(48, Math.max(12, (deMain / 40) * 48))} fill="url(#roundGrad)" stroke="#10b981" strokeWidth="2" strokeDasharray="3 3" />
                       <text x="60" y="64" fill="#10b981" fontSize="9" textAnchor="middle" fontWeight="bold" className="font-mono">
-                        Ø {lenUnitHook.getDisplayValue(deMain).toFixed(1)}"
+                        Ø {(lenUnitHook.getDisplayValue(deMain) || 0).toFixed(1)}"
                       </text>
                     </svg>
                     <span className="text-xs text-slate-500 font-mono">Round Equivalent</span>
@@ -1074,7 +1074,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="inline-block w-2.5 h-2.5 bg-teal-500 rounded-full" />
-                    <span>Aspect Ratio: {(widthMain / ductHeight).toFixed(2)}:1</span>
+                    <span>Aspect Ratio: {((widthMain / ductHeight) || 0).toFixed(2)}:1</span>
                   </div>
                 </div>
 
@@ -1100,14 +1100,14 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                               <span className="text-xs font-bold text-white">Branch #{b.id}</span>
                               <span className="text-xs text-emerald-400 font-bold font-mono">({b.pct}%)</span>
                             </div>
-                            <span className="block text-xs text-slate-400 font-mono">{airflowUnitHook.getDisplayValue(b.cfm).toFixed(0)} CFM</span>
+                            <span className="block text-xs text-slate-400 font-mono">{(airflowUnitHook.getDisplayValue(b.cfm) || 0).toFixed(0)} CFM</span>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-6 text-left w-full sm:w-auto">
                           <div>
                             <span className="block text-[8px] text-slate-500 uppercase font-bold">Eq. Dia</span>
-                            <span className="block text-xs font-bold font-mono text-white mt-0.5">{lenUnitHook.getDisplayValue(b.de).toFixed(1)}"</span>
+                            <span className="block text-xs font-bold font-mono text-white mt-0.5">{(lenUnitHook.getDisplayValue(b.de) || 0).toFixed(1)}"</span>
                           </div>
                           <div>
                             <span className="block text-[8px] text-slate-500 uppercase font-bold">Rect Size</span>
@@ -1117,7 +1117,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                             <span className="block text-[8px] text-slate-500 uppercase font-bold">Velocity</span>
                             <span className={`block text-xs font-bold font-mono mt-0.5 ${b.status === "optimal" ? "text-emerald-400" : b.status === "warning" ? "text-amber-400" : "text-red-500"}`}>
                               {b.status === "danger" && <AlertTriangle className="w-3 h-3 inline mr-1" />}
-                              {velUnitHook.getDisplayValue(b.velocityRect).toFixed(0)} FPM
+                              {(velUnitHook.getDisplayValue(b.velocityRect) || 0).toFixed(0)} FPM
                             </span>
                           </div>
                         </div>
@@ -1137,7 +1137,7 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                           <Tooltip
                             cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
                             contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px', color: '#f8fafc' }}
-                            formatter={(value: number) => [`${value.toFixed(0)} CFM`, 'Airflow']}
+                            formatter={(value: number) => [`${(value || 0).toFixed(0)} CFM`, 'Airflow']}
                             labelFormatter={(label) => `Branch #${label}`}
                           />
                           <Bar dataKey="cfm" radius={[4, 4, 0, 0]}>
@@ -1184,10 +1184,10 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                       `Dear Team,\n\nHere is the Duct Sizing Estimate Report generated from CKY_MEPF:\n\n` +
                       `- Design Airflow: ${appliedAirflow} CFM\n` +
                       `- Design Friction Rate: ${appliedFrictionRate} in. wg/100 ft\n` +
-                      `- Round Equivalent Diameter: ${lenUnitHook.getDisplayValue(deMain).toFixed(1)}"\n` +
+                      `- Round Equivalent Diameter: ${(lenUnitHook.getDisplayValue(deMain) || 0).toFixed(1)}"\n` +
                       `- Rectangular Dimensions: ${widthMain}" x ${appliedDuctHeight}"\n` +
                       `- Velocity (Round Duct): ${Math.round(velRoundMain)} FPM\n` +
-                      `- Velocity (Rectangular Duct): ${velUnitHook.getDisplayValue(velRectMain).toFixed(0)} FPM\n` +
+                      `- Velocity (Rectangular Duct): ${(velUnitHook.getDisplayValue(velRectMain) || 0).toFixed(0)} FPM\n` +
                       (enableSplitting ? `- Branches: Splitting Enabled with ${branches.length} balanced branches\n` : '') +
                       `\nGenerated on ${new Date().toLocaleString()}\n` +
                       `Regards,\n` +

@@ -18,6 +18,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
   const isMetric = unitSystem === 'metric';
 
   const [systemType, setSystemType] = useState<'single' | 'multi_simplified' | 'multi_alternative'>('single');
+  const [isVAV, setIsVAV] = useState<boolean>(true);
+  const [alternativeConfig, setAlternativeConfig] = useState<'single-supply' | 'secondary-recirculation'>('single-supply');
   const [systemPopulation, setSystemPopulation] = useState<number | ''>('');
   const [systemPrimaryAirflow, setSystemPrimaryAirflow] = useState<number | ''>('');
       const [altitude, setAltitude] = useState<number>(0);
@@ -34,6 +36,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
     ezId: string;
     primaryAirflow: number; // For multi-zone Vpz
     vpzMin: number | ''; // Minimum primary airflow (Vpz-min) for VAV
+    ep?: number | '';
+    er?: number | '';
   }
 
   const [zones, setZones] = useState<ZoneState[]>([
@@ -124,7 +128,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       systemPopulation === '' ? null : Number(systemPopulation), 
       systemPrimaryAirflow === '' ? null : Number(systemPrimaryAirflow),
       densityRatio,
-      systemType === 'multi_simplified' ? 'simplified' : 'alternative'
+      systemType === 'multi_simplified' ? 'simplified' : 'alternative',
+      isMetric
     );
   }, [systemType, zoneResults, systemPopulation, systemPrimaryAirflow, densityRatio]);
 
@@ -134,26 +139,26 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
     const rules: ValidationRule<any>[] = [
       {
         id: 'missing-ps',
-        severity: 'warning',
-        title: 'Engineering Assumptions',
-        validate: (s) => !(s.systemType.startsWith('multi') && s.systemPopulation === ''),
-        message: (s) => `Peak System Population (Ps) was not provided. Assumed equal to sum of peak zone populations (ΣPz = ${Math.ceil(s.sumPz)}). Diversity Ratio (D) = 1.00.`,
+        severity: 'error',
+        title: 'Missing Required Data',
+        validate: (s) => !(s.systemType === 'multi_simplified' && s.systemPopulation === ''),
+        message: (s) => `Peak System Population (Ps) was not provided. Required for Simplified Procedure.`,
         reference: `ASHRAE 62.1-${edition}`
       },
       {
         id: 'missing-vps',
-        severity: 'warning',
-        title: 'Engineering Assumptions',
-        validate: (s) => !(s.systemType.startsWith('multi') && s.systemPrimaryAirflow === ''),
-        message: (s) => `System Primary Airflow (Vps) was not provided. Assumed equal to sum of zone minimum primary airflows (ΣVpz-min = ${Math.ceil(s.sumVpzMin)}).`,
+        severity: 'error',
+        title: 'Missing Required Data',
+        validate: (s) => !(s.systemType === 'multi_alternative' && s.systemPrimaryAirflow === ''),
+        message: (s) => `System Primary Airflow (Vps) was not provided. Required for Alternative Procedure.`,
         reference: `ASHRAE 62.1-${edition}`
       },
       {
         id: 'missing-vpzmin',
-        severity: 'warning',
-        title: 'Engineering Assumptions',
-        validate: (s) => !(s.systemType.startsWith('multi') && s.zones.some((z: any) => z.vpzMin === '')),
-        message: 'Zone Minimum Primary Airflow (Vpz-min) was not provided for one or more zones. Assumed equal to Vpz (Constant Volume condition). If this is a VAV system, you must manually provide the minimum primary airflow.',
+        severity: 'error',
+        title: 'Missing Required Data',
+        validate: (s) => !(s.systemType.startsWith('multi') && s.isVAV && s.zones.some((z: any) => z.vpzMin === '')),
+        message: 'Zone Minimum Primary Airflow (Vpz-min) was not provided for one or more zones. Required for VAV systems.',
         reference: `ASHRAE 62.1-${edition}`
       },
       {
@@ -163,18 +168,53 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         validate: (s) => !(s.systemType.startsWith('multi') && s.systemResult && s.systemResult.zdMax > 1.0),
         message: 'One or more zones have a Maximum Zone Fraction (Zpz) greater than 1.0. This means the Minimum Primary Airflow (Vpz-min) is less than the Required Outdoor Air (Voz) for that zone. To resolve this, increase the Design Vpz or Vpz-min for the critical zone(s).',
         reference: 'ASHRAE 62.1 § 6.2.5.3.3'
+      },
+      {
+        id: 'system-error',
+        severity: 'error',
+        title: 'System Calculation Error',
+        validate: (s) => !s.systemResult?.error,
+        message: (s) => s.systemResult.error,
+        reference: `ASHRAE 62.1-${edition}`
+      },
+      {
+        id: 'system-warning',
+        severity: 'warning',
+        title: 'System Calculation Warning',
+        validate: (s) => !s.systemResult?.warning,
+        message: (s) => s.systemResult.warning,
+        reference: `ASHRAE 62.1-${edition}`
+      },
+      {
+        id: 'zone-error',
+        severity: 'error',
+        title: 'Zone Calculation Error',
+        validate: (s) => !s.zoneResults.some((z: any) => z.result.status === 'FAIL' || z.result.status === 'INCOMPLETE'),
+        message: 'One or more zones failed to calculate or are incomplete.',
+        reference: `ASHRAE 62.1-${edition}`
+      },
+      {
+        id: 'zone-warning',
+        severity: 'warning',
+        title: 'Zone Calculation Warning',
+        validate: (s) => !s.zoneResults.some((z: any) => z.result.status === 'WARNING'),
+        message: 'One or more zones contain calculation warnings.',
+        reference: `ASHRAE 62.1-${edition}`
       }
     ];
 
     const state = {
       systemType,
+      isVAV,
+      alternativeConfig,
       systemPopulation,
       systemPrimaryAirflow,
       zones,
       edition,
       sumPz: zoneResults.reduce((sum, z) => sum + z.result.pz, 0),
       sumVpzMin: systemResult?.sumVpzMin || 0,
-      systemResult
+      systemResult,
+      zoneResults
     };
 
     setValidations(ValidationService.validate(state, rules));
@@ -187,7 +227,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         const total = zoneResults.reduce((sum, z) => sum + (z.result.voz || z.result.voz), 0);
         onVentilationChange(total, { systemType: 'single', zoneResults });
       } else if (systemResult) {
-        onVentilationChange(systemResult.votActual || systemResult.vot, { systemType: 'multi', systemResult });
+        onVentilationChange((systemResult.votActual || systemResult.vot) ?? 0, { systemType: 'multi', systemResult });
       }
     }
   }, [systemType, zoneResults, systemResult, onVentilationChange]);
@@ -218,13 +258,13 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Air Distribution (Ez)</p>
             <p className="text-sm font-mono text-sky-300 font-bold">
               {zones.length === 1 
-                ? zoneResults[0].result.ez.toFixed(2) 
+                ? (zoneResults[0].result.ez || 0).toFixed(2) 
                 : 'Zone Specific'}
             </p>
           </div>
           <div>
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Density Factor (Eρ)</p>
-            <p className="text-sm font-mono text-sky-300 font-bold">{densityRatio.toFixed(3)}</p>
+            <p className="text-sm font-mono text-sky-300 font-bold">{(densityRatio || 0).toFixed(3)}</p>
           </div>
         </div>
       </div>
@@ -257,6 +297,34 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               <option value="multi_alternative">Multi-Zone Alternative Procedure (Appendix A)</option>
             </select>
           </div>
+          
+          {systemType === 'multi_alternative' && (
+            <div>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Alternative Procedure Config" tooltip="Select whether the system is single-supply (default) or uses secondary recirculation." />
+              <select 
+                value={alternativeConfig}
+                onChange={(e) => setAlternativeConfig(e.target.value as any)}
+                className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-sky-500"
+              >
+                <option value="single-supply">Single-Supply System</option>
+                <option value="secondary-recirculation">Secondary Recirculation System</option>
+              </select>
+            </div>
+          )}
+          
+          {systemType.startsWith('multi') && (
+            <div>
+              <TooltipLabel className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" label="Air Distribution System" tooltip="Select whether the system supplies a constant volume of air or utilizes Variable Air Volume (VAV) terminals." />
+              <select 
+                value={isVAV ? 'vav' : 'cv'}
+                onChange={(e) => setIsVAV(e.target.value === 'vav')}
+                className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-sky-500"
+              >
+                <option value="vav">Variable Air Volume (VAV)</option>
+                <option value="cv">Constant Volume (CV)</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {systemType.startsWith('multi') && (
@@ -315,7 +383,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
           </div>
         )}
         <div className="text-xs text-slate-500 font-mono">
-          Density Ratio: {densityRatio.toFixed(3)} (Volume adjustments applied to final results)
+          Density Ratio: {(densityRatio || 0).toFixed(3)} (Volume adjustments applied to final results)
         </div>
       </div>
 
@@ -379,7 +447,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                   className="w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm border border-slate-800 focus:border-indigo-500"
                 >
                   {Ashrae621Service.getEzByEdition(edition).map(ez => (
-                    <option key={ez.id} value={ez.id}>{ez.ez.toFixed(1)} - {ez.name}</option>
+                    <option key={ez.id} value={ez.id}>{(ez.ez || 0).toFixed(1)} - {ez.name}</option>
                   ))}
                 </select>
               </div>
@@ -433,11 +501,37 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                       type="number" min={Math.ceil(zr.result.voz)} max={zr.input.primaryAirflow > 0 ? zr.input.primaryAirflow : undefined}
                       placeholder="Auto (VAV)"
                       errorMsg="Vpz-min must be ≥ Voz to satisfy ventilation at turndown, and ≤ Design Vpz"
-                      value={zr.input.vpzMin}
+                      value={!isVAV ? zr.input.primaryAirflow : zr.input.vpzMin}
                       onChange={(e) => updateZone(zr.input.id, 'vpzMin', e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full bg-amber-950/10 text-white rounded-lg px-3 py-2 text-sm border focus:outline-none focus:border-amber-500"
+                      disabled={!isVAV}
+                      className="w-full bg-amber-950/10 text-white rounded-lg px-3 py-2 text-sm border focus:outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
+                  
+                  {systemType === 'multi_alternative' && alternativeConfig === 'secondary-recirculation' && (
+                    <>
+                      <div>
+                        <TooltipLabel className="block text-xs font-bold text-sky-400 mb-1.5 uppercase" label="Ep" tooltip="Primary air fraction to the zone" />
+                        <ValidatedInput 
+                          type="number" min={0} max={1} step={0.1}
+                          errorMsg="Ep must be between 0 and 1"
+                          value={zr.input.ep}
+                          onChange={(e) => updateZone(zr.input.id, 'ep', e.target.value === '' ? '' : Number(e.target.value))}
+                          className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <TooltipLabel className="block text-xs font-bold text-sky-400 mb-1.5 uppercase" label="Er" tooltip="Secondary recirculation fraction" />
+                        <ValidatedInput 
+                          type="number" min={0} max={1} step={0.1}
+                          errorMsg="Er must be between 0 and 1"
+                          value={zr.input.er}
+                          onChange={(e) => updateZone(zr.input.id, 'er', e.target.value === '' ? '' : Number(e.target.value))}
+                          className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -447,23 +541,23 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Rp × Pz = Vbp</span>
-                  <span className="font-mono text-slate-300">{zr.result.rp} × {zr.result.pz.toFixed(1)} = {zr.result.vbp.toFixed(1)}</span>
+                  <span className="font-mono text-slate-300">{zr.result.rp} × {(zr.result.pz || 0).toFixed(1)} = {(zr.result.vbp || 0).toFixed(1)}</span>
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Ra × Az = Vba</span>
-                  <span className="font-mono text-slate-300">{zr.result.ra} × {zr.result.az} = {zr.result.vba.toFixed(1)}</span>
+                  <span className="font-mono text-slate-300">{zr.result.ra} × {zr.result.az} = {(zr.result.vba || 0).toFixed(1)}</span>
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Vbp + Vba = Vbz</span>
-                  <span className="font-mono text-indigo-400 font-bold">{zr.result.vbz.toFixed(1)} {flowUnit}</span>
+                  <span className="font-mono text-indigo-400 font-bold">{(zr.result.vbz || 0).toFixed(1)} {flowUnit}</span>
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Vbz / Ez = Voz (Std)</span>
-                  <span className="font-mono text-sky-400 font-bold">{zr.result.voz.toFixed(1)} {flowUnit}</span>
+                  <span className="font-mono text-sky-400 font-bold">{(zr.result.voz || 0).toFixed(1)} {flowUnit}</span>
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500 uppercase">Voz (Actual)</span>
-                  <span className="font-mono text-indigo-400 font-bold">{(zr.result.voz * densityRatio).toFixed(1)} {flowUnit}</span>
+                  <span className="font-mono text-indigo-400 font-bold">{((zr.result.voz * densityRatio) || 0).toFixed(1)} {flowUnit}</span>
                 </div>
               </div>
             </div>
@@ -485,12 +579,12 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                     <span className="text-xs font-mono text-slate-300">{systemType === 'single' ? 'Single Zone System (VRP)' : 'Multi-Zone System (VRP)'}</span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Vbz Formula (ASHRAE 62.1 Eq. 6.2.2.1)</span>
-                    <span className="text-xs font-mono text-slate-400">Rp×Pz + Ra×Az = {zr.result.vbz.toFixed(1)}</span>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider">Vbz Formula (ASHRAE 62.1-${edition} Eq. 6.2.2.1)</span>
+                    <span className="text-xs font-mono text-slate-400">Rp×Pz + Ra×Az = {(zr.result.vbz || 0).toFixed(1)}</span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Voz Formula (ASHRAE 62.1 Eq. 6.2.2.3)</span>
-                    <span className="text-xs font-mono text-slate-400">Vbz / Ez = {zr.result.voz.toFixed(1)}</span>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider">Voz Formula (ASHRAE 62.1-${edition} Eq. 6.2.2.3)</span>
+                    <span className="text-xs font-mono text-slate-400">Vbz / Ez = {(zr.result.voz || 0).toFixed(1)}</span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Rp (People Rate)</span>
@@ -502,7 +596,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Pz (Zone Population)</span>
-                    <span className="text-xs font-mono text-slate-400">{zr.result.pz.toFixed(1)} <span className="text-slate-600">({zr.result.occupancySource === 'default' ? 'Code Default' : 'User Design'})</span></span>
+                    <span className="text-xs font-mono text-slate-400">{(zr.result.pz || 0).toFixed(1)} <span className="text-slate-600">({zr.result.occupancySource === 'default' ? 'Code Default' : 'User Design'})</span></span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-800/50">
                     <span className="text-xs text-slate-500 uppercase tracking-wider">Az (Zone Area)</span>
@@ -521,10 +615,10 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               <div className="mt-4 bg-sky-950/20 border border-sky-900/30 p-4 rounded-lg flex items-center justify-between">
                  <div>
                    <h5 className="text-xs font-bold text-sky-400 uppercase">Required Outdoor Air (Voz)</h5>
-                   <p className="text-xs text-slate-400 mt-1">Adjusted for air density (Ratio: {densityRatio.toFixed(3)})</p>
+                   <p className="text-xs text-slate-400 mt-1">Adjusted for air density (Ratio: {(densityRatio || 0).toFixed(3)})</p>
                  </div>
                  <div className="text-right">
-                    <span className="text-3xl font-black text-white font-mono">{(zr.result.voz * densityRatio).toFixed(1)}</span>
+                    <span className="text-3xl font-black text-white font-mono">{((zr.result.voz * densityRatio) || 0).toFixed(1)}</span>
                     <span className="text-xs font-bold text-sky-400 ml-2">{flowUnit}</span>
                  </div>
               </div>
@@ -560,27 +654,27 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center border-b border-slate-800/60 pb-2">
                 <span className="text-slate-400">System Population (Ps)</span>
-                <span className="font-mono text-white">{Math.round(systemResult.ps)} <span className="text-slate-500 text-xs">(D = {systemResult.d.toFixed(2)})</span></span>
+                <span className="font-mono text-white">{systemResult.status === "INCOMPLETE" ? "-" : Math.round(systemResult.ps)} <span className="text-slate-500 text-xs">(D = {systemResult.status === "INCOMPLETE" ? "-" : (systemResult.d || 0).toFixed(2)})</span></span>
               </div>
               <div className="flex justify-between items-center border-b border-slate-800/60 pb-2">
                 <span className="text-slate-400">System Min Airflow (Vps)</span>
-                <span className="font-mono text-white">{Math.round(systemResult.vps)} {flowUnit}</span>
+                <span className="font-mono text-white">{systemResult.status === "INCOMPLETE" ? "-" : Math.round(systemResult.vps)} {flowUnit}</span>
               </div>
               <div className="flex justify-between items-center border-b border-slate-800/60 pb-2">
                 <span className="text-slate-400">Uncorrected Outdoor Air (Vou)</span>
-                <span className="font-mono text-white">{Math.round(systemResult.vou)} {flowUnit}</span>
+                <span className="font-mono text-white">{systemResult.status === "INCOMPLETE" ? "-" : Math.round(systemResult.vou)} {flowUnit}</span>
               </div>
               <div className="flex justify-between items-center border-b border-slate-800/60 pb-2">
                 <span className="text-slate-400">System Primary Fraction (Xs)</span>
-                <span className="font-mono text-white">{systemResult.xs.toFixed(3)}</span>
+                <span className="font-mono text-white">{systemResult.status === "INCOMPLETE" ? "-" : (systemResult.xs || 0).toFixed(3)}</span>
               </div>
               <div className="flex justify-between items-center border-b border-slate-800/60 pb-2">
                 <span className="text-slate-400">Max Zone Fraction (Zpz)</span>
-                <span className="font-mono text-amber-400 font-bold">{systemResult.zdMax.toFixed(3)}</span>
+                <span className="font-mono text-amber-400 font-bold">{systemResult.status === "INCOMPLETE" ? "-" : (systemResult.zdMax || 0).toFixed(3)}</span>
               </div>
               <div className="flex justify-between items-center pb-2">
                 <span className="text-slate-400">System Vent Efficiency (Ev)</span>
-                <span className="font-mono text-sky-400 font-bold">{systemResult.ev.toFixed(2)}</span>
+                <span className="font-mono text-sky-400 font-bold">{systemResult.status === "INCOMPLETE" ? "-" : (systemResult.ev || 0).toFixed(2)}</span>
               </div>
             </div>
             
@@ -588,10 +682,10 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 to-transparent" />
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 z-10">Required System Outdoor Air (Vot)</p>
               <p className="text-5xl font-black text-white font-mono tracking-tight drop-shadow-md z-10">
-                {Math.ceil(systemResult.votActual || systemResult.vot).toLocaleString()}
+                {systemResult.status === "INCOMPLETE" || systemResult.vot == null ? "-" : Math.ceil(systemResult.votActual || systemResult.vot).toLocaleString()}
               </p>
               <p className="text-sm font-bold text-sky-400 uppercase tracking-widest mt-1 z-10">{flowUnit}</p>
-              <p className="text-xs text-slate-500 mt-2 z-10">Density Adjusted. Base: {Math.ceil(systemResult.vot).toLocaleString()}</p>
+              <p className="text-xs text-slate-500 mt-2 z-10">Density Adjusted. Base: {systemResult.status === "INCOMPLETE" || systemResult.vot == null ? "-" : Math.ceil(systemResult.vot).toLocaleString()}</p>
             </div>
           </div>
           
@@ -602,17 +696,17 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
             <EngineeringAuditTrail
               codeReference={`ASHRAE 62.1-${edition}${edition === '2025' ? ' (incl. addenda)' : ''}`}
               trail={[
-                { symbol: 'ΣPz', name: 'Sum of Zone Populations', value: systemResult.sumPz.toFixed(1), unit: 'people' },
-                { symbol: 'Ps', name: 'Peak System Population', value: systemResult.ps.toFixed(1), unit: 'people' },
-                { symbol: 'D', name: 'Diversity Ratio', formula: 'Ps / ΣPz', value: systemResult.d.toFixed(3), reference: 'Eq. 6.2.5.3.1' },
-                { symbol: 'Vou', name: 'Uncorrected Outdoor Air', formula: 'D×Σ(Rp×Pz) + Σ(Ra×Az)', value: systemResult.vou.toFixed(1), unit: flowUnit, reference: 'Eq. 6.2.5.3' },
-                { symbol: 'Vps', name: 'System Primary Airflow', value: systemResult.vps.toFixed(1), unit: flowUnit },
-                { symbol: 'Xs', name: 'System Primary Fraction', formula: 'Vou / Vps', value: systemResult.xs.toFixed(3) },
-                { symbol: 'Zd', name: 'Max Zone Fraction', formula: 'Max(Zpz)', value: systemResult.zdMax.toFixed(3) },
-                { symbol: 'Ev', name: 'System Ventilation Efficiency', formula: 'Min(Evz)', value: systemResult.ev.toFixed(3), reference: 'Eq. 6.2.5.4.1 / App. A' },
-                { symbol: 'Vot', name: 'Standard Required System Outdoor Air', formula: 'Vou / Ev', value: systemResult.vot.toFixed(1), unit: flowUnit, reference: 'Eq. 6.2.5.1' },
-                { symbol: 'Eρ', name: 'Density Ratio', formula: 'ρ_standard / ρ_actual', value: densityRatio.toFixed(3) },
-                { symbol: 'Vot_actual', name: 'Density Corrected Required Outdoor Air', formula: 'Vot × Eρ', value: (systemResult.votActual || systemResult.vot).toFixed(1), unit: flowUnit },
+                { symbol: 'ΣPz', name: 'Sum of Zone Populations', value: systemResult.status === "INCOMPLETE" ? "-" : (systemResult.sumPz || 0).toFixed(1), unit: 'people' },
+                { symbol: 'Ps', name: 'Peak System Population', value: systemResult.status === "INCOMPLETE" ? "-" : (systemResult.ps || 0).toFixed(1), unit: 'people' },
+                { symbol: 'D', name: 'Diversity Ratio', formula: 'Ps / ΣPz', value: systemResult.status === "INCOMPLETE" ? "-" : (systemResult.d || 0).toFixed(3), reference: `ASHRAE 62.1-${edition} Eq. 6.2.5.3.1` },
+                { symbol: 'Vou', name: 'Uncorrected Outdoor Air', formula: 'D×Σ(Rp×Pz) + Σ(Ra×Az)', value: systemResult.status === "INCOMPLETE" ? "-" : (systemResult.vou || 0).toFixed(1), unit: flowUnit, reference: `ASHRAE 62.1-${edition} Eq. 6.2.5.3` },
+                { symbol: 'Vps', name: 'System Primary Airflow', value: systemResult.status === "INCOMPLETE" ? "-" : (systemResult.vps || 0).toFixed(1), unit: flowUnit },
+                { symbol: 'Xs', name: 'System Primary Fraction', formula: 'Vou / Vps', value: systemResult.status === "INCOMPLETE" ? "-" : (systemResult.xs || 0).toFixed(3) },
+                { symbol: 'Zd', name: 'Max Zone Fraction', formula: 'Max(Zpz)', value: systemResult.status === "INCOMPLETE" ? "-" : (systemResult.zdMax || 0).toFixed(3) },
+                { symbol: 'Ev', name: 'System Ventilation Efficiency', formula: 'Min(Evz)', value: systemResult.status === "INCOMPLETE" ? "-" : (systemResult.ev || 0).toFixed(3), reference: `ASHRAE 62.1-${edition} App. A` },
+                { symbol: 'Vot', name: 'Standard Required System Outdoor Air', formula: 'Vou / Ev', value: systemResult.status === "INCOMPLETE" || systemResult.vot == null ? "-" : (systemResult.vot || 0).toFixed(1), unit: flowUnit, reference: `ASHRAE 62.1-${edition} Eq. 6.2.5.1` },
+                { symbol: 'Eρ', name: 'Density Ratio', formula: 'ρ_standard / ρ_actual', value: (densityRatio || 0).toFixed(3) },
+                { symbol: 'Vot_actual', name: 'Density Corrected Required Outdoor Air', formula: 'Vot × Eρ', value: systemResult.status === "INCOMPLETE" || systemResult.vot == null ? "-" : ((systemResult.votActual || systemResult.vot) || 0).toFixed(1), unit: flowUnit },
               ]}
             />
           </div>
@@ -621,8 +715,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
              <div className="flex flex-wrap gap-2">
                {systemResult.zones.map((z, i) => (
                  <div key={z.zoneId} className={`px-3 py-1.5 rounded border text-xs font-mono flex flex-col ${z.isCritical ? 'bg-amber-950/30 border-amber-500/50 text-amber-400' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
-                   <span>Z{i+1}: Zpz={z.zpz === Infinity ? '∞' : z.zpz.toFixed(3)} {z.isCritical && ' (Critical)'}</span>
-                   <span className="text-xs opacity-70">Vpz-min={Math.round(z.vpzMin)} | Voz={z.voz.toFixed(1)}</span>
+                   <span>Z{i+1}: Zpz={z.zpz === Infinity ? '∞' : (z.zpz || 0).toFixed(3)} {z.isCritical && ' (Critical)'}</span>
+                   <span className="text-xs opacity-70">Vpz-min={Math.round(z.vpzMin)} | Voz={(z.voz || 0).toFixed(1)}</span>
                  </div>
                ))}
              </div>

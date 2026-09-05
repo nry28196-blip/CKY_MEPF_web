@@ -9,6 +9,7 @@ export interface SimplifiedZoneInput {
 export interface SimplifiedSystemInput {
   zones: SimplifiedZoneInput[];
   systemPopulation?: number | null; // Ps
+  isVAV?: boolean;
 }
 
 export interface SimplifiedSystemResult {
@@ -19,7 +20,7 @@ export interface SimplifiedSystemResult {
   sumRaAz: number;
   vou: number;
   ev: number;
-  vot: number;
+  vot: number | null;
   status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE';
   warning?: string;
   error?: string;
@@ -56,7 +57,7 @@ export class Ashrae621SimplifiedSystemService {
       if (z.vpzMin !== undefined) {
         if (z.vpzMin < requiredVpzMin) {
           status = 'FAIL';
-          error = `Zone Vpz-min (${z.vpzMin.toFixed(1)}) is less than required 1.5 * Voz (${requiredVpzMin.toFixed(1)})`;
+          error = `Zone Vpz-min (${(z.vpzMin || 0).toFixed(1)}) is less than required 1.5 * Voz (${(requiredVpzMin || 0).toFixed(1)})`;
         }
       } else {
         if (status !== 'FAIL') {
@@ -91,7 +92,7 @@ export class Ashrae621SimplifiedSystemService {
       ev = 0.88 * d + 0.22;
     }
     
-    const vot = ev > 0 ? vou / ev : 0;
+    const vot = ev > 0 && ev <= 1.0 ? vou / ev : null;
 
     return {
       ps, sumPz, d, sumRpPz, sumRaAz, vou, ev, vot, status, warning, error, sumVpzMin, sumVpz
@@ -100,7 +101,7 @@ export class Ashrae621SimplifiedSystemService {
 
   private static emptyResult(status: any, warning: string): SimplifiedSystemResult {
     return {
-      ps: 0, sumPz: 0, d: 1, sumRpPz: 0, sumRaAz: 0, vou: 0, ev: 1, vot: 0, status, warning, sumVpzMin: 0, sumVpz: 0
+      ps: 0, sumPz: 0, d: 1, sumRpPz: 0, sumRaAz: 0, vou: 0, ev: 1, vot: null, status, warning, sumVpzMin: 0, sumVpz: 0
     };
   }
 }

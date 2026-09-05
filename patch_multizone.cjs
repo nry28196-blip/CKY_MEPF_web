@@ -1,21 +1,14 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/calculations/ventilation/MultiZoneVentilationService.ts', 'utf-8');
+const file = 'src/calculations/ventilation/MultiZoneVentilationService.ts';
+let code = fs.readFileSync(file, 'utf-8');
 
-if (!code.includes('sumVpzMin: number')) {
-  code = code.replace(
-    `votActual: number;`,
-    `votActual: number;\n  sumVpzMin?: number;\n  sumVpz?: number;`
-  );
-}
+// We need to add ps, sumPz, d to MultiZoneSystemResult
+code = code.replace(/export interface MultiZoneSystemResult \{/, `export interface MultiZoneSystemResult {\n  ps?: number;\n  sumPz?: number;\n  d?: number;`);
 
-code = code.replace(
-  `zones: []`,
-  `zones: [],\n         sumVpzMin: res.sumVpzMin,\n         sumVpz: res.sumVpz`
-);
+// In the simplified block
+code = code.replace(/method: 'simplified',/g, `ps: res.ps,\n         sumPz: res.sumPz,\n         d: res.d,\n         method: 'simplified',`);
 
-code = code.replace(
-  `zones: res.zoneResults.map((zr, i) => ({`,
-  `sumVpzMin: res.sumVpzMin,\n         sumVpz: res.sumVpz,\n         zones: res.zoneResults.map((zr, i) => ({`
-);
+// In the alternative block
+code = code.replace(/method: 'alternative',/g, `ps: res.ps,\n         sumPz: res.sumPz,\n         d: res.d,\n         method: 'alternative',`);
 
-fs.writeFileSync('src/calculations/ventilation/MultiZoneVentilationService.ts', code);
+fs.writeFileSync(file, code);

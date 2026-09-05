@@ -1,11 +1,15 @@
+import { ASHRAE_62_2_DATA } from '../data/ashrae622/Ashrae622Data';
+import { UnitConversionService } from '../services/UnitConversionService';
+
 export interface Ashrae622Input {
   localExhaustDeficit?: number;
-  floorArea: number; // m2 or ft2
+  floorArea: number; // Unit depends on isMetric
   bedrooms: number;
   isMetric: boolean;
-  qInf: number; // Infiltration
-  qReq?: number; // Required extra, defaults to 0
-  phi: number; // Infiltration credit factor
+  qInf: number; // Unit depends on isMetric
+  qInfSource?: string;
+  qReq?: number; // Unit depends on isMetric
+  phi: number;
   edition: '2019' | '2022' | '2025';
 }
 
@@ -16,49 +20,101 @@ export interface Ashrae622Result {
   phi: number;
   status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE';
   warning?: string;
+  error?: string;
+  infiltrationCredit: number;
+  notEvaluatedItems: string[];
 }
 
 export class Ashrae622Service {
   static calculateVentilation(input: Ashrae622Input): Ashrae622Result {
-    // Basic calculation for Qtot
-    const qTot = input.isMetric
-      ? 0.15 * input.floorArea + 3.5 * (input.bedrooms + 1)
-      : 0.03 * input.floorArea + 7.5 * (input.bedrooms + 1);
-      
-    const qReq = input.qReq !== undefined ? input.qReq : 0;
-    const effectiveInfiltration = input.qInf - qReq;
-    
-    let infiltrationCredit = 0;
+    // 1. Convert inputs to Canonical Metric if they are Imperial
+    const canonicalArea = input.isMetric ? input.floorArea : UnitConversionService.sqftToSqM(input.floorArea);
+    const canonicalQInf = input.isMetric ? input.qInf : UnitConversionService.cfmToLs(input.qInf);
+    const canonicalQReq = input.isMetric ? (input.qReq ?? 0) : UnitConversionService.cfmToLs(input.qReq ?? 0);
+    const canonicalDeficit = input.localExhaustDeficit !== undefined 
+      ? (input.isMetric ? input.localExhaustDeficit : UnitConversionService.cfmToLs(input.localExhaustDeficit))
+      : undefined;
+
+    // 2. Perform Canonical Metric Calculation (L/s, m²)
     let status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE' = 'PASS';
     let warning = undefined;
+    let error = undefined;
+    const notEvaluatedItems: string[] = [];
+
+    // Qtot Metric: 0.15 * m² + 3.5 * (bedrooms + 1)
+    let qTotMetric = 0.15 * canonicalArea + 3.5 * (input.bedrooms + 1);
     
-    // Infiltration credit
-    if (input.qInf > 0) {
-      if (input.edition === '2025') {
-        // Just an example placeholder for standard-specific validation
-        status = 'WARNING';
-        warning = '2025 infiltration credit requires strict verification. Credit applied conditionally.';
+    const effectiveInfiltrationMetric = canonicalQInf - canonicalQReq;
+    let infiltrationCreditMetric = 0;
+    
+    if (canonicalQInf > 0) {
+      if (!input.qInfSource || input.qInfSource.trim() === '') {
+         status = 'WARNING';
+         warning = 'Infiltration credit used without specifying a source/basis (e.g., blower door test). Credit applicability unverified.';
       }
-      infiltrationCredit = effectiveInfiltration > 0 ? input.phi * effectiveInfiltration : 0;
+      if (input.edition === '2025') {
+        notEvaluatedItems.push('2025 Strict Infiltration Verification');
+      }
+      infiltrationCreditMetric = effectiveInfiltrationMetric > 0 ? input.phi * effectiveInfiltrationMetric : 0;
     }
     
-    if (input.localExhaustDeficit === undefined) {
+    if (input.edition === '2025') {
+        notEvaluatedItems.push('Filtration Requirements');
+        notEvaluatedItems.push('Intake/Exhaust Separation');
+        notEvaluatedItems.push('Ozone-related Requirements');
+    }
+    
+    if (canonicalDeficit === undefined) {
+      status = 'INCOMPLETE';
+      warning = (warning ? warning + ' ' : '') + 'Local exhaust deficit parameter is undefined.';
       return {
-        qTot: 0, qFan: 0, qInf: input.qInf, phi: input.phi,
-        status: 'INCOMPLETE',
-        warning: 'Local exhaust deficit parameter is undefined.'
+        qTot: input.isMetric ? qTotMetric : UnitConversionService.lsToCfm(qTotMetric),
+        qFan: 0, 
+        qInf: input.qInf, 
+        phi: input.phi,
+        status, 
+        warning, 
+        infiltrationCredit: input.isMetric ? infiltrationCreditMetric : UnitConversionService.lsToCfm(infiltrationCreditMetric),
+        notEvaluatedItems
       };
     }
-    const deficit = input.localExhaustDeficit;
-    const qFan = Math.max(0, qTot + deficit - infiltrationCredit);
+
+    const qFanMetric = Math.max(0, qTotMetric + canonicalDeficit - infiltrationCreditMetric);
     
+    // 3. Convert results back to Imperial if needed
+    const qTot = input.isMetric ? qTotMetric : UnitConversionService.lsToCfm(qTotMetric);
+    const qFan = input.isMetric ? qFanMetric : UnitConversionService.lsToCfm(qFanMetric);
+    const infiltrationCredit = input.isMetric ? infiltrationCreditMetric : UnitConversionService.lsToCfm(infiltrationCreditMetric);
+
     return {
       qTot,
       qFan,
       qInf: input.qInf,
       phi: input.phi,
       status,
-      warning
+      warning,
+      error,
+      infiltrationCredit,
+      notEvaluatedItems
+    };
+  }
+
+  static getLocalExhaustRequirements(edition: '2019' | '2022' | '2025', isMetric: boolean) {
+    const data = ASHRAE_62_2_DATA[edition];
+    
+    const convert = (val: number | null) => {
+       if (val === null) return null;
+       // data is stored in Imperial natively (cfm)
+       return isMetric ? Math.ceil(UnitConversionService.cfmToLs(val)) : val;
+    };
+
+    return {
+       kitchenIntermittent: convert(data.kitchenIntermittent),
+       kitchenContinuousACH: data.kitchenContinuousACH, 
+       bathroomIntermittent: convert(data.bathroomIntermittent),
+       bathroomContinuous: convert(data.bathroomContinuous),
+       toiletRoomIntermittent: convert(data.toiletRoomIntermittent),
+       toiletRoomContinuous: convert(data.toiletRoomContinuous),
     };
   }
 }

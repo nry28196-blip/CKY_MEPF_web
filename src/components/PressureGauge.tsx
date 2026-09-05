@@ -117,7 +117,7 @@ export default function PressureGauge({ totalDrop, available, maxAllowableDrop }
         const endVal = pct * 100;
         const interpolate = d3.interpolateNumber(startVal, endVal);
         return function(t) {
-          el.text(`${interpolate(t).toFixed(1)}%`);
+          el.text(`${(interpolate(t) || 0).toFixed(1)}%`);
         };
       });
 

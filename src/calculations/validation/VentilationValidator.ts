@@ -37,7 +37,7 @@ export class VentilationValidator {
         messages.push({ 
           severity: 'warning', 
           code: 'Z-03', 
-          message: `High outdoor air fraction (Zp = ${zone.zp.toFixed(2)}). This may result in low system ventilation efficiency (Ev) and high energy penalties. Consider increasing primary airflow (Vpz) to this zone.` 
+          message: `High outdoor air fraction (Zp = ${(zone.zp || 0).toFixed(2)}). This may result in low system ventilation efficiency (Ev) and high energy penalties. Consider increasing primary airflow (Vpz) to this zone.` 
         });
       }
     }
@@ -64,7 +64,7 @@ export class VentilationValidator {
        messages.push({ 
          severity: 'warning', 
          code: 'S-02', 
-         message: `Very low system ventilation efficiency (Ev = ${system.ev.toFixed(2)}). Consider rebalancing zone airflows, increasing minimum primary airflow to critical zones, or using a Dedicated Outdoor Air System (DOAS).` 
+         message: `Very low system ventilation efficiency (Ev = ${(system.ev || 0).toFixed(2)}). Consider rebalancing zone airflows, increasing minimum primary airflow to critical zones, or using a Dedicated Outdoor Air System (DOAS).` 
        });
     }
 

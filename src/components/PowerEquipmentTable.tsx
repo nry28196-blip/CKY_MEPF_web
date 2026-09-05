@@ -145,7 +145,7 @@ export default function PowerEquipmentTable({ equipmentList, onChange, onTotalCh
                 Total Load:
               </td>
               <td className="py-2 px-3 text-right font-bold text-amber-400 font-mono">
-                {totalPower.toFixed(1)} {unit}
+                {(totalPower || 0).toFixed(1)} {unit}
               </td>
               <td></td>
             </tr>

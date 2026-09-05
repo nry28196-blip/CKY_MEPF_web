@@ -1,14 +1,41 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/components/PlumbingCalc.tsx', 'utf8');
+const file = 'src/components/PlumbingCalc.tsx';
+let code = fs.readFileSync(file, 'utf-8');
 
-code = code.replace(
-  /<span>Calc\. Velocity:<\/span>\n\s*<span className=\{Number\(hydraulicResult\.velocity\) > 2\.5 \? 'text-red-400 font-bold' : 'text-white'\}>\n\s*\{hydraulicResult\.velocity\} m\/s\n\s*<\/span>/g,
-  `<span>Calc. Velocity:</span>
-                                <span className={Number(hydraulicResult.velocity) > 2.4 ? 'text-red-400 font-bold flex items-center gap-1' : 'text-white'}>
-                                  {Number(hydraulicResult.velocity) > 2.4 && <AlertTriangle className="w-3 h-3" />}
-                                  {hydraulicResult.velocity} m/s
-                                </span>`
-);
+code = code.replace(/peakDrainageFlow\.toFixed/g, '(peakDrainageFlow || 0).toFixed');
+code = code.replace(/peakFlowLps\.toFixed/g, '(peakFlowLps || 0).toFixed');
+code = code.replace(/peakFlowGPM\.toFixed/g, '(peakFlowGPM || 0).toFixed');
+code = code.replace(/totalWaterStorageM3\.toFixed/g, '(totalWaterStorageM3 || 0).toFixed');
+code = code.replace(/totalSepticVolumeM3\.toFixed/g, '(totalSepticVolumeM3 || 0).toFixed');
+code = code.replace(/boosterHP\.toFixed/g, '(boosterHP || 0).toFixed');
+code = code.replace(/transferHP\.toFixed/g, '(transferHP || 0).toFixed');
+code = code.replace(/septicSludgeVol \/ 1000\)\.toFixed/g, '((septicSludgeVol / 1000) || 0).toFixed');
+code = code.replace(/septicLiquidVol \/ 1000\)\.toFixed/g, '((septicLiquidVol / 1000) || 0).toFixed');
+code = code.replace(/boosterHeadMeters\.toFixed/g, '(boosterHeadMeters || 0).toFixed');
+code = code.replace(/transferFlowLps\.toFixed/g, '(transferFlowLps || 0).toFixed');
+code = code.replace(/transferHeadMeters\.toFixed/g, '(transferHeadMeters || 0).toFixed');
+code = code.replace(/sumpHeadMeters\.toFixed/g, '(sumpHeadMeters || 0).toFixed');
+code = code.replace(/sumpHP\.toFixed/g, '(sumpHP || 0).toFixed');
+code = code.replace(/sumpVolumeLiters\.toFixed/g, '(sumpVolumeLiters || 0).toFixed');
+code = code.replace(/totalWaterStorageLiters\.toFixed/g, '(totalWaterStorageLiters || 0).toFixed');
+code = code.replace(/totalLU\.toFixed/g, '(totalLU || 0).toFixed');
+code = code.replace(/totalDU\.toFixed/g, '(totalDU || 0).toFixed');
+code = code.replace(/calculatedWaterPipeDia\.toFixed/g, '(calculatedWaterPipeDia || 0).toFixed');
+code = code.replace(/Math\.abs\(Number\(hydraulicResult\.elevationLossBar\)\)\.toFixed/g, '(Math.abs(Number(hydraulicResult.elevationLossBar)) || 0).toFixed');
+code = code.replace(/avail\.toFixed/g, '(avail || 0).toFixed');
+code = code.replace(/ugTankVolume\.toFixed/g, '(ugTankVolume || 0).toFixed');
+code = code.replace(/roofTankVolume\.toFixed/g, '(roofTankVolume || 0).toFixed');
+code = code.replace(/sumpVolumeM3\.toFixed/g, '(sumpVolumeM3 || 0).toFixed');
+code = code.replace(/boosterShaftPower\)\.toFixed/g, '(boosterShaftPower || 0)).toFixed');
+code = code.replace(/boosterShaftPower\.toFixed/g, '(boosterShaftPower || 0).toFixed');
+code = code.replace(/boosterFlowLpm\.toFixed/g, '(boosterFlowLpm || 0).toFixed');
+code = code.replace(/boosterHeadMeters \/ 10\.197\)\.toFixed/g, '((boosterHeadMeters / 10.197) || 0).toFixed');
+code = code.replace(/transferFlowLpm\.toFixed/g, '(transferFlowLpm || 0).toFixed');
+code = code.replace(/sumpFlowLpm\.toFixed/g, '(sumpFlowLpm || 0).toFixed');
+code = code.replace(/appliedElevationChange \/ 10\.197\)\.toFixed/g, '((appliedElevationChange / 10.197) || 0).toFixed');
+code = code.replace(/\(appliedAvailablePressure - totalHeadLossBar\)\.toFixed/g, '((appliedAvailablePressure - totalHeadLossBar) || 0).toFixed');
+code = code.replace(/totalLength\.toFixed/g, '(totalLength || 0).toFixed');
+code = code.replace(/equivFittings\.toFixed/g, '(equivFittings || 0).toFixed');
+code = code.replace(/vel\.toFixed/g, '(vel || 0).toFixed');
 
-fs.writeFileSync('src/components/PlumbingCalc.tsx', code);
-console.log("Patched PlumbingCalc");
+fs.writeFileSync(file, code);

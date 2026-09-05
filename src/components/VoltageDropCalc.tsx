@@ -85,7 +85,7 @@ export default function VoltageDropCalc() {
                 <span className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Voltage Drop</span>
                 <div className="flex items-end gap-2">
                   <span className={`text-4xl font-black font-mono leading-none ${isDangerDrop ? 'text-red-500' : isHighDrop ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    {results.vd.toFixed(2)}
+                    {(results.vd || 0).toFixed(2)}
                   </span>
                   <span className="text-sm text-slate-500 font-bold mb-1">V</span>
                 </div>
@@ -95,7 +95,7 @@ export default function VoltageDropCalc() {
                 <span className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Percentage Drop</span>
                 <div className="flex items-end gap-2">
                   <span className={`text-2xl font-bold font-mono leading-none ${isDangerDrop ? 'text-red-500' : isHighDrop ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    {results.percentage.toFixed(2)}
+                    {(results.percentage || 0).toFixed(2)}
                   </span>
                   <span className="text-sm text-slate-500 font-bold mb-1">%</span>
                 </div>
@@ -127,9 +127,9 @@ export default function VoltageDropCalc() {
                 { symbol: 'X', name: 'Reactance', value: cableReactance, unit: 'Ω/km' },
                 { symbol: 'PF', name: 'Power Factor', value: powerFactor, unit: '' },
                 { symbol: 'M', name: 'Phase Multiplier', value: phase === 'single' ? 2 : 1.732, unit: '' },
-                { symbol: 'Z', name: 'Effective Impedance', formula: 'R×cos(φ) + X×sin(φ)', value: ((cableResistance * powerFactor) + (cableReactance * Math.sin(Math.acos(powerFactor)))).toFixed(4), unit: 'Ω/km' },
-                { symbol: 'Vd', name: 'Voltage Drop', formula: '(M × I × L × Z) / 1000', value: results.vd.toFixed(2), unit: 'V', reference: 'Standard Equation' },
-                { symbol: '%Vd', name: 'Percentage Drop', formula: '(Vd / V) × 100', value: results.percentage.toFixed(2), unit: '%' }
+                { symbol: 'Z', name: 'Effective Impedance', formula: 'R×cos(φ) + X×sin(φ)', value: (((cableResistance * powerFactor) + (cableReactance * Math.sin(Math.acos(powerFactor)))) || 0).toFixed(4), unit: 'Ω/km' },
+                { symbol: 'Vd', name: 'Voltage Drop', formula: '(M × I × L × Z) / 1000', value: (results.vd || 0).toFixed(2), unit: 'V', reference: 'Standard Equation' },
+                { symbol: '%Vd', name: 'Percentage Drop', formula: '(Vd / V) × 100', value: (results.percentage || 0).toFixed(2), unit: '%' }
               ]}
             />
           </div>

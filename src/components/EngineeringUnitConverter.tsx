@@ -46,7 +46,7 @@ export default function EngineeringUnitConverter() {
     const num = parseFloat(value);
     if (!isNaN(num)) {
       const computed = num * currentPreset.factor;
-      setValB(Number(computed.toFixed(4)).toString());
+      setValB(Number((computed || 0).toFixed(4)).toString());
     } else {
       setValB('');
     }
@@ -57,7 +57,7 @@ export default function EngineeringUnitConverter() {
     const num = parseFloat(value);
     if (!isNaN(num)) {
       const computed = num / currentPreset.factor;
-      setValA(Number(computed.toFixed(4)).toString());
+      setValA(Number((computed || 0).toFixed(4)).toString());
     } else {
       setValA('');
     }
@@ -70,7 +70,7 @@ export default function EngineeringUnitConverter() {
     const num = parseFloat(valA);
     if (!isNaN(num)) {
       const computed = num * CONVERSION_PRESETS[cat][index].factor;
-      setValB(Number(computed.toFixed(4)).toString());
+      setValB(Number((computed || 0).toFixed(4)).toString());
     } else {
       setValB('');
     }

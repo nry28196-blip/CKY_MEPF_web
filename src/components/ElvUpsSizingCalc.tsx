@@ -201,13 +201,13 @@ export default function ElvUpsSizingCalc({ restoredParams, onSaveCalculation, au
               </div>
               <div className="flex items-end gap-2">
                 <span className="text-4xl font-light tracking-tight text-white font-mono">
-                  {results.kva.toFixed(2)}
+                  {(results.kva || 0).toFixed(2)}
                 </span>
                 <span className="text-sm text-slate-500 font-bold mb-1">kVA</span>
               </div>
               <div className="mt-3 flex items-center justify-between text-xs border-t border-slate-800 pt-3">
                 <span className="text-slate-500">Design Capacity ({appliedDesignMargin}x)</span>
-                <span className="text-slate-300 font-mono font-bold">{results.recommendedKva.toFixed(2)} kVA</span>
+                <span className="text-slate-300 font-mono font-bold">{(results.recommendedKva || 0).toFixed(2)} kVA</span>
               </div>
             </div>
 
@@ -282,7 +282,7 @@ export default function ElvUpsSizingCalc({ restoredParams, onSaveCalculation, au
                   <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Required Capacity</h4>
                 </div>
                 <div className="flex items-end gap-2">
-                  <span className="text-4xl font-light tracking-tight text-white font-mono">{results.requiredAh.toFixed(1)}</span>
+                  <span className="text-4xl font-light tracking-tight text-white font-mono">{(results.requiredAh || 0).toFixed(1)}</span>
                   <span className="text-sm text-slate-500 font-bold mb-1">Ah</span>
                 </div>
               </div>
@@ -337,9 +337,9 @@ export default function ElvUpsSizingCalc({ restoredParams, onSaveCalculation, au
             <div className="h-48 w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
-                  { name: 'Active Load', value: parseFloat(results.kva.toFixed(2)), fill: '#6366f1' },
-                  { name: 'Design Margin', value: parseFloat((results.recommendedKva - results.kva).toFixed(2)), fill: '#818cf8' },
-                  { name: 'Unused Capacity', value: parseFloat((results.standardUps - results.recommendedKva).toFixed(2)), fill: '#10b981' }
+                  { name: 'Active Load', value: parseFloat((results.kva || 0).toFixed(2)), fill: '#6366f1' },
+                  { name: 'Design Margin', value: parseFloat(((results.recommendedKva - results.kva) || 0).toFixed(2)), fill: '#818cf8' },
+                  { name: 'Unused Capacity', value: parseFloat(((results.standardUps - results.recommendedKva) || 0).toFixed(2)), fill: '#10b981' }
                 ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                   <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />

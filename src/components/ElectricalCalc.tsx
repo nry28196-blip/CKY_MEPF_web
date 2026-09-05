@@ -402,7 +402,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
 
         {/* Right Card: Outputs */}
         <motion.div
-          key={`${current.toFixed(4)}`}
+          key={`${(current || 0).toFixed(4)}`}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -416,7 +416,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
             <div>
               <span className="block text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Calculated Full Load Current (FLC)</span>
               <p className="text-4xl font-black text-white mt-1.5 font-mono">
-                {current > 0 ? current.toFixed(2) : '0.00'}{' '}
+                {current > 0 ? (current || 0).toFixed(2) : '0.00'}{' '}
                 <span className="text-base font-normal text-slate-400">Amperes (A)</span>
               </p>
             </div>
@@ -480,7 +480,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
                     onSaveCalculation({
                       tab: 'electrical',
                       title: `Electrical FLC (${pNum} kW)`,
-                      summary: `${pNum} kW | ${phase === 'three' ? '3-Phase' : '1-Phase'} | ${current.toFixed(1)} A`,
+                      summary: `${pNum} kW | ${phase === 'three' ? '3-Phase' : '1-Phase'} | ${(current || 0).toFixed(1)} A`,
                       parameters: { power: pNum, voltage, powerFactor, phase }
                     });
                     triggerToast(t('toastCalculationSaved'));
@@ -518,7 +518,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
                     `- System Phase: ${phase === 'three' ? '3-Phase (400V)' : '1-Phase (230V)'}\n` +
                     `- Voltage: ${voltage} V\n` +
                     `- Power Factor: ${powerFactor} (cos φ)\n` +
-                    `- Calculated Full Load Current (FLC): ${current.toFixed(2)} A\n` +
+                    `- Calculated Full Load Current (FLC): ${(current || 0).toFixed(2)} A\n` +
                     `- Recommended Breaker Size: ${estimateBreaker(current)} Amps (MCB/MCCB)\n\n` +
                     `Generated on ${new Date().toLocaleString()}\n` +
                     `Regards,\n` +

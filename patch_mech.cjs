@@ -2,73 +2,119 @@ const fs = require('fs');
 
 let code = fs.readFileSync('src/components/MechanicalCalc.tsx', 'utf8');
 
-// 1. Add ventilationDetails state
-code = code.replace(
-  /const \[ventilationLps, setVentilationLps\] = useState<number>\(25\);/,
-  `const [ventilationLps, setVentilationLps] = useState<number>(25);
-  const [ventilationDetails, setVentilationDetails] = useState<any>(null);
-  
-  const handleVentilationChange = (flow: number, details?: any) => {
-    setVentilationLps(flow);
-    if (details) {
-      setVentilationDetails(details);
-    } else {
-      setVentilationDetails(null);
+const calculateCoolingLoadReplacement = `  const calculateCoolingLoad = () => {
+    const numArea = area !== '' && area !== undefined ? Number(area) : NaN;
+    const numOccupants = occupants !== '' && occupants !== undefined ? Number(occupants) : NaN;
+    const numHeight = height !== '' && height !== undefined ? Number(height) : NaN;
+    
+    if (isNaN(numArea) || isNaN(numOccupants) || isNaN(numHeight)) {
+      return {
+        status: 'INCOMPLETE',
+        warning: 'Missing or invalid required geometry/occupancy parameters.',
+        peopleSensible: 0, peopleLatent: 0, lightingSensible: 0, equipmentSensible: 0,
+        wallSensible: 0, roofSensible: 0, windowCondSensible: 0, solarSensible: 0,
+        ventSensible: 0, ventLatent: 0, infiltrationSensible: 0, infiltrationLatent: 0, 
+        totalSensible: 0, totalLatent: 0,
+        calculatedTotal: 0, finalTotal: 0,
+        watts: 0, btu: 0, tons: 0
+      };
     }
-  };`
-);
+    const status = 'PASS';
 
-// 2. Change the handler
-code = code.replace(
-  /<VentilationCalc onVentilationChange=\{setVentilationLps\} governingStandard=\{governingStandard\} \/>/,
-  `<VentilationCalc onVentilationChange={handleVentilationChange} governingStandard={governingStandard} />`
-);
+    // 1. Convert User Inputs to Canonical Metric
+    const canonicalArea = isMetric ? numArea : UnitConversionService.sqftToSqM(numArea);
+    const canonicalVolume = estimationBasis === 'volume' 
+      ? (isMetric ? (volume !== '' ? Number(volume) : NaN) : UnitConversionService.cuFtToCuM(volume !== '' ? Number(volume) : NaN))
+      : (canonicalArea * numHeight);
+    
+    const altMeters = isMetric ? altitude : UnitConversionService.ftToM(altitude);
+    const canonicalVentLps = isMetric ? ventilationLps : UnitConversionService.cfmToLs(ventilationLps);
 
-// 3. Render ventilation details in audit trail
-const auditTrailInsertion = `
-                    {ventilationDetails && (
-                      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px] lg:col-span-2">
-                        <div className="text-amber-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1 flex justify-between">
-                          <span>Ventilation Audit Trail (ASHRAE 62.1)</span>
-                          <span className="text-slate-500">{ventilationDetails.systemType === 'single' ? 'Single Zone (VRP)' : 'Multi-Zone (VRP)'}</span>
-                        </div>
-                        
-                        {ventilationDetails.systemType === 'single' && ventilationDetails.zoneResults && ventilationDetails.zoneResults.length > 0 && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-slate-300">
-                            <div className="text-slate-500">Vbz (Breathing Zone Outdoor Air) Formula:</div>
-                            <div className="text-right text-slate-400">Rp×Pz + Ra×Az = {Math.round(ventilationDetails.zoneResults[0].result?.vbz || 0)}</div>
-                            <div className="text-slate-500">Ez (Zone Air Distribution Effectiveness):</div>
-                            <div className="text-right text-slate-400">{ventilationDetails.zoneResults[0].result?.ez || 1.0}</div>
-                            <div className="text-slate-500">Voz (Zone Outdoor Air) Formula:</div>
-                            <div className="text-right text-slate-400">Vbz / Ez = {Math.round(ventilationDetails.zoneResults[0].result?.voz || 0)}</div>
-                          </div>
-                        )}
+    // Hardcoded environmental state (already metric)
+    const dT = outdoorTemp - indoorTemp; 
 
-                        {ventilationDetails.systemType === 'multi' && ventilationDetails.systemResult && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-slate-300">
-                            <div className="text-slate-500">Vou (Uncorrected Outdoor Air) Formula:</div>
-                            <div className="text-right text-slate-400">D×Σ(Rp×Pz) + Σ(Ra×Az) = {Math.round(ventilationDetails.systemResult.vou)}</div>
-                            
-                            <div className="text-slate-500">Max Zpz (Critical Zone Fraction):</div>
-                            <div className="text-right text-slate-400">{ventilationDetails.systemResult.zd.toFixed(3)}</div>
-                            
-                            <div className="text-slate-500">Ev (System Vent. Efficiency) Formula:</div>
-                            <div className="text-right text-slate-400">1 + Xs - Zd = {ventilationDetails.systemResult.ev.toFixed(3)}</div>
-                            
-                            <div className="text-slate-500">Vot (System Outdoor Air) Formula:</div>
-                            <div className="text-right text-slate-400">Vou / Ev = {Math.round(ventilationDetails.systemResult.vot)}</div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-`;
+    // 1. People
+    const peopleSensible = numOccupants * sensiblePerPerson;
+    const peopleLatent = numOccupants * latentPerPerson;
+    
+    // 2. Lighting
+    const lightingSensible = canonicalArea * lightingWpm2;
+    
+    // 3. Equipment
+    const equipmentSensible = equipmentWatts;
+    
+    // 4. Envelope (Walls, Roof, Window Conduction)
+    const wallSensible = wallArea * wallUValue * dT;
+    const roofSensible = roofArea * roofUValue * dT;
+    const windowCondSensible = windowArea * windowUValue * dT;
+    
+    // 5. Solar (Window SHGC)
+    const solarIrradiance = 400; // Peak solar irradiance assumption W/m2
+    const solarSensible = windowArea * windowShgc * solarIrradiance;
+    
+    // 6. Ventilation (Sensible & Latent)
+    const outdoorProps = AirDensityService.getAirProperties(altMeters, outdoorTemp, relativeHumidity);
+    const indoorProps = AirDensityService.getAirProperties(altMeters, indoorTemp, indoorRelativeHumidity);
+    
+    const densityRatio = useAltitudeAdj ? outdoorProps.densityRatio : 1.0;
+    const actualAirDensity = useAltitudeAdj ? outdoorProps.densityKgM3 : outdoorProps.standardDensityKgM3;
+    
+    const dw = Math.max(0, outdoorProps.humidityRatioKgKg - indoorProps.humidityRatioKgKg);
+    const cpAir = 1.026 * actualAirDensity; 
+    const hfgVapor = 2501 * actualAirDensity; 
+    
+    const ventM3s = canonicalVentLps / 1000;
+    const ventSensible = (cpAir * ventM3s * dT) * 1000; 
+    const ventLatent = (hfgVapor * ventM3s * dw) * 1000; 
+    
+    // 7. Infiltration
+    const infiltrationM3s = (infiltrationACH * canonicalVolume) / 3600;
+    const infiltrationSensible = (cpAir * infiltrationM3s * dT) * 1000;
+    const infiltrationLatent = (hfgVapor * infiltrationM3s * dw) * 1000;
 
-code = code.replace(
-  /                    <\/div>\n                  <\/div>\n                <\/div>\n              \)\}/,
-  auditTrailInsertion + `              )}`
-);
+    const totalSensible = peopleSensible + lightingSensible + equipmentSensible + wallSensible + roofSensible + windowCondSensible + solarSensible + ventSensible + infiltrationSensible;
+    const totalLatent = peopleLatent + ventLatent + infiltrationLatent;
+    const calculatedTotal = totalSensible + totalLatent;
+    const finalTotal = calculatedTotal * (1 + safetyFactor / 100);
+
+    return {
+      peopleSensible, peopleLatent, lightingSensible, equipmentSensible,
+      wallSensible, roofSensible, windowCondSensible, solarSensible,
+      ventSensible, ventLatent, infiltrationSensible, infiltrationLatent, 
+      totalSensible, totalLatent,
+      calculatedTotal, finalTotal,
+      watts: finalTotal,
+      btu: finalTotal * 3.412142,
+      tons: finalTotal / 3516.85284,
+      status
+    };
+  };`;
+
+code = code.replace(/const calculateCoolingLoad = \(\) => \{[\s\S]*?status\n\s*\};\n\s*\};/, calculateCoolingLoadReplacement);
+
+const calcRoomReplacement = `  const calcRoomTonsAndWatts = (basis: 'area' | 'volume', size: number, occupants: number) => {
+    const canonicalSize = isMetric 
+      ? size 
+      : (basis === 'area' ? UnitConversionService.sqftToSqM(size) : UnitConversionService.cuFtToCuM(size));
+      
+    const watts = (basis === 'area' ? canonicalSize * baseLoadPerSqm : canonicalSize * baseLoadPerCum) + (occupants * loadPerPerson);
+    const btu = watts * 3.412142;
+    const tons = btu / 12000;
+    return { watts, tons };
+  };`;
+
+code = code.replace(/const calcRoomTonsAndWatts = \(basis: 'area' \| 'volume', size: number, occupants: number\) => \{[\s\S]*?return \{ watts, tons \};\n\s*\};/, calcRoomReplacement.trim());
+
+// We need to import UnitConversionService if it's not already imported in MechanicalCalc.tsx
+if (!code.includes('UnitConversionService')) {
+  code = code.replace(
+    "import { AirDensityService } from '../calculations/services/AirDensityService';",
+    "import { AirDensityService } from '../calculations/services/AirDensityService';\nimport { UnitConversionService } from '../calculations/services/UnitConversionService';"
+  );
+}
+
+// There is one more place where UnitConversion is missing in the UI:
+// The display for altitude density ratio uses \`altitude * 0.3048\`
+code = code.replace(/isMetric \? altitude : altitude \* 0\.3048/g, 'isMetric ? altitude : UnitConversionService.ftToM(altitude)');
 
 fs.writeFileSync('src/components/MechanicalCalc.tsx', code);
-console.log("Patched MechanicalCalc");

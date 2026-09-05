@@ -201,8 +201,8 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
 
           list.push({
             powerKw: kw,
-            '3-Phase FLC (A)': parseFloat(current3P.toFixed(2)),
-            '1-Phase FLC (A)': parseFloat(current1P.toFixed(2)),
+            '3-Phase FLC (A)': parseFloat((current3P || 0).toFixed(2)),
+            '1-Phase FLC (A)': parseFloat((current1P || 0).toFixed(2)),
           });
         }
         break;
@@ -221,21 +221,21 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
           
           const point: any = { areaM2: a };
           coolingBenchmarks.filter(b => b.enabled).forEach(b => {
-             point[`${b.value} W/m² Benchmark`] = parseFloat((a * b.value / 1000).toFixed(2));
+             point[`${b.value} W/m² Benchmark`] = parseFloat(((a * b.value / 1000) || 0).toFixed(2));
           });
           list.push(point);
         }
         
         const exactPoint: any = { areaM2: area };
         coolingBenchmarks.filter(b => b.enabled).forEach(b => {
-             exactPoint[`${b.value} W/m² Benchmark`] = parseFloat((area * b.value / 1000).toFixed(2));
+             exactPoint[`${b.value} W/m² Benchmark`] = parseFloat(((area * b.value / 1000) || 0).toFixed(2));
         });
         
         if (res && res.calculatedTotal !== undefined) {
            const actualKw = res.calculatedTotal / 1000;
            const finalKw = res.finalTotal / 1000;
-           exactPoint['Actual Calculated Load'] = parseFloat(actualKw.toFixed(3));
-           exactPoint['Final Design Load'] = parseFloat(finalKw.toFixed(3));
+           exactPoint['Actual Calculated Load'] = parseFloat((actualKw || 0).toFixed(3));
+           exactPoint['Final Design Load'] = parseFloat((finalKw || 0).toFixed(3));
            exactPoint['Actual Load Density (W/m²)'] = Math.round(res.calculatedTotal / area);
            exactPoint['Final Load Density (W/m²)'] = Math.round(res.finalTotal / area);
         }
@@ -276,9 +276,9 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
 
           list.push({
             cfm,
-            'Equivalent Diameter (in)': parseFloat(de.toFixed(1)),
+            'Equivalent Diameter (in)': parseFloat((de || 0).toFixed(1)),
             'Calculated Width (in)': w,
-            'Velocity (FPM)': parseFloat(velFpm.toFixed(0)),
+            'Velocity (FPM)': parseFloat((velFpm || 0).toFixed(0)),
           });
         }
         break;
@@ -302,9 +302,9 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
 
           list.push({
             loadingUnits: lu,
-            'BS EN 806-3 Standard (L/s)': parseFloat(q_bs.toFixed(3)),
-            'IPC Hunter - Flush Valve (L/s)': parseFloat(q_ipc_valve.toFixed(3)),
-            'IPC Hunter - Flush Tank (L/s)': parseFloat(q_ipc_tank.toFixed(3)),
+            'BS EN 806-3 Standard (L/s)': parseFloat((q_bs || 0).toFixed(3)),
+            'IPC Hunter - Flush Valve (L/s)': parseFloat((q_ipc_valve || 0).toFixed(3)),
+            'IPC Hunter - Flush Tank (L/s)': parseFloat((q_ipc_tank || 0).toFixed(3)),
           });
         }
         break;
@@ -328,8 +328,8 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
 
           list.push({
             occupantsCount: occ,
-            'Potable Water Tank (m³)': parseFloat(waterStorage.toFixed(1)),
-            'Sewerage Septic Tank (m³)': parseFloat(septicVolume.toFixed(1)),
+            'Potable Water Tank (m³)': parseFloat((waterStorage || 0).toFixed(1)),
+            'Sewerage Septic Tank (m³)': parseFloat((septicVolume || 0).toFixed(1)),
           });
         }
         break;
@@ -360,7 +360,7 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
 
           list.push({
             buildingHeightM: h,
-            'Required Booster Pump (HP)': parseFloat(Math.max(0.1, hp).toFixed(2)),
+            'Required Booster Pump (HP)': parseFloat((Math.max(0.1, hp) || 0).toFixed(2)),
           });
         }
         break;
@@ -386,9 +386,9 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
 
           list.push({
             durationMins: mins,
-            'Light Hazard (m³)': parseFloat(volLight.toFixed(1)),
-            'Ordinary Hazard (m³)': parseFloat(volOrdinary.toFixed(1)),
-            'Extra Hazard (m³)': parseFloat(volExtra.toFixed(1)),
+            'Light Hazard (m³)': parseFloat((volLight || 0).toFixed(1)),
+            'Ordinary Hazard (m³)': parseFloat((volOrdinary || 0).toFixed(1)),
+            'Extra Hazard (m³)': parseFloat((volExtra || 0).toFixed(1)),
           });
         }
         break;
@@ -443,11 +443,11 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
         const power = Number(currentParams.power) || 15;
         const pf = Number(currentParams.powerFactor) || 0.85;
         return [
-          { name: '120V (1-Ph)', 'Current (Amps)': parseFloat(((power * 1000) / (120 * pf)).toFixed(1)), color: '#ef4444' },
-          { name: '230V (1-Ph)', 'Current (Amps)': parseFloat(((power * 1000) / (230 * pf)).toFixed(1)), color: '#f59e0b' },
-          { name: '230V (3-Ph)', 'Current (Amps)': parseFloat(((power * 1000) / (230 * pf * Math.sqrt(3))).toFixed(1)), color: '#3b82f6' },
-          { name: '400V (3-Ph)', 'Current (Amps)': parseFloat(((power * 1000) / (400 * pf * Math.sqrt(3))).toFixed(1)), color: '#10b981' },
-          { name: '480V (3-Ph)', 'Current (Amps)': parseFloat(((power * 1000) / (480 * pf * Math.sqrt(3))).toFixed(1)), color: '#8b5cf6' }
+          { name: '120V (1-Ph)', 'Current (Amps)': parseFloat((((power * 1000) / (120 * pf)) || 0).toFixed(1)), color: '#ef4444' },
+          { name: '230V (1-Ph)', 'Current (Amps)': parseFloat((((power * 1000) / (230 * pf)) || 0).toFixed(1)), color: '#f59e0b' },
+          { name: '230V (3-Ph)', 'Current (Amps)': parseFloat((((power * 1000) / (230 * pf * Math.sqrt(3))) || 0).toFixed(1)), color: '#3b82f6' },
+          { name: '400V (3-Ph)', 'Current (Amps)': parseFloat((((power * 1000) / (400 * pf * Math.sqrt(3))) || 0).toFixed(1)), color: '#10b981' },
+          { name: '480V (3-Ph)', 'Current (Amps)': parseFloat((((power * 1000) / (480 * pf * Math.sqrt(3))) || 0).toFixed(1)), color: '#8b5cf6' }
         ];
       }
 
@@ -459,9 +459,9 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
         const q_ipc_tank = getHuntersFlowGPM(activeLoad, 'tank') * 0.06309;
 
         return [
-          { name: 'BS EN 806-3 Standard', 'Flow Rate (L/s)': parseFloat(q_bs.toFixed(2)), color: '#06b6d4' },
-          { name: 'IPC Hunter Valve', 'Flow Rate (L/s)': parseFloat(q_ipc_valve.toFixed(2)), color: '#ef4444' },
-          { name: 'IPC Hunter Tank', 'Flow Rate (L/s)': parseFloat(q_ipc_tank.toFixed(2)), color: '#f59e0b' }
+          { name: 'BS EN 806-3 Standard', 'Flow Rate (L/s)': parseFloat((q_bs || 0).toFixed(2)), color: '#06b6d4' },
+          { name: 'IPC Hunter Valve', 'Flow Rate (L/s)': parseFloat((q_ipc_valve || 0).toFixed(2)), color: '#ef4444' },
+          { name: 'IPC Hunter Tank', 'Flow Rate (L/s)': parseFloat((q_ipc_tank || 0).toFixed(2)), color: '#f59e0b' }
         ];
       }
 
@@ -473,8 +473,8 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
         const septicVol = (occupants * Number(currentParams.septicDischarge || 80) * 1.5 + occupants * 30 * Number(currentParams.septicDesludgeInterval || 3)) / 1000;
         
         return [
-          { name: 'Potable Water Tank', 'Volume (m³)': parseFloat(potableVol.toFixed(1)), color: '#06b6d4' },
-          { name: 'Sewerage Septic Tank', 'Volume (m³)': parseFloat(septicVol.toFixed(1)), color: '#f59e0b' }
+          { name: 'Potable Water Tank', 'Volume (m³)': parseFloat((potableVol || 0).toFixed(1)), color: '#06b6d4' },
+          { name: 'Sewerage Septic Tank', 'Volume (m³)': parseFloat((septicVol || 0).toFixed(1)), color: '#f59e0b' }
         ];
       }
 
@@ -490,7 +490,7 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
           const hp = shaftPower * 1.341;
           return {
             name: `${eff}% Eff`,
-            'Required Power (HP)': parseFloat(Math.max(0.1, hp).toFixed(2)),
+            'Required Power (HP)': parseFloat((Math.max(0.1, hp) || 0).toFixed(2)),
             color: idx === 0 ? '#ef4444' : idx === 1 ? '#f59e0b' : idx === 2 ? '#3b82f6' : '#10b981'
           };
         });
@@ -505,10 +505,10 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
         const currentVol = (flowLpm * duration) / 1000;
 
         return [
-          { name: 'Light Hazard', 'Tank Volume (m³)': parseFloat(volLight.toFixed(1)), color: '#10b981' },
-          { name: 'Ordinary Hazard', 'Tank Volume (m³)': parseFloat(volOrdinary.toFixed(1)), color: '#f59e0b' },
-          { name: 'Extra Hazard', 'Tank Volume (m³)': parseFloat(volExtra.toFixed(1)), color: '#ef4444' },
-          { name: 'Your Calculated', 'Tank Volume (m³)': parseFloat(currentVol.toFixed(1)), color: '#3b82f6' }
+          { name: 'Light Hazard', 'Tank Volume (m³)': parseFloat((volLight || 0).toFixed(1)), color: '#10b981' },
+          { name: 'Ordinary Hazard', 'Tank Volume (m³)': parseFloat((volOrdinary || 0).toFixed(1)), color: '#f59e0b' },
+          { name: 'Extra Hazard', 'Tank Volume (m³)': parseFloat((volExtra || 0).toFixed(1)), color: '#ef4444' },
+          { name: 'Your Calculated', 'Tank Volume (m³)': parseFloat((currentVol || 0).toFixed(1)), color: '#3b82f6' }
         ];
       }
 
@@ -531,10 +531,10 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
     const pf = Number(currentParams.powerFactor) || 0.85;
     const v = Number(currentParams.voltage) || 400;
     if (currentParams.phase === 'three') {
-      currentYValue = parseFloat(((p * 1000) / (v * pf * Math.sqrt(3))).toFixed(2));
+      currentYValue = parseFloat((((p * 1000) / (v * pf * Math.sqrt(3))) || 0).toFixed(2));
       referenceName = '3-Phase FLC (A)';
     } else {
-      currentYValue = parseFloat(((p * 1000) / (230 * pf)).toFixed(2));
+      currentYValue = parseFloat((((p * 1000) / (230 * pf)) || 0).toFixed(2));
       referenceName = '1-Phase FLC (A)';
     }
   } else if (type === 'cooling') {
@@ -546,7 +546,7 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
     const height = Number(currentParams.ductHeight) || 12;
     const friction = Number(currentParams.frictionRate) || 0.1;
     const de = Math.pow((0.1091 * Math.pow(currentXValue, 1.9)) / friction, 0.2);
-    currentYValue = parseFloat(de.toFixed(1));
+    currentYValue = parseFloat((de || 0).toFixed(1));
     referenceName = 'Equivalent Diameter (in)';
   } else if (type === 'plumbing_fixtures') {
     const isBS = currentParams.standard === 'bs';
@@ -683,7 +683,7 @@ export default function TrendVisualizer({ type, currentParams }: TrendVisualizer
               <span className="text-slate-400 font-medium">Load:</span> {label} WSFU / LU
             </p>
             {payload.map((entry: any, index: number) => {
-              const gpm = (entry.value / 0.06309).toFixed(1);
+              const gpm = ((entry.value / 0.06309) || 0).toFixed(1);
               return (
                 <div key={index} className="flex justify-between items-center gap-6 text-xs my-1.5">
                   <span style={{ color: entry.color }} className="font-semibold">{entry.name}</span>

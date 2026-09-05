@@ -38,7 +38,7 @@ export const CONVERSIONS = {
 };
 
 export const convertValue = (val: number, multiplier: number) => {
-  return Number((val * multiplier).toFixed(4));
+  return Number(((val * multiplier) || 0).toFixed(4));
 };
 
 export const celsiusToFahrenheit = (c: number) => (c * 9/5) + 32;

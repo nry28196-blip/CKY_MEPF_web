@@ -1,4 +1,5 @@
 import { EXHAUST_2019, EXHAUST_2022, EXHAUST_2025, ExhaustSpaceType, AshraeEdition } from '../data/ashrae621/ExhaustData';
+import { UnitConversionService } from '../services/UnitConversionService';
 
 export type { ExhaustSpaceType, AshraeEdition };
 
@@ -44,41 +45,52 @@ export class Ashrae621ExhaustService {
       };
     }
 
-    const ashraeRate = input.isMetric ? spaceType.ashraeRateMet : spaceType.ashraeRateImp;
-    const imcRate = input.isMetric ? spaceType.imcRateMet : spaceType.imcRateImp;
+    // 1. Convert to Canonical Metric
+    let canonicalQuantity = input.quantity;
+    if (!input.isMetric && spaceType.ashraeUnit === 'area') {
+      canonicalQuantity = UnitConversionService.sqftToSqM(input.quantity);
+    }
+    
+    let canonicalProjectReq = input.projectOverride !== undefined 
+      ? (input.isMetric ? input.projectOverride : UnitConversionService.cfmToLs(input.projectOverride))
+      : 0;
+      
+    let canonicalMfgReq = input.mfgOverride !== undefined
+      ? (input.isMetric ? input.mfgOverride : UnitConversionService.cfmToLs(input.mfgOverride))
+      : 0;
 
-    const ashraeReq = ashraeRate * input.quantity;
-    const imcReq = imcRate * input.quantity;
-    const projectReq = input.projectOverride !== undefined ? input.projectOverride : 0;
-    const mfgReq = input.mfgOverride !== undefined ? input.mfgOverride : 0;
-
-    let governingRequired = 0;
+    // 2. Perform Canonical Metric Calculation
+    const ashraeReqMetric = spaceType.ashraeRateMet * canonicalQuantity;
+    const imcReqMetric = spaceType.imcRateMet * canonicalQuantity;
+    
+    let governingRequiredMetric = 0;
     let governingSource = '';
     let status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE' = 'PASS';
     let warning = undefined;
 
-    // As requested: Do not automatically MAX everything without context. 
-    // Identify governing requirement based on design basis.
     if (input.localCodeAdopted === false || input.localCodeAdopted === undefined) {
       status = 'WARNING';
       warning = 'Local/AHJ governing requirement not established. Showing max for safety only.';
-      governingRequired = Math.max(ashraeReq, imcReq, projectReq, mfgReq);
+      governingRequiredMetric = Math.max(ashraeReqMetric, imcReqMetric, canonicalProjectReq, canonicalMfgReq);
       governingSource = 'Max observed (Warning: AHJ unverified)';
     } else {
-      const codeMin = Math.max(ashraeReq, imcReq);
-      governingRequired = Math.max(codeMin, projectReq, mfgReq);
-      if (governingRequired === mfgReq && mfgReq > 0) governingSource = 'Manufacturer Requirement';
-      else if (governingRequired === projectReq && projectReq > 0) governingSource = 'Project Override';
-      else if (governingRequired === imcReq && imcReq > ashraeReq) governingSource = 'IMC Minimum';
+      const codeMin = Math.max(ashraeReqMetric, imcReqMetric);
+      governingRequiredMetric = Math.max(codeMin, canonicalProjectReq, canonicalMfgReq);
+      if (governingRequiredMetric === canonicalMfgReq && canonicalMfgReq > 0) governingSource = 'Manufacturer Requirement';
+      else if (governingRequiredMetric === canonicalProjectReq && canonicalProjectReq > 0) governingSource = 'Project Override';
+      else if (governingRequiredMetric === imcReqMetric && imcReqMetric > ashraeReqMetric) governingSource = 'IMC Minimum';
       else governingSource = 'ASHRAE Minimum';
     }
 
+    // 3. Convert results back to Imperial if needed
+    const resultConversion = (valMetric: number) => input.isMetric ? valMetric : UnitConversionService.lsToCfm(valMetric);
+
     return {
-      ashraeReq,
-      imcReq,
-      projectReq,
-      mfgReq,
-      governingRequired,
+      ashraeReq: resultConversion(ashraeReqMetric),
+      imcReq: resultConversion(imcReqMetric),
+      projectReq: resultConversion(canonicalProjectReq),
+      mfgReq: resultConversion(canonicalMfgReq),
+      governingRequired: resultConversion(governingRequiredMetric),
       governingSource,
       classification: spaceType.ashraeClass,
       status,
