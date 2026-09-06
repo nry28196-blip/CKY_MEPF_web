@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+const fs = require('fs');
+const code = `import React, { useState, useEffect, useMemo } from 'react';
 import { Wind, Users, Activity, Settings, Info, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 import ValidatedInput from './ValidatedInput';
@@ -10,8 +11,6 @@ import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { VentilationEngine, MultiZoneInput, SingleZoneInput } from '../calculations/ventilation/VentilationEngine';
 import { UnitConversionService } from '../services/UnitConversionService';
 import { ASHRAE_621_2025_SPACE_TYPES, ASHRAE_621_2025_EZ_VALUES } from '../data/ventilation/ashrae621/2025/data';
-import { ASHRAE_621_2022_SPACE_TYPES, ASHRAE_621_2022_EZ_VALUES } from '../data/ventilation/ashrae621/2022/data';
-import { ASHRAE_621_2019_SPACE_TYPES, ASHRAE_621_2019_EZ_VALUES } from '../data/ventilation/ashrae621/2019/data';
 
 interface ZoneState {
   id: string;
@@ -36,9 +35,6 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
   const [alternativeConfig, setAlternativeConfig] = useState<'single-supply' | 'secondary-recirculation'>('single-supply');
   const [systemPopulation, setSystemPopulation] = useState<number | ''>('');
   
-  const spaceTypes = edition === '2019' ? ASHRAE_621_2019_SPACE_TYPES : edition === '2022' ? ASHRAE_621_2022_SPACE_TYPES : ASHRAE_621_2025_SPACE_TYPES;
-  const ezValues = edition === '2019' ? ASHRAE_621_2019_EZ_VALUES : edition === '2022' ? ASHRAE_621_2022_EZ_VALUES : ASHRAE_621_2025_EZ_VALUES;
-
   const [altitude, setAltitude] = useState<number>(0);
   const [airTemp, setAirTemp] = useState<number>(isMetric ? 20 : 68);
 
@@ -63,7 +59,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       ...zones,
       {
         id: Math.random().toString(),
-        name: `Zone ${zones.length + 1}`,
+        name: \`Zone \${zones.length + 1}\`,
         spaceTypeId: 'office',
         area: isMetric ? 100 : 1000,
         occupants: 5,
@@ -96,8 +92,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
 
     if (systemType === 'single') {
       const z = zones[0];
-      const spaceType = spaceTypes.find(s => s.id === z.spaceTypeId) || null;
-      const ezConfig = ezValues.find(e => e.id === z.ezId) || null;
+      const spaceType = ASHRAE_621_2025_SPACE_TYPES.find(s => s.id === z.spaceTypeId) || null;
+      const ezConfig = ASHRAE_621_2025_EZ_VALUES.find(e => e.id === z.ezId) || null;
       
       const areaM2 = isMetric ? z.area : UnitConversionService.ft2ToM2(z.area);
       
@@ -116,8 +112,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
     } else {
       const mzInput: MultiZoneInput = {
         zones: zones.map(z => {
-          const spaceType = spaceTypes.find(s => s.id === z.spaceTypeId) || null;
-          const ezConfig = ezValues.find(e => e.id === z.ezId) || null;
+          const spaceType = ASHRAE_621_2025_SPACE_TYPES.find(s => s.id === z.spaceTypeId) || null;
+          const ezConfig = ASHRAE_621_2025_EZ_VALUES.find(e => e.id === z.ezId) || null;
           const areaM2 = isMetric ? z.area : UnitConversionService.ft2ToM2(z.area);
           
           let vpz = z.primaryAirflow === '' ? null : z.primaryAirflow;
@@ -147,7 +143,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       };
       return VentilationEngine.runMultiZone(mzInput);
     }
-  }, [zones, systemType, isVAV, alternativeConfig, systemPopulation, altitude, airTemp, isMetric, spaceTypes, ezValues]);
+  }, [zones, systemType, isVAV, alternativeConfig, systemPopulation, altitude, airTemp, isMetric]);
 
   useEffect(() => {
     if (onVentilationChange) {
@@ -178,7 +174,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
     <div className="space-y-6">
       <EngineeringStatusHeader 
         status={engineResult.status} 
-        message={`ASHRAE 62.1-${edition} Ventilation - ${engineResult.status === 'PASS' ? 'Calculation validated' : 'Check required inputs'}`} 
+        moduleName={\`ASHRAE 62.1-\${edition} Ventilation\`} 
+        details={engineResult.status === 'PASS' ? 'Calculation validated' : 'Check required inputs'} 
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -207,13 +204,13 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                 <TooltipLabel label="Air Volume Control" tooltip="Constant Volume or Variable Air Volume" />
                 <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
                   <button
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${!isVAV ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white'}`}
+                    className={\`flex-1 py-1.5 text-xs font-medium rounded-md transition-all \${!isVAV ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white'}\`}
                     onClick={() => setIsVAV(false)}
                   >
                     Constant Volume (CV)
                   </button>
                   <button
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${isVAV ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white'}`}
+                    className={\`flex-1 py-1.5 text-xs font-medium rounded-md transition-all \${isVAV ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white'}\`}
                     onClick={() => setIsVAV(true)}
                   >
                     Variable Air Volume (VAV)
@@ -258,7 +255,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <TooltipLabel label={`Site Elevation (${isMetric ? 'm' : 'ft'})`} tooltip="Affects barometric pressure" />
+              <TooltipLabel label={\`Site Elevation (\${isMetric ? 'm' : 'ft'})\`} tooltip="Affects barometric pressure" />
               <input 
                 type="number"
                 className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
@@ -267,7 +264,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               />
             </div>
             <div>
-              <TooltipLabel label={`Design Temp (${isMetric ? '°C' : '°F'})`} tooltip="Summer/Winter design temperature" />
+              <TooltipLabel label={\`Design Temp (\${isMetric ? '°C' : '°F'})\`} tooltip="Summer/Winter design temperature" />
               <input 
                 type="number"
                 className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
@@ -326,14 +323,14 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                   value={z.spaceTypeId}
                   onChange={(e) => updateZone(z.id, 'spaceTypeId', e.target.value)}
                 >
-                  {spaceTypes.map(s => (
+                  {ASHRAE_621_2025_SPACE_TYPES.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <TooltipLabel label={`Floor Area (${isMetric ? 'm²' : 'ft²'})`} tooltip="Zone floor area" />
+                <TooltipLabel label={\`Floor Area (\${isMetric ? 'm²' : 'ft²'})\`} tooltip="Zone floor area" />
                 <input 
                   type="number" min="0"
                   className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
@@ -371,7 +368,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                   value={z.ezId}
                   onChange={(e) => updateZone(z.id, 'ezId', e.target.value)}
                 >
-                  {ezValues.map(e => (
+                  {ASHRAE_621_2025_EZ_VALUES.map(e => (
                     <option key={e.id} value={e.id}>{e.name} ({e.ez})</option>
                   ))}
                 </select>
@@ -379,7 +376,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
 
               {systemType !== 'single' && (
                 <div>
-                  <TooltipLabel label={`Primary Airflow (${isMetric ? 'L/s' : 'cfm'})`} tooltip="Vpz design airflow" />
+                  <TooltipLabel label={\`Primary Airflow (\${isMetric ? 'L/s' : 'cfm'})\`} tooltip="Vpz design airflow" />
                   <input 
                     type="number" min="0"
                     className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
@@ -391,7 +388,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               
               {systemType !== 'single' && isVAV && (
                 <div>
-                  <TooltipLabel label={`Vpz-min (${isMetric ? 'L/s' : 'cfm'})`} tooltip="VAV minimum primary airflow" />
+                  <TooltipLabel label={\`Vpz-min (\${isMetric ? 'L/s' : 'cfm'})\`} tooltip="VAV minimum primary airflow" />
                   <input 
                     type="number" min="0"
                     className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
@@ -439,7 +436,9 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         </p>
       </div>
 
-      <EngineeringAuditTrail title="ASHRAE 62.1 Engine Audit Log" trail={allAuditTrails} />
+      <EngineeringAuditTrail title="ASHRAE 62.1 Engine Audit Log" items={allAuditTrails} />
     </div>
   );
 }
+`;
+fs.writeFileSync('src/components/Ashrae621VentilationCalc.tsx', code);

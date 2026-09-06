@@ -6,10 +6,9 @@ export interface AirBalanceInput {
 }
 
 export interface AirBalanceResult {
-  qNet: number; 
-  transferOut: number; 
-  transferInRequired: number;
-  pressureRelationship: 'Positive' | 'Neutral' | 'Negative';
+  qNet: number;
+  pressureRelationship: 'Positive' | 'Negative' | 'Neutral';
+  transferOut: number;
 }
 
 export interface SystemBalanceInput {
@@ -17,113 +16,67 @@ export interface SystemBalanceInput {
   qOutdoorAir: number;
   qReturn: number;
   qExhaust: number;
-  buildingVolume?: number;
-  isMetric?: boolean;
+  buildingVolume: number;
+  isMetric: boolean;
 }
 
 export interface SystemBalanceResult {
+  buildingPressure: 'Positive' | 'Negative' | 'Neutral';
   qRecirculated: number;
   qRelief: number;
-  qNetBuilding: number;
   totalExhaustAndRelief: number;
-  buildingPressure: 'Positive' | 'Neutral' | 'Negative';
-  ach?: number;
+  qNetBuilding: number;
   isValid: boolean;
   warnings: string[];
 }
 
 export class AirBalanceService {
-  /**
-   * Calculates net room pressure based on supply, exhaust, and transfer airflow.
-   * Qnet = Qsupply + Qtransfer_in - Qreturn - Qexhaust
-   */
   static calculateRoomBalance(input: AirBalanceInput): AirBalanceResult {
-    const qTotalIn = input.qSupply + input.qTransferIn;
-    const qTotalOut = input.qReturn + input.qExhaust;
+    const qNet = (input.qSupply + input.qTransferIn) - (input.qExhaust + input.qReturn);
     
-    const qNet = qTotalIn - qTotalOut;
-    
-    let pressureRelationship: 'Positive' | 'Neutral' | 'Negative' = 'Neutral';
-    let transferOut = 0;
-    let transferInRequired = 0;
-    
-    if (qNet > 0.1) {
-      pressureRelationship = 'Positive';
-      transferOut = qNet;
-    } else if (qNet < -0.1) {
-      pressureRelationship = 'Negative';
-      transferInRequired = Math.abs(qNet);
-    }
-    
+    let pressureRelationship: 'Positive' | 'Negative' | 'Neutral' = 'Neutral';
+    if (qNet > 0) pressureRelationship = 'Positive';
+    else if (qNet < 0) pressureRelationship = 'Negative';
+
+    const transferOut = qNet > 0 ? qNet : 0;
+
     return {
       qNet,
-      transferOut,
-      transferInRequired,
-      pressureRelationship
+      pressureRelationship,
+      transferOut
     };
   }
 
-  /**
-   * Calculates building and system level air balance relationships.
-   */
   static calculateSystemBalance(input: SystemBalanceInput): SystemBalanceResult {
     const warnings: string[] = [];
     let isValid = true;
 
-    // Recirculated air is Supply minus Outdoor Air
-    const qRecirculated = input.qSupply - input.qOutdoorAir;
-    if (qRecirculated < 0) {
+    if (input.qOutdoorAir > input.qSupply) {
+      warnings.push("Outdoor air exceeds total supply air.");
       isValid = false;
-      warnings.push("Outdoor Air exceeds Total Supply Air. System impossible.");
     }
 
-    // Relief air is Return minus Recirculated Air
-    let qRelief = input.qReturn - qRecirculated;
-    if (qRelief < 0) {
-      warnings.push("Return Air is less than required Recirculated Air. System will starve for air or draw unconditioned infiltration.");
-      qRelief = 0; // Can't have negative relief
+    const qRecirculated = input.qSupply - input.qOutdoorAir;
+    
+    if (qRecirculated > input.qReturn) {
+      warnings.push("Required recirculated air exceeds available return air. Check return duct sizing.");
+      isValid = false;
     }
 
-    // Total air leaving the building mechanically (Local Exhaust + Unit Relief)
+    const qRelief = Math.max(0, input.qReturn - qRecirculated);
     const totalExhaustAndRelief = input.qExhaust + qRelief;
-
-    // Building Net Flow = Air brought in (OA) - Air mechanically exhausted (Exhaust + Relief)
     const qNetBuilding = input.qOutdoorAir - totalExhaustAndRelief;
 
-    let buildingPressure: 'Positive' | 'Neutral' | 'Negative' = 'Neutral';
-    if (qNetBuilding > 0.1) {
-      buildingPressure = 'Positive';
-    } else if (qNetBuilding < -0.1) {
-      buildingPressure = 'Negative';
-      warnings.push("Building is negatively pressurized. Infiltration will occur.");
-    }
-
-    // Typical rule of thumb: Building should be slightly positive (e.g. OA = Exhaust + 10%)
-    // But we'll just flag if it's too positive or negative.
-    if (buildingPressure === 'Positive' && qNetBuilding > (input.qSupply * 0.15)) {
-        warnings.push("Building is highly pressurized. Check for excessive exfiltration or ensure doors can close.");
-    }
-
-
-    let ach = 0;
-    if (input.buildingVolume && input.buildingVolume > 0) {
-      // Net flow is in CFM or L/s. We want ACH (Air Changes per Hour).
-      // If Metric (L/s & m3): ACH = (Net L/s * 3600 / 1000) / m3 = Net L/s * 3.6 / m3
-      // If Imperial (CFM & ft3): ACH = (Net CFM * 60) / ft3
-      if (input.isMetric) {
-        ach = (Math.abs(qNetBuilding) * 3.6) / input.buildingVolume;
-      } else {
-        ach = (Math.abs(qNetBuilding) * 60) / input.buildingVolume;
-      }
-    }
+    let buildingPressure: 'Positive' | 'Negative' | 'Neutral' = 'Neutral';
+    if (qNetBuilding > 0) buildingPressure = 'Positive';
+    else if (qNetBuilding < 0) buildingPressure = 'Negative';
 
     return {
-      qRecirculated: Math.max(0, qRecirculated),
-      qRelief,
-      qNetBuilding,
-      totalExhaustAndRelief,
       buildingPressure,
-      ach,
+      qRecirculated,
+      qRelief,
+      totalExhaustAndRelief,
+      qNetBuilding,
       isValid,
       warnings
     };

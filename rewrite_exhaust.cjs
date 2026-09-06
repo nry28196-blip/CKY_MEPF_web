@@ -1,248 +1,139 @@
 const fs = require('fs');
 
-const content = `import React, { useState } from 'react';
-import { Wind, Copy, Plus, Trash2, Building, Scale, Settings } from 'lucide-react';
+const code = `import React, { useState, useMemo } from 'react';
+import { Wind, Plus, Trash2, Database } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
-import ValidatedInput from './ValidatedInput';
+import TooltipLabel from './TooltipLabel';
+import EngineeringStatusHeader from './common/EngineeringStatusHeader';
+import { Ashrae621ExhaustService, ExhaustInput } from '../calculations/ventilation/Ashrae621ExhaustService';
+import { ASHRAE_621_2025_EXHAUST_RATES } from '../data/ventilation/ashrae621/2025/data';
+import { VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
+import { UnitConversionService } from '../services/UnitConversionService';
 
-type ExhaustSourceType = 'ashrae621' | 'imc' | 'custom';
-
-interface ExhaustItem {
+interface ExhaustRow {
   id: string;
   name: string;
-  sourceType: ExhaustSourceType;
-  category?: string;
-  quantity: number;
-  ratePerUnit: number;
-  totalCfm: number;
+  categoryId: string;
+  quantity: number | ''; 
+  designExhaust: number | '';
 }
 
-export default function Ashrae621ExhaustCalc() {
-  const { unitSystem, getUnitLabel, convert } = useUnit();
-  const flowUnit = getUnitLabel('airflow');
-  const areaUnit = getUnitLabel('area');
+export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: string }) {
+  const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
 
-  const [items, setItems] = useState<ExhaustItem[]>([
-    { id: '1', name: 'Public Restroom', sourceType: 'ashrae621', category: 'Bathrooms (public)', quantity: 2, ratePerUnit: isMetric ? 25 : 50, totalCfm: isMetric ? 50 : 100 },
-    { id: '2', name: 'Commercial Kitchen', sourceType: 'imc', category: 'Kitchen (commercial)', quantity: isMetric ? 50 : 500, ratePerUnit: isMetric ? 7.5 : 1.5, totalCfm: isMetric ? 375 : 750 }
+  const [rows, setRows] = useState<ExhaustRow[]>([
+    {
+      id: '1',
+      name: 'Public Restroom 1',
+      categoryId: 'toilet_public',
+      quantity: 2,
+      designExhaust: 50
+    }
   ]);
 
-  // ASHRAE 62.1 Table 6.5.1
-  const ashraeRates = [
-    { name: 'Art classroom', rateImp: 0.7, rateMet: 3.5, unit: 'area' },
-    { name: 'Bathrooms (public)', rateImp: 50, rateMet: 25, unit: 'fixture' },
-    { name: 'Bathrooms (private)', rateImp: 25, rateMet: 12.5, unit: 'fixture' },
-    { name: 'Copy/printing rooms', rateImp: 0.5, rateMet: 2.5, unit: 'area' },
-    { name: 'Janitor closets', rateImp: 1.0, rateMet: 5.0, unit: 'area' },
-    { name: 'Kitchen (commercial)', rateImp: 0.7, rateMet: 3.5, unit: 'area' },
-    { name: 'Locker rooms', rateImp: 0.5, rateMet: 2.5, unit: 'area' },
-    { name: 'Parking garages', rateImp: 0.75, rateMet: 3.8, unit: 'area' },
-    { name: 'Pet shops', rateImp: 0.9, rateMet: 4.5, unit: 'area' },
-    { name: 'Soiled laundry', rateImp: 1.0, rateMet: 5.0, unit: 'area' },
-    { name: 'Wood/metal shop', rateImp: 0.5, rateMet: 2.5, unit: 'area' }
-  ];
-
-  // International Mechanical Code (IMC) typical values
-  const imcRates = [
-    { name: 'Toilet rooms (public)', rateImp: 50, rateMet: 25, unit: 'fixture', alt: '75 cfm per wc for heavy' },
-    { name: 'Toilet rooms (private)', rateImp: 50, rateMet: 25, unit: 'fixture', alt: 'or 20 cfm continuous' },
-    { name: 'Kitchen (commercial)', rateImp: 1.5, rateMet: 7.5, unit: 'area' },
-    { name: 'Janitor closets', rateImp: 1.0, rateMet: 5.0, unit: 'area' },
-    { name: 'Nail salons', rateImp: 0.6, rateMet: 3.0, unit: 'area', note: '+ source capture' },
-    { name: 'Locker rooms', rateImp: 0.5, rateMet: 2.5, unit: 'area' }
-  ];
-
-  const addItem = (sourceType: ExhaustSourceType) => {
-    const defaultRate = isMetric ? 2.5 : 0.5;
-    const newItem: ExhaustItem = {
-      id: Math.random().toString(36).substring(2, 9),
-      name: 'New Exhaust Area',
-      sourceType,
-      category: sourceType === 'custom' ? 'Custom' : '',
-      quantity: 100,
-      ratePerUnit: defaultRate,
-      totalCfm: 100 * defaultRate
-    };
-    setItems([...items, newItem]);
+  const addRow = () => {
+    setRows([...rows, { id: Math.random().toString(), name: \`Space \${rows.length + 1}\`, categoryId: 'toilet_public', quantity: 1, designExhaust: 25 }]);
   };
 
-  const updateItem = (id: string, field: keyof ExhaustItem, value: any) => {
-    setItems(items.map(item => {
-      if (item.id !== id) return item;
-      const updated = { ...item, [field]: value };
+  const removeRow = (id: string) => {
+    if (rows.length > 1) {
+      setRows(rows.filter(r => r.id !== id));
+    }
+  };
+
+  const updateRow = (id: string, field: keyof ExhaustRow, value: any) => {
+    setRows(rows.map(r => r.id === id ? { ...r, [field]: value } : r));
+  };
+
+  const results = useMemo(() => {
+    const calcRows = rows.map(r => {
+      const exhaustType = ASHRAE_621_2025_EXHAUST_RATES.find(e => e.id === r.categoryId) || null;
       
-      if (field === 'category') {
-        let found = null;
-        if (updated.sourceType === 'ashrae621') {
-          found = ashraeRates.find(r => r.name === value);
-        } else if (updated.sourceType === 'imc') {
-          found = imcRates.find(r => r.name === value);
-        }
-        
-        if (found) {
-          updated.ratePerUnit = isMetric ? found.rateMet : found.rateImp;
-        }
+      let qty = r.quantity === '' ? null : r.quantity;
+      if (qty !== null && exhaustType?.unitType === 'm2' && !isMetric) {
+        qty = UnitConversionService.ft2ToM2(qty);
       }
       
-      updated.totalCfm = updated.quantity * updated.ratePerUnit;
-      return updated;
-    }));
-  };
+      let dExhaust = r.designExhaust === '' ? null : r.designExhaust;
+      if (dExhaust !== null && !isMetric) {
+        dExhaust = UnitConversionService.cfmToLs(dExhaust);
+      }
+      
+      const res = Ashrae621ExhaustService.calculate({ exhaustType, qty, designExhaust: dExhaust });
+      
+      return { row: r, result: res };
+    });
+    
+    const status = VentilationValidationService.aggregateStatus(calcRows.map(r => r.result.status));
+    
+    return { calcRows, status };
+  }, [rows, isMetric]);
 
-  const removeItem = (id: string) => {
-    setItems(items.filter(i => i.id !== id));
-  };
-
-  const getSourceOptions = (source: ExhaustSourceType) => {
-    if (source === 'ashrae621') return ashraeRates.map(r => r.name);
-    if (source === 'imc') return imcRates.map(r => r.name);
-    return ['Custom Entry'];
-  };
-
-  const renderSection = (sourceType: ExhaustSourceType, title: string, description: string, icon: React.ReactNode, colorClass: string) => {
-    const sectionItems = items.filter(i => i.sourceType === sourceType);
-    const subtotal = sectionItems.reduce((sum, item) => sum + item.totalCfm, 0);
-
-    return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg mb-6">
-        <div className={\`bg-slate-950/50 p-4 border-b border-slate-800 flex justify-between items-center\`}>
-          <div className="flex items-center">
-            <div className={\`p-2 rounded-lg \${colorClass} bg-opacity-10 mr-3\`}>
-              {icon}
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">{title}</h3>
-              <p className="text-xs text-slate-400 mt-0.5">{description}</p>
-            </div>
+  return (
+    <div className="space-y-6">
+      <EngineeringStatusHeader 
+        status={results.status} 
+        moduleName={\`ASHRAE 62.1-\${edition} Exhaust\`}
+        details={results.status === 'PASS' ? 'All exhaust requirements met' : 'Check requirements'} 
+      />
+      
+      <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2 text-rose-400">
+            <Wind className="w-5 h-5" />
+            <h3 className="font-semibold text-white">Space Exhaust Rates</h3>
           </div>
-          <div className="text-right">
-            <span className="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Subtotal</span>
-            <span className={\`text-lg font-mono font-bold \${colorClass.split(' ')[0]}\`}>{subtotal.toFixed(1)} <span className="text-xs text-slate-500">{flowUnit}</span></span>
-          </div>
+          <button onClick={addRow} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm transition-colors">
+            <Plus className="w-4 h-4" /> Add Space
+          </button>
         </div>
 
-        <div className="p-5 space-y-4">
-          {sectionItems.map((item) => (
-            <div key={item.id} className="bg-slate-950 border border-slate-800/60 rounded-xl p-4 relative group">
-              <button 
-                onClick={() => removeItem(item.id)}
-                className="absolute top-3 right-3 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                title="Remove item"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pr-6">
-                <div className="md:col-span-1">
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Description</label>
-                  <input
-                    type="text"
-                    value={item.name}
-                    onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                    className="w-full bg-slate-900 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-sky-500"
-                  />
-                </div>
-                <div className="md:col-span-1">
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Category</label>
-                  <select
-                    value={item.category || ''}
-                    onChange={(e) => updateItem(item.id, 'category', e.target.value)}
-                    className="w-full bg-slate-900 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-sky-500"
-                    disabled={sourceType === 'custom'}
-                  >
-                    <option value="">Select...</option>
-                    {getSourceOptions(sourceType).map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Qty (Units or {areaUnit})</label>
-                  <ValidatedInput
-                    type="number" min={0} errorMsg="Quantity >= 0"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(item.id, 'quantity', Number(e.target.value))}
-                    className="w-full bg-slate-900 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-sky-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Rate ({flowUnit}/unit)</label>
-                  <ValidatedInput
-                    type="number" min={0} errorMsg="Rate >= 0"
-                    value={item.ratePerUnit}
-                    onChange={(e) => updateItem(item.id, 'ratePerUnit', Number(e.target.value))}
-                    className="w-full bg-slate-900 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:border-sky-500"
-                  />
-                </div>
+        <div className="space-y-4">
+          {results.calcRows.map(({ row, result }) => (
+            <div key={row.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-slate-950/50 p-4 rounded-lg border border-slate-800 relative">
+              {rows.length > 1 && (
+                <button onClick={() => removeRow(row.id)} className="absolute top-2 right-2 text-slate-500 hover:text-red-400">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+              
+              <div className="col-span-3">
+                <TooltipLabel label="Space Name" tooltip="Identifier" />
+                <input type="text" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.name} onChange={(e) => updateRow(row.id, 'name', e.target.value)} />
               </div>
-              <div className="mt-3 pt-3 border-t border-slate-800/30 flex justify-between items-center">
-                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Flow ({flowUnit})</span>
-                <span className="text-sm font-mono font-bold text-slate-200">{item.totalCfm.toFixed(1)}</span>
+              
+              <div className="col-span-3">
+                <TooltipLabel label="Category" tooltip="ASHRAE 62.1 Exhaust Space" />
+                <select className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.categoryId} onChange={(e) => updateRow(row.id, 'categoryId', e.target.value)}>
+                  {ASHRAE_621_2025_EXHAUST_RATES.map(e => (
+                    <option key={e.id} value={e.id}>{e.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="col-span-2">
+                <TooltipLabel label={\`Quantity (\${result.unitType === 'm2' ? (isMetric ? 'm²' : 'ft²') : result.unitType})\`} tooltip="Multiplier" />
+                <input type="number" min="0" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.quantity} onChange={(e) => updateRow(row.id, 'quantity', e.target.value ? Number(e.target.value) : '')} />
+              </div>
+              
+              <div className="col-span-2">
+                <TooltipLabel label={\`Design (\${isMetric ? 'L/s' : 'cfm'})\`} tooltip="Proposed actual exhaust" />
+                <input type="number" min="0" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.designExhaust} onChange={(e) => updateRow(row.id, 'designExhaust', e.target.value ? Number(e.target.value) : '')} />
+              </div>
+              
+              <div className="col-span-2 flex flex-col justify-center">
+                <div className="text-[10px] text-slate-400 mb-1">Required: {isMetric ? result.requiredExhaust.toFixed(1) : UnitConversionService.lsToCfm(result.requiredExhaust).toFixed(1)} {isMetric ? 'L/s' : 'cfm'}</div>
+                <div className={\`px-2 py-1 rounded text-xs font-bold text-center \${result.status === 'PASS' ? 'bg-emerald-500/20 text-emerald-400' : result.status === 'FAIL' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}\`}>
+                  {result.status} (Class {result.exhaustClass})
+                </div>
               </div>
             </div>
           ))}
-
-          <button 
-            onClick={() => addItem(sourceType)}
-            className="w-full py-2.5 border border-dashed border-slate-700 hover:border-slate-500 hover:bg-slate-800/30 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-300 transition-all flex items-center justify-center uppercase tracking-wider cursor-pointer mt-2"
-          >
-            <Plus className="w-3.5 h-3.5 mr-2" />
-            Add {title} Item
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const grandTotal = items.reduce((sum, item) => sum + item.totalCfm, 0);
-
-  return (
-    <div className="space-y-2 animate-fade-in">
-      <div className="border-b border-slate-800 pb-4 mb-6">
-        <h2 className="text-lg font-bold text-white flex items-center">
-          <Wind className="w-5 h-5 mr-2 text-sky-400" />
-          Local Exhaust Ventilation
-        </h2>
-        <p className="text-sm text-slate-400 mt-1">
-          Calculate and aggregate exhaust rates across different code typologies.
-        </p>
-      </div>
-
-      {renderSection(
-        'ashrae621',
-        'ASHRAE 62.1 (Ventilation-Based)',
-        'Table 6.5.1 Minimum Exhaust Rates',
-        <Building className="w-5 h-5 text-sky-400" />,
-        'text-sky-400 border-sky-400'
-      )}
-
-      {renderSection(
-        'imc',
-        'IMC/Code (Minimum Requirements)',
-        'Standard mechanical code prescriptive rates',
-        <Scale className="w-5 h-5 text-amber-400" />,
-        'text-amber-400 border-amber-400'
-      )}
-
-      {renderSection(
-        'custom',
-        'Custom / Engineering Specific',
-        'Process loads, hoods, and specified equipment',
-        <Settings className="w-5 h-5 text-indigo-400" />,
-        'text-indigo-400 border-indigo-400'
-      )}
-
-      <div className="bg-slate-950 border border-slate-800 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-center mt-8 sticky bottom-4 shadow-2xl shadow-black/50 z-10 ring-1 ring-white/5">
-        <div>
-          <h3 className="text-white font-bold uppercase tracking-wider text-sm">Grand Total Exhaust</h3>
-          <p className="text-slate-400 text-xs mt-1">Aggregated across all typologies</p>
-        </div>
-        <div className="text-4xl font-mono font-bold text-emerald-400 mt-3 sm:mt-0 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">
-          {grandTotal.toFixed(1)} <span className="text-lg text-emerald-600">{flowUnit}</span>
         </div>
       </div>
     </div>
   );
 }
 `
-fs.writeFileSync('src/components/Ashrae621ExhaustCalc.tsx', content);
+fs.writeFileSync('src/components/Ashrae621ExhaustCalc.tsx', code);

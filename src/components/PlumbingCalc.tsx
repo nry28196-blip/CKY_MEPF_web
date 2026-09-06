@@ -1377,10 +1377,22 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     <div>
                       <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Avail. Pressure (bar)" tooltip="Static pressure available at the source connection." />
                       <input type="number" min="0.1" step="0.1" value={availablePressure} onChange={(e) => setAvailablePressure(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                      {availablePressure !== 0 && availablePressure < 2.0 && (
+                        <InputAlert type="warning" message="Low municipal pressure (< 2.0 bar). A booster pump is highly likely to be required." />
+                      )}
+                      {availablePressure !== 0 && availablePressure > 5.5 && (
+                        <InputAlert type="warning" message="High municipal pressure (> 5.5 bar). A pressure reducing valve (PRV) may be required to protect fixtures." />
+                      )}
                     </div>
                     <div>
                       <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Req. Residual (bar)" tooltip="Minimum pressure required at the furthest/highest fixture for proper operation." />
                       <input type="number" min="0.1" step="0.1" value={requiredResidual} onChange={(e) => setRequiredResidual(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                      {requiredResidual !== 0 && requiredResidual < 0.5 && (
+                        <InputAlert type="warning" message="Very low residual pressure. Standard fixtures typically require at least 0.5 - 1.0 bar (8-15 psi)." />
+                      )}
+                      {requiredResidual !== 0 && requiredResidual > 3.0 && (
+                        <InputAlert type="warning" message="High residual requirement. Standard fixtures need 1.0-2.0 bar unless specialized (e.g., flushometer)." />
+                      )}
                     </div>
                   </div>
 
@@ -1734,7 +1746,10 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                       />
                       {boosterResidualPress !== 0 && (boosterResidualPress < 1.0 || boosterResidualPress > 6.0) && (
-                        <InputAlert type="error" message="Safe range: 1.0 - 6.0 bar" />
+                        <InputAlert type="error" message="Absolute calculation limits: 1.0 - 6.0 bar" />
+                      )}
+                      {boosterResidualPress !== 0 && boosterResidualPress >= 1.0 && boosterResidualPress <= 6.0 && boosterResidualPress > 3.0 && (
+                        <InputAlert type="warning" message="High residual pressure. Standard fixtures require 1.0 - 2.0 bar." />
                       )}
                     </div>
                     <div>
@@ -1752,7 +1767,10 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                       />
                       {boosterFrictionPercent !== 0 && (boosterFrictionPercent < 5 || boosterFrictionPercent > 45) && (
-                        <InputAlert type="error" message="Safe range: 5% - 45%" />
+                        <InputAlert type="error" message="Absolute calculation limits: 5% - 45%" />
+                      )}
+                      {boosterFrictionPercent !== 0 && boosterFrictionPercent >= 5 && boosterFrictionPercent <= 45 && (boosterFrictionPercent < 10 || boosterFrictionPercent > 30) && (
+                        <InputAlert type="warning" message={`Typical friction allowance is 15-25%. ${boosterFrictionPercent > 30 ? 'High allowance may oversize the pump.' : 'Low allowance may under-size the pump if fittings are numerous.'}`} />
                       )}
                     </div>
                     <div>

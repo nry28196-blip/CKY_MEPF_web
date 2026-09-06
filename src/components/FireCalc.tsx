@@ -1086,7 +1086,10 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
                     } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
                   />
                   {pipeFrictionPercent !== 0 && (pipeFrictionPercent < 5 || pipeFrictionPercent > 50) && (
-                    <InputAlert type="error" message="Safe range: 5% to 50%" />
+                    <InputAlert type="error" message="Absolute calculation limits: 5% to 50%" />
+                  )}
+                  {pipeFrictionPercent !== 0 && pipeFrictionPercent >= 5 && pipeFrictionPercent <= 50 && (pipeFrictionPercent < 10 || pipeFrictionPercent > 30) && (
+                    <InputAlert type="warning" message={`Typical NFPA/BS standard friction allowance is 10% - 30%.`} />
                   )}
                 </div>
                 <div>

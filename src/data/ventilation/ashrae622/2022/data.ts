@@ -1,0 +1,8 @@
+import { Ashrae622Coefficients } from '../2025/data';
+
+export const ASHRAE_622_2022_COEFFICIENTS: Ashrae622Coefficients = {
+  areaCoefficientSI: 0.15,
+  occupancyCoefficientSI: 3.5,
+  areaCoefficientIP: 0.03,
+  occupancyCoefficientIP: 7.5
+};

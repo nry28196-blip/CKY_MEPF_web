@@ -4,7 +4,6 @@ import { Activity, Fan, Wind, Gauge, Zap } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { SystemPerformanceService, SystemPerformanceInput, SystemPerformanceResult } from '../calculations/ventilation/SystemPerformanceService';
-import { Ashrae621Service } from '../calculations/ventilation/Ashrae621Service';
 import ValidatedInput from './ValidatedInput';
 import TooltipLabel from './TooltipLabel';
 import EngineeringAuditTrail from './common/EngineeringAuditTrail';

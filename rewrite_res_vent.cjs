@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+const fs = require('fs');
+
+const code = `import React, { useState, useMemo } from 'react';
 import { Home, Wind, CheckCircle2, AlertTriangle, Droplets, ChefHat, Activity, BookOpen, Info } from 'lucide-react';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
@@ -6,10 +8,8 @@ import TooltipLabel from './TooltipLabel';
 import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { Ashrae622Service } from '../calculations/ventilation/Ashrae622Service';
+import { ASHRAE_622_2025_LOCAL_EXHAUST } from '../data/ventilation/ashrae622/2025/data';
 import { UnitConversionService } from '../services/UnitConversionService';
-import { ASHRAE_622_2025_COEFFICIENTS } from '../data/ventilation/ashrae622/2025/data';
-import { ASHRAE_622_2022_COEFFICIENTS } from '../data/ventilation/ashrae622/2022/data';
-import { ASHRAE_622_2019_COEFFICIENTS } from '../data/ventilation/ashrae622/2019/data';
 
 export default function ResidentialVentilationCalc() {
   const { t } = useLanguage();
@@ -27,40 +27,23 @@ export default function ResidentialVentilationCalc() {
     let areaM2 = isMetric ? floorArea : UnitConversionService.ft2ToM2(floorArea);
     let credit = qInf === '' ? null : qInf;
     if (credit !== null && !isMetric) credit = UnitConversionService.cfmToLs(credit);
-    
-    let coefficients = ASHRAE_622_2025_COEFFICIENTS;
-    if (edition === '2022') coefficients = ASHRAE_622_2022_COEFFICIENTS;
-    else if (edition === '2019') coefficients = ASHRAE_622_2019_COEFFICIENTS;
 
     return Ashrae622Service.calculateWholeDwelling({
       floorArea: areaM2,
       bedrooms,
       infiltrationCredit: credit,
-      infiltrationVerified,
-      coefficients
+      infiltrationVerified
     });
-  }, [floorArea, bedrooms, qInf, infiltrationVerified, isMetric, edition]);
+  }, [floorArea, bedrooms, qInf, infiltrationVerified, isMetric]);
 
   const flowUnit = isMetric ? 'L/s' : 'cfm';
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">Dwelling Unit Ventilation</h2>
-        <select 
-          className="bg-slate-900 border border-slate-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          value={edition}
-          onChange={(e) => setEdition(e.target.value as any)}
-        >
-          <option value="2025">ASHRAE 62.2-2025</option>
-          <option value="2022">ASHRAE 62.2-2022</option>
-          <option value="2019">ASHRAE 62.2-2019</option>
-        </select>
-      </div>
-
       <EngineeringStatusHeader 
         status={engineResult.status} 
-        message={`ASHRAE 62.2-${edition} Whole-Dwelling - ${engineResult.status === 'PASS' ? 'Ventilation requirements met' : 'Check requirements'}`} 
+        moduleName={\`ASHRAE 62.2-\${edition} Whole-Dwelling\`} 
+        details={engineResult.status === 'PASS' ? 'Ventilation requirements met' : 'Check requirements'} 
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -71,7 +54,7 @@ export default function ResidentialVentilationCalc() {
           </div>
           <div className="space-y-4">
             <div>
-              <TooltipLabel label={`Floor Area (${isMetric ? 'm²' : 'ft²'})`} tooltip="Total conditioned area" />
+              <TooltipLabel label={\`Floor Area (\${isMetric ? 'm²' : 'ft²'})\`} tooltip="Total conditioned area" />
               <input type="number" className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800" value={floorArea} onChange={e => setFloorArea(Number(e.target.value))} />
             </div>
             <div>
@@ -88,7 +71,7 @@ export default function ResidentialVentilationCalc() {
           </div>
           <div className="space-y-4">
             <div>
-              <TooltipLabel label={`Measured Infiltration (${flowUnit})`} tooltip="Effective infiltration rate Qinf" />
+              <TooltipLabel label={\`Measured Infiltration (\${flowUnit})\`} tooltip="Effective infiltration rate Qinf" />
               <input type="number" className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800" value={qInf} onChange={e => setQInf(e.target.value ? Number(e.target.value) : '')} />
             </div>
             <label className="flex items-center gap-2 text-sm text-slate-300">
@@ -112,3 +95,5 @@ export default function ResidentialVentilationCalc() {
     </div>
   );
 }
+`
+fs.writeFileSync('src/components/ResidentialVentilationCalc.tsx', code);

@@ -1,120 +1,50 @@
-import { ASHRAE_62_2_DATA } from '../data/ashrae622/Ashrae622Data';
-import { UnitConversionService } from '../services/UnitConversionService';
+import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
+import { Ashrae622Coefficients } from '../../data/ventilation/ashrae622/2025/data';
 
-export interface Ashrae622Input {
-  localExhaustDeficit?: number;
-  floorArea: number; // Unit depends on isMetric
+export interface Ashrae622WholeDwellingInput {
+  floorArea: number; // m2
   bedrooms: number;
-  isMetric: boolean;
-  qInf: number; // Unit depends on isMetric
-  qInfSource?: string;
-  qReq?: number; // Unit depends on isMetric
-  phi: number;
-  edition: '2019' | '2022' | '2025';
+  infiltrationCredit: number | null; // L/s
+  infiltrationVerified: boolean;
+  coefficients: Ashrae622Coefficients;
 }
 
-export interface Ashrae622Result {
-  qTot: number;
-  qFan: number;
-  qInf: number;
-  phi: number;
-  status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE';
-  warning?: string;
-  error?: string;
-  infiltrationCredit: number;
-  notEvaluatedItems: string[];
+export interface Ashrae622WholeDwellingResult {
+  qTot: number; // L/s
+  qInf: number; // L/s
+  qFan: number; // L/s
+  status: ValidationStatus;
 }
 
 export class Ashrae622Service {
-  static calculateVentilation(input: Ashrae622Input): Ashrae622Result {
-    // 1. Convert inputs to Canonical Metric if they are Imperial
-    const canonicalArea = input.isMetric ? input.floorArea : UnitConversionService.sqftToSqM(input.floorArea);
-    const canonicalQInf = input.isMetric ? input.qInf : UnitConversionService.cfmToLs(input.qInf);
-    const canonicalQReq = input.isMetric ? (input.qReq ?? 0) : UnitConversionService.cfmToLs(input.qReq ?? 0);
-    const canonicalDeficit = input.localExhaustDeficit !== undefined 
-      ? (input.isMetric ? input.localExhaustDeficit : UnitConversionService.cfmToLs(input.localExhaustDeficit))
-      : undefined;
+  static calculateWholeDwelling(input: Ashrae622WholeDwellingInput): Ashrae622WholeDwellingResult {
+    if (input.floorArea < 0 || isNaN(input.floorArea) || input.bedrooms < 0 || isNaN(input.bedrooms)) {
+      return { qTot: 0, qInf: 0, qFan: 0, status: 'FAIL' };
+    }
 
-    // 2. Perform Canonical Metric Calculation (L/s, m²)
-    let status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE' = 'PASS';
-    let warning = undefined;
-    let error = undefined;
-    const notEvaluatedItems: string[] = [];
+    // SI units formula using provided coefficients
+    const qTot = input.coefficients.areaCoefficientSI * input.floorArea + input.coefficients.occupancyCoefficientSI * (input.bedrooms + 1);
+    
+    let qInf = 0;
+    let status: ValidationStatus = 'PASS';
 
-    // Qtot Metric: 0.15 * m² + 3.5 * (bedrooms + 1)
-    let qTotMetric = 0.15 * canonicalArea + 3.5 * (input.bedrooms + 1);
-    
-    const effectiveInfiltrationMetric = canonicalQInf - canonicalQReq;
-    let infiltrationCreditMetric = 0;
-    
-    if (canonicalQInf > 0) {
-      if (!input.qInfSource || input.qInfSource.trim() === '') {
-         status = 'WARNING';
-         warning = 'Infiltration credit used without specifying a source/basis (e.g., blower door test). Credit applicability unverified.';
+    if (input.infiltrationCredit !== null && input.infiltrationCredit > 0) {
+      if (!input.infiltrationVerified) {
+        status = 'WARNING'; // Credit not verified
+      } else {
+        qInf = input.infiltrationCredit;
       }
-      if (input.edition === '2025') {
-        notEvaluatedItems.push('2025 Strict Infiltration Verification');
-      }
-      infiltrationCreditMetric = effectiveInfiltrationMetric > 0 ? input.phi * effectiveInfiltrationMetric : 0;
-    }
-    
-    if (input.edition === '2025') {
-        notEvaluatedItems.push('Filtration Requirements');
-        notEvaluatedItems.push('Intake/Exhaust Separation');
-        notEvaluatedItems.push('Ozone-related Requirements');
-    }
-    
-    if (canonicalDeficit === undefined) {
-      status = 'INCOMPLETE';
-      warning = (warning ? warning + ' ' : '') + 'Local exhaust deficit parameter is undefined.';
-      return {
-        qTot: input.isMetric ? qTotMetric : UnitConversionService.lsToCfm(qTotMetric),
-        qFan: 0, 
-        qInf: input.qInf, 
-        phi: input.phi,
-        status, 
-        warning, 
-        infiltrationCredit: input.isMetric ? infiltrationCreditMetric : UnitConversionService.lsToCfm(infiltrationCreditMetric),
-        notEvaluatedItems
-      };
     }
 
-    const qFanMetric = Math.max(0, qTotMetric + canonicalDeficit - infiltrationCreditMetric);
-    
-    // 3. Convert results back to Imperial if needed
-    const qTot = input.isMetric ? qTotMetric : UnitConversionService.lsToCfm(qTotMetric);
-    const qFan = input.isMetric ? qFanMetric : UnitConversionService.lsToCfm(qFanMetric);
-    const infiltrationCredit = input.isMetric ? infiltrationCreditMetric : UnitConversionService.lsToCfm(infiltrationCreditMetric);
+    // Qfan = Qtot - Qinf (must be >= 0)
+    let qFan = qTot - qInf;
+    if (qFan < 0) qFan = 0;
 
     return {
       qTot,
+      qInf,
       qFan,
-      qInf: input.qInf,
-      phi: input.phi,
-      status,
-      warning,
-      error,
-      infiltrationCredit,
-      notEvaluatedItems
-    };
-  }
-
-  static getLocalExhaustRequirements(edition: '2019' | '2022' | '2025', isMetric: boolean) {
-    const data = ASHRAE_62_2_DATA[edition];
-    
-    const convert = (val: number | null) => {
-       if (val === null) return null;
-       // data is stored in Imperial natively (cfm)
-       return isMetric ? Math.ceil(UnitConversionService.cfmToLs(val)) : val;
-    };
-
-    return {
-       kitchenIntermittent: convert(data.kitchenIntermittent),
-       kitchenContinuousACH: data.kitchenContinuousACH, 
-       bathroomIntermittent: convert(data.bathroomIntermittent),
-       bathroomContinuous: convert(data.bathroomContinuous),
-       toiletRoomIntermittent: convert(data.toiletRoomIntermittent),
-       toiletRoomContinuous: convert(data.toiletRoomContinuous),
+      status
     };
   }
 }

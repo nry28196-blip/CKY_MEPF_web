@@ -1,92 +1,125 @@
+import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
+import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/2025/data';
+
+export interface AuditTrailItem {
+  symbol: string;
+  name: string;
+  formula: string;
+  inputs: Record<string, number | string>;
+  result: number | string;
+  unit: string;
+  reference: string;
+}
+
 export interface ZoneVentilationInput {
-  spaceType: any;
-  area: number; // internal unit: m²
-  designOccupancy: number;
+  spaceType: Ashrae621SpaceType | null;
+  area: number; // m2
+  designOccupancy: number | null;
   useDefaultOccupancy: boolean;
-  ezConfig: any;
+  ezConfig: Ashrae621Ez | null;
 }
 
 export interface ZoneVentilationResult {
-  az: number; // m²
-  pz: number;
+  az: number; // m2
+  pz: number; // people
   rp: number; // L/s-person
-  ra: number; // L/s-m²
+  ra: number; // L/s-m2
   vbp: number; // L/s
   vba: number; // L/s
   vbz: number; // L/s
   ez: number;
   voz: number; // L/s
-  occupancyUsed: number;
   occupancySource: 'design' | 'default';
-  warning?: string;
-  error?: string;
-  status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE';
+  status: ValidationStatus;
+  auditTrail: AuditTrailItem[];
 }
 
 export class Ashrae621ZoneService {
-  static calculateZoneVentilation(input: ZoneVentilationInput): ZoneVentilationResult {
-    let status: 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE' = 'PASS';
-    
+  static calculateZone(input: ZoneVentilationInput): ZoneVentilationResult {
+    const auditTrail: AuditTrailItem[] = [];
+    const statuses: ValidationStatus[] = [];
+
+    // Inputs check
     if (!input.spaceType) {
-      return this.emptyResult('INCOMPLETE', 'Space type not selected');
+      return this.emptyResult('INCOMPLETE', 'Missing space type');
     }
     
-    if (input.area < 0) {
-      return this.emptyResult('FAIL', 'Area cannot be negative');
-    }
-    
-    if (input.designOccupancy < 0 && !input.useDefaultOccupancy) {
-      return this.emptyResult('FAIL', 'Occupancy cannot be negative');
+    if (input.area < 0 || isNaN(input.area)) {
+      return this.emptyResult('FAIL', 'Invalid area');
     }
 
-    const rp = input.spaceType.rpMetric !== undefined ? input.spaceType.rpMetric : 0;
-    const ra = input.spaceType.raMetric !== undefined ? input.spaceType.raMetric : 0;
-    
-    let pz = input.designOccupancy;
+    if (!input.ezConfig) {
+      return this.emptyResult('INCOMPLETE', 'Missing Ez configuration');
+    }
+
+    if (input.ezConfig.ez <= 0 || input.ezConfig.ez > 2.0) {
+      return this.emptyResult('FAIL', 'Invalid Ez value');
+    }
+
+    // Occupancy
+    let pz = 0;
     let occupancySource: 'design' | 'default' = 'design';
-    let warning = undefined;
     
     if (input.useDefaultOccupancy) {
-      const defaultDensity = input.spaceType.defaultOccupancyMetric !== undefined ? input.spaceType.defaultOccupancyMetric : 0;
-      // Do not arbitrarily round intermediate occupancy unless required.
-      // ASHRAE 62.1 does not mandate rounding Pz for the calculation of Vbz.
-      pz = (input.area / 100) * defaultDensity; 
+      pz = (input.area / 100) * input.spaceType.defaultOccupancyMetric;
       occupancySource = 'default';
+      statuses.push('WARNING'); // Standard default used
+    } else {
+      if (input.designOccupancy === null || input.designOccupancy < 0 || isNaN(input.designOccupancy)) {
+        return this.emptyResult('FAIL', 'Invalid design occupancy');
+      }
+      pz = input.designOccupancy;
     }
 
+    const rp = input.spaceType.rpMetric;
+    const ra = input.spaceType.raMetric;
+    const az = input.area;
+    
     const vbp = rp * pz;
-    const vba = ra * input.area;
+    const vba = ra * az;
     const vbz = vbp + vba;
     
-    const ez = input.ezConfig?.ez !== undefined ? input.ezConfig.ez : 1.0;
-    const voz = ez > 0 ? vbz / ez : 0;
+    const ez = input.ezConfig.ez;
+    const voz = vbz / ez;
+
+    // Audit Trail
+    auditTrail.push({
+      symbol: 'Vbz',
+      name: 'Breathing Zone Outdoor Airflow',
+      formula: 'Rp × Pz + Ra × Az',
+      inputs: { 'Rp': rp, 'Pz': pz, 'Ra': ra, 'Az': az },
+      result: vbz,
+      unit: 'L/s',
+      reference: 'ASHRAE 62.1-2025 Section 6.2.2.1'
+    });
     
-    if (ez <= 0 || ez > 2.0) {
-      status = 'FAIL';
-      warning = 'Invalid Ez value';
-    }
+    auditTrail.push({
+      symbol: 'Voz',
+      name: 'Zone Outdoor Airflow',
+      formula: 'Vbz / Ez',
+      inputs: { 'Vbz': vbz, 'Ez': ez },
+      result: voz,
+      unit: 'L/s',
+      reference: 'ASHRAE 62.1-2025 Section 6.2.2.3'
+    });
+
+    statuses.push('PASS');
+    const finalStatus = VentilationValidationService.aggregateStatus(statuses);
 
     return {
-      az: input.area,
-      pz,
-      rp,
-      ra,
-      vbp,
-      vba,
-      vbz,
-      ez,
-      voz,
-      occupancyUsed: pz,
+      az, pz, rp, ra, vbp, vba, vbz, ez, voz,
       occupancySource,
-      warning,
-      status
+      status: finalStatus,
+      auditTrail
     };
   }
 
-  private static emptyResult(status: any, warning: string): ZoneVentilationResult {
+  private static emptyResult(status: ValidationStatus, _reason: string): ZoneVentilationResult {
     return {
-      az: 0, pz: 0, rp: 0, ra: 0, vbp: 0, vba: 0, vbz: 0, ez: 1, voz: 0, occupancyUsed: 0, occupancySource: 'design',
-      status, warning
+      az: 0, pz: 0, rp: 0, ra: 0, vbp: 0, vba: 0, vbz: 0, ez: 1, voz: 0,
+      occupancySource: 'design',
+      status,
+      auditTrail: []
     };
   }
 }
