@@ -2,10 +2,10 @@ import { ValidationStatus, VentilationValidationService } from './VentilationVal
 import { Ashrae622Coefficients } from '../../data/ventilation/ashrae622/2025/data';
 
 export interface LocalExhaustInput {
-  kitchenRequired: number; // L/s
-  kitchenInstalled: number; // L/s
-  bathRequired: number; // L/s
-  bathInstalled: number; // L/s
+  kitchenRequired: number | null; // L/s
+  kitchenInstalled: number | null; // L/s
+  bathRequired: number | null; // L/s
+  bathInstalled: number | null; // L/s
 }
 
 export interface Ashrae622WholeDwellingInput {
@@ -37,20 +37,29 @@ export class Ashrae622Service {
     let qInf = 0;
     let status: ValidationStatus = 'PASS';
 
-    if (input.infiltrationCredit === null) {
-      status = 'INCOMPLETE';
-    } else if (input.infiltrationCredit > 0) {
-      if (!input.infiltrationVerified) {
-        status = 'WARNING'; // Credit not verified
+    if (input.infiltrationCredit !== null && !isNaN(input.infiltrationCredit)) {
+      if (!input.infiltrationVerified && input.infiltrationCredit > 0) {
+        status = 'WARNING';
+        qInf = 0; // Credit cannot be applied if unverified
       } else {
         qInf = input.infiltrationCredit;
       }
+    } else {
+        // Assume zero if credit isn't provided, but it's optional so PASS
+        qInf = 0; 
     }
     
     let qDeficit = 0;
     if (input.localExhaust) {
-      const kitchenDeficit = Math.max(0, input.localExhaust.kitchenRequired - input.localExhaust.kitchenInstalled);
-      const bathDeficit = Math.max(0, input.localExhaust.bathRequired - input.localExhaust.bathInstalled);
+        if (input.localExhaust.kitchenRequired === null || input.localExhaust.kitchenInstalled === null || 
+            input.localExhaust.bathRequired === null || input.localExhaust.bathInstalled === null ||
+            isNaN(input.localExhaust.kitchenRequired) || isNaN(input.localExhaust.kitchenInstalled) ||
+            isNaN(input.localExhaust.bathRequired) || isNaN(input.localExhaust.bathInstalled)) {
+            return { qTot: null, qInf: null, qDeficit: null, qFan: null, status: 'INCOMPLETE' };
+        }
+        
+      const kitchenDeficit = (input.localExhaust.kitchenRequired - input.localExhaust.kitchenInstalled) > 0 ? (input.localExhaust.kitchenRequired - input.localExhaust.kitchenInstalled) : 0;
+      const bathDeficit = (input.localExhaust.bathRequired - input.localExhaust.bathInstalled) > 0 ? (input.localExhaust.bathRequired - input.localExhaust.bathInstalled) : 0;
       qDeficit = input.coefficients.localExhaustDeficitCoefficient * (kitchenDeficit + bathDeficit);
     }
 

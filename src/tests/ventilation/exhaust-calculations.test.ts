@@ -1,6 +1,4 @@
-const fs = require('fs');
-
-let content = `import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
 import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/2025/data';
 
@@ -9,15 +7,19 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
     const exhaustType: Ashrae621ExhaustType = {
       id: 'art-class',
       category: 'Educational',
-      spaceType: 'Art Classrooms',
-      rate: 3.5, // 0.7 cfm/ft2 roughly 3.5 L/s-m2
-      unitType: 'area', // usually area for this
-      exhaustClass: 2
+      rate: 3.5, 
+      unitType: 'm2', 
+      exhaustClass: 2,
+      name: 'Test',
+      operatingCondition: 'continuous',
+      reference: 'Table 6.5',
+      edition: '2025',
+      revision: ''
     };
 
     const result = Ashrae621ExhaustService.calculate({
       exhaustType,
-      qty: 100, // 100 m2
+      qty: 100, 
       designExhaust: 350
     });
 
@@ -29,15 +31,19 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
     const exhaustType: Ashrae621ExhaustType = {
       id: 'restroom-public',
       category: 'General',
-      spaceType: 'Restrooms (Public)',
       rate: 25, 
       unitType: 'fixture',
-      exhaustClass: 2
+      exhaustClass: 2,
+      name: 'Test',
+      operatingCondition: 'continuous',
+      reference: 'Table 6.5',
+      edition: '2025',
+      revision: ''
     };
 
     const result = Ashrae621ExhaustService.calculate({
       exhaustType,
-      qty: 4, // 4 fixtures
+      qty: 4, 
       designExhaust: 100
     });
 
@@ -60,10 +66,14 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
     const exhaustType: Ashrae621ExhaustType = {
       id: 'art-class',
       category: 'Educational',
-      spaceType: 'Art Classrooms',
       rate: 3.5,
-      unitType: 'area',
-      exhaustClass: 2
+      unitType: 'm2',
+      exhaustClass: 2,
+      name: 'Test',
+      operatingCondition: 'continuous',
+      reference: 'Table 6.5',
+      edition: '2025',
+      revision: ''
     };
 
     const result = Ashrae621ExhaustService.calculate({
@@ -74,6 +84,4 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
 
     expect(result.status).toBe('FAIL');
   });
-});`;
-
-fs.writeFileSync('src/tests/ventilation/exhaust-calculations.test.ts', content);
+});

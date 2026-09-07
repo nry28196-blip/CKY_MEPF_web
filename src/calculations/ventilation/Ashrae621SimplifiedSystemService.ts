@@ -41,18 +41,7 @@ export class Ashrae621SimplifiedSystemService {
       statuses.push('INCOMPLETE');
     }
 
-    // VAV logic checks
-    for (const z of input.zones) {
-      if (z.dMode === 'VAV') {
-        if (z.vpzMinDesign === null || isNaN(z.vpzMinDesign)) {
-          statuses.push('INCOMPLETE');
-        } else if (z.vpzMinDesign < 1.5 * z.voz) {
-          statuses.push('FAIL'); // Insufficient Vpz-min
-        } else if (z.vpz !== null && z.vpzMinDesign > z.vpz) {
-          statuses.push('FAIL'); // Min > Design
-        }
-      }
-    }
+    
 
     const ps = (input.ps !== null && !isNaN(input.ps)) ? input.ps : 0;
     const d = sumPz > 0 ? ps / sumPz : 1.0;

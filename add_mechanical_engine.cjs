@@ -1,226 +1,7 @@
-import { ValidationStatus, VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
-import { Ashrae621ZoneService, ZoneVentilationInput, ZoneVentilationResult } from '../calculations/ventilation/Ashrae621ZoneService';
-import { Ashrae621SimplifiedSystemService, SimplifiedSystemInput, SimplifiedSystemResult, SimplifiedSystemZoneInput } from '../calculations/ventilation/Ashrae621SimplifiedSystemService';
-import { Ashrae621AlternativeSystemService, AlternativeSystemInput, AlternativeSystemResult, AlternativeZoneInput } from '../calculations/ventilation/Ashrae621AlternativeSystemService';
-import { DensityCorrectionService, DensityInput, DensityResult } from './DensityCorrectionService';
+const fs = require('fs');
+let content = fs.readFileSync('src/lib/VentilationEngine.ts', 'utf8');
 
-export interface SingleZoneInput {
-  zone: ZoneVentilationInput;
-  density: DensityInput | null;
-}
-
-export interface SingleZoneResult {
-  zone: ZoneVentilationResult;
-  density: DensityResult;
-  vozStandard: number; // L/s
-  votStandard: number; // L/s (for single zone, Vot = Voz)
-  votDensityCorrected: number | null; // L/s
-  finalDesignOutdoorAir: number | null; // The authoritative final value
-  auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[];
-  revisionState: string;
-  status: ValidationStatus;
-}
-
-export interface MultiZoneInput {
-  zones: (ZoneVentilationInput & { id: string; dMode: 'VAV'|'CV'; vpz: number|null; vpzMinDesign: number|null; ep: number|null; er: number|null; })[];
-  density: DensityInput | null;
-  method: 'Simplified' | 'Alternative';
-  systemPopulation: number | null; // For Simplified
-  systemType: 'single_supply' | 'secondary_recirculation'; // For Alternative
-}
-
-export interface MultiZoneResult {
-  zones: (ZoneVentilationResult & { id: string })[];
-  density: DensityResult;
-  simplifiedSystem: SimplifiedSystemResult | null;
-  alternativeSystem: AlternativeSystemResult | null;
-  vou: number | null; // Uncorrected outdoor air
-  ev: number | null; // System ventilation efficiency
-  votStandard: number | null; // L/s
-  votDensityCorrected: number | null; // L/s
-  finalDesignOutdoorAir: number | null;
-  auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[];
-  revisionState: string;
-  status: ValidationStatus;
-}
-
-export class VentilationEngine {
-  
-  static runSingleZone(input: SingleZoneInput): SingleZoneResult {
-    const zoneResult = Ashrae621ZoneService.calculateZone(input.zone);
-    const auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[] = [];
-    const densityResult = DensityCorrectionService.calculate(input.density);
-    
-    const statuses = [zoneResult.status, densityResult.status];
-    const status = VentilationValidationService.aggregateStatus(statuses);
-    
-    if (status === 'FAIL' || status === 'INCOMPLETE') {
-        return {
-          zone: zoneResult, density: densityResult, vozStandard: zoneResult.voz, votStandard: zoneResult.voz, 
-          votDensityCorrected: null, finalDesignOutdoorAir: null, auditTrail: [], revisionState: 'ASHRAE 62.1-2025 Base + Errata', status
-        };
-    }
-    
-    const vozStandard = zoneResult.voz;
-    const votStandard = vozStandard;
-    const votDensityCorrected = votStandard * densityResult.eRho;
-    
-    return {
-      zone: zoneResult,
-      density: densityResult,
-      vozStandard,
-      votStandard,
-      votDensityCorrected,
-      finalDesignOutdoorAir: votDensityCorrected,
-      auditTrail,
-      revisionState: 'ASHRAE 62.1-2025 Base + Errata',
-      status
-    };
-  }
-
-  static runMultiZone(input: MultiZoneInput): MultiZoneResult {
-    const auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[] = [];
-    const zoneResults = input.zones.map(z => ({
-      ...Ashrae621ZoneService.calculateZone(z),
-      id: z.id
-    }));
-    
-    const densityResult = DensityCorrectionService.calculate(input.density);
-    
-    let vou: number | null = null;
-    let ev: number | null = null;
-    
-    let simplifiedSystem: SimplifiedSystemResult | null = null;
-    let alternativeSystem: AlternativeSystemResult | null = null;
-    
-    const statuses = zoneResults.map(z => z.status);
-    
-    
-    input.zones.forEach((z, idx) => {
-      if (z.dMode === 'VAV') {
-        const voz = zoneResults[idx].voz;
-        const vpzMinRequired = input.method === 'Simplified' ? 1.5 * voz : voz;
-        
-        if (z.vpzMinDesign === null || isNaN(z.vpzMinDesign)) {
-          statuses.push('INCOMPLETE');
-        } else {
-          auditTrail.push({
-            symbol: 'Vpz-min',
-            name: `Minimum Primary Airflow (${z.id})`,
-            formula: input.method === 'Simplified' ? '1.5 × Voz' : 'Voz',
-            inputs: { 'Voz': voz, 'Design Vpz-min': z.vpzMinDesign },
-            result: z.vpzMinDesign >= vpzMinRequired ? 'PASS' : 'FAIL',
-            unit: '',
-            reference: input.method === 'Simplified' ? 'ASHRAE 62.1-2025 Section 6.2.5.3.1' : 'ASHRAE 62.1-2025'
-          });
-
-          if (z.vpzMinDesign < vpzMinRequired) {
-            statuses.push('FAIL');
-          }
-          if (z.vpz !== null && z.vpzMinDesign > z.vpz) {
-            statuses.push('FAIL');
-          }
-        }
-      }
-    });
-
-    if (input.method === 'Simplified') {
-
-      const simplifiedZones: SimplifiedSystemZoneInput[] = input.zones.map((z, idx) => ({
-        id: z.id,
-        pz: zoneResults[idx].pz,
-        rp: zoneResults[idx].rp,
-        ra: zoneResults[idx].ra,
-        az: zoneResults[idx].az,
-        voz: zoneResults[idx].voz,
-        vpz: z.vpz,
-        vpzMinDesign: z.vpzMinDesign,
-        dMode: z.dMode
-      }));
-
-      simplifiedSystem = Ashrae621SimplifiedSystemService.calculate({
-        zones: simplifiedZones,
-        ps: input.systemPopulation
-      });
-      ev = simplifiedSystem.ev;
-      vou = simplifiedSystem.vou;
-      statuses.push(simplifiedSystem.status);
-    } else {
-      const altZones: AlternativeZoneInput[] = input.zones.map((z, idx) => ({
-        id: z.id,
-        voz: zoneResults[idx].voz,
-        vpz: z.vpz,
-        vpzMinRequired: zoneResults[idx].voz, 
-        vpzMinDesign: z.vpzMinDesign,
-        ep: z.ep,
-        er: z.er,
-        ez: zoneResults[idx].ez,
-        dMode: z.dMode
-      }));
-      
-      alternativeSystem = Ashrae621AlternativeSystemService.calculate({
-        zones: altZones,
-        systemType: input.systemType
-      });
-      ev = alternativeSystem.ev;
-      vou = alternativeSystem.vou;
-      statuses.push(alternativeSystem.status);
-    }
-    
-    statuses.push(densityResult.status);
-    
-    const status = VentilationValidationService.aggregateStatus(statuses);
-    
-    let votStandard: number | null = null;
-    let votDensityCorrected: number | null = null;
-    
-    if (status !== 'FAIL' && status !== 'INCOMPLETE' && status !== 'NOT_EVALUATED' && ev !== null && ev > 0 && vou !== null) {
-      votStandard = vou / ev;
-      votDensityCorrected = votStandard * densityResult.eRho;
-      
-      auditTrail.push({
-        symbol: 'Vot_standard',
-        name: 'Standard Required Outdoor Air',
-        formula: 'Vou / Ev',
-        inputs: { 'Vou': vou, 'Ev': ev },
-        result: votStandard,
-        unit: 'L/s',
-        reference: 'ASHRAE 62.1-2025 Equation 6-10 (Pre-correction)'
-      });
-      auditTrail.push({
-        symbol: 'Vot_actual',
-        name: 'Density Corrected Required Outdoor Air',
-        formula: 'Vot_standard × Eρ',
-        inputs: { 'Vot_standard': votStandard, 'Eρ': densityResult.eRho },
-        result: votDensityCorrected,
-        unit: 'L/s',
-        reference: 'ASHRAE 62.1-2025 Section 6.2.4.4 (Errata Equation 6-10)'
-      });
-    }
-    
-    let finalStatus = status;
-    if ((ev === null || ev <= 0) && finalStatus === 'PASS') {
-      finalStatus = (input.method === 'Alternative' && ev === null) ? 'NOT_EVALUATED' : 'FAIL';
-    }
-    
-    return {
-      zones: zoneResults,
-      density: densityResult,
-      simplifiedSystem,
-      alternativeSystem,
-      vou,
-      ev,
-      votStandard,
-      votDensityCorrected,
-      finalDesignOutdoorAir: votDensityCorrected,
-      auditTrail,
-      revisionState: 'ASHRAE 62.1-2025 Base + Errata',
-      status: finalStatus
-    };
-  }
-}
-
-
+const additionalClasses = `
 import { UnitConversionService } from './UnitConversionService';
 
 export interface CoolingLoadInput {
@@ -288,17 +69,15 @@ export interface VrfSystemInput {
 }
 
 export interface VrfSystemResult {
-  enrichedRooms: VrfRoomResult[];
-  oduHP: number;
-  oduTons: number;
-  oduWatts: number;
-  autoHP: number;
+  rooms: VrfRoomResult[];
   totalConnectedTons: number;
   totalConnectedWatts: number;
   totalOccupants: number;
   coincidentTons: number;
   coincidentWatts: number;
-  
+  selectedHP: number;
+  oduCapacityTons: number;
+  oduCapacityWatts: number;
   combinationRatio: number;
   additionalCharge: number;
   deratingFactor: number;
@@ -475,12 +254,10 @@ export class MechanicalCoolingEngine {
     }
 
     return {
-      enrichedRooms,
+      rooms: enrichedRooms,
       totalConnectedTons, totalConnectedWatts, totalOccupants,
-      coincidentTons, coincidentWatts, oduHP: selectedHP,
-      oduTons: oduCapacityTons,
-      oduWatts: oduCapacityWatts,
-      autoHP, combinationRatio,
+      coincidentTons, coincidentWatts, selectedHP,
+      oduCapacityTons, oduCapacityWatts, combinationRatio,
       additionalCharge, deratingFactor, deratedOduCapacityTons,
       capacityDeficit, hasCapacityDeficit,
       toxicLimitExceeded, toxicConcentration, smallestRoomName, smallestRoomVol,
@@ -488,3 +265,7 @@ export class MechanicalCoolingEngine {
     };
   }
 }
+`;
+
+content = content + "\n" + additionalClasses;
+fs.writeFileSync('src/lib/VentilationEngine.ts', content);

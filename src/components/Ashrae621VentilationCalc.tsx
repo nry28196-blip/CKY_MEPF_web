@@ -165,13 +165,13 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
   const allAuditTrails = [];
   if (systemType === 'single') {
     const sr = engineResult as any;
-    allAuditTrails.push(...sr.zone.auditTrail, ...sr.density.auditTrail);
+    allAuditTrails.push(...sr.zone.auditTrail, ...sr.density.auditTrail, ...(sr.auditTrail || []));
   } else {
     const mr = engineResult as any;
     mr.zones.forEach((z: any) => allAuditTrails.push(...z.auditTrail));
     if (mr.simplifiedSystem) allAuditTrails.push(...mr.simplifiedSystem.auditTrail);
     if (mr.alternativeSystem) allAuditTrails.push(...mr.alternativeSystem.auditTrail);
-    allAuditTrails.push(...mr.density.auditTrail);
+    allAuditTrails.push(...mr.density.auditTrail, ...(mr.auditTrail || []));
   }
 
   return (

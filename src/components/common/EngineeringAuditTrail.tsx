@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Activity, BookOpen, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 
 export interface AuditTrailStep {
+  inputs?: Record<string, number | string>;
   symbol?: string;
   name: string;
   formula?: string;
-  value: string | number;
+  value?: string | number;
+  result?: string | number;
   unit?: string;
   reference?: string;
 }
@@ -74,10 +76,22 @@ export default function EngineeringAuditTrail({
                   <td className="px-4 py-3 align-top">
                     <div className="flex flex-col space-y-1">
                       {v.formula ? (
-                        <div className="flex items-start">
+                        <><div className="flex items-start">
                           <Calculator className="w-3 h-3 text-slate-500 mr-1.5 mt-0.5 flex-shrink-0" />
                           <span className="text-[10px] font-mono text-slate-400 leading-tight">{v.formula}</span>
                         </div>
+                        {v.inputs && Object.keys(v.inputs).length > 0 && (
+                          <div className="mt-1 pl-5">
+                            <span className="text-[9px] text-slate-500 uppercase tracking-wider block mb-0.5">Inputs:</span>
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+                              {Object.entries(v.inputs).map(([key, val]) => (
+                                <div key={key} className="text-[9px] font-mono text-slate-400">
+                                  <span className="text-slate-500">{key}:</span> {typeof val === 'number' ? val.toFixed(2) : val}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}</>
                       ) : (
                         <span className="text-[10px] text-slate-600 italic">Given/Empirical</span>
                       )}
@@ -88,7 +102,7 @@ export default function EngineeringAuditTrail({
                   </td>
                   <td className="px-4 py-3 align-top text-right">
                     <div className="inline-flex items-baseline justify-end space-x-1.5 bg-slate-950/40 px-2 py-1 rounded border border-slate-800/60">
-                      <span className="text-[12px] font-mono font-bold text-white tracking-tight">{v.value}</span>
+                      <span className="text-[12px] font-mono font-bold text-white tracking-tight">{v.value !== undefined ? v.value : (v.result !== undefined && typeof v.result === 'number' ? v.result.toFixed(2) : v.result)}</span>
                       {v.unit && (
                         <span className="text-[9px] font-bold text-sky-500/70 uppercase tracking-wider">{v.unit}</span>
                       )}

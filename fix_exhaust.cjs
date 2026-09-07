@@ -9,15 +9,14 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
     const exhaustType: Ashrae621ExhaustType = {
       id: 'art-class',
       category: 'Educational',
-      spaceType: 'Art Classrooms',
-      rate: 3.5, // 0.7 cfm/ft2 roughly 3.5 L/s-m2
-      unitType: 'area', // usually area for this
+      rate: 3.5, 
+      unitType: 'm2', 
       exhaustClass: 2
     };
 
     const result = Ashrae621ExhaustService.calculate({
       exhaustType,
-      qty: 100, // 100 m2
+      qty: 100, 
       designExhaust: 350
     });
 
@@ -29,7 +28,6 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
     const exhaustType: Ashrae621ExhaustType = {
       id: 'restroom-public',
       category: 'General',
-      spaceType: 'Restrooms (Public)',
       rate: 25, 
       unitType: 'fixture',
       exhaustClass: 2
@@ -37,7 +35,7 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
 
     const result = Ashrae621ExhaustService.calculate({
       exhaustType,
-      qty: 4, // 4 fixtures
+      qty: 4, 
       designExhaust: 100
     });
 
@@ -60,9 +58,8 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
     const exhaustType: Ashrae621ExhaustType = {
       id: 'art-class',
       category: 'Educational',
-      spaceType: 'Art Classrooms',
       rate: 3.5,
-      unitType: 'area',
+      unitType: 'm2',
       exhaustClass: 2
     };
 

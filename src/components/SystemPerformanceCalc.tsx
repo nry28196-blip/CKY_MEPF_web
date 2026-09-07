@@ -1,4 +1,4 @@
-import { AirDensityService } from '../calculations/services/AirDensityService';
+import { DensityCorrectionService } from '../lib/DensityCorrectionService';
 import React, { useState } from 'react';
 import { Activity, Fan, Wind, Gauge, Zap } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
@@ -39,7 +39,7 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
   // Density logic
   const altMeters = isMetric ? globalAltitude : globalAltitude * 0.3048;
   const tempC = isMetric ? globalAirTemp : (globalAirTemp - 32) * 5/9;
-  const densityRatio = AirDensityService.getAirProperties(altMeters, tempC, 50).densityRatio;
+  const densityRatio = DensityCorrectionService.getAirProperties(altMeters, tempC, 50).densityRatio;
 
   const input: SystemPerformanceInput = {
     qOutdoorAir,

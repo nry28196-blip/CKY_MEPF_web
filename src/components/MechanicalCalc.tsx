@@ -18,7 +18,8 @@ import FormulaVisualizer, { FormulaDef } from './FormulaVisualizer';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
-import { AirDensityService } from '../calculations/services/AirDensityService';
+import { DensityCorrectionService } from '../lib/DensityCorrectionService';
+import { MechanicalCoolingEngine } from '../lib/VentilationEngine';
 import { UnitConversionService } from '../lib/UnitConversionService';
 import { VentilationValidator } from '../validation/VentilationValidator';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
@@ -109,16 +110,6 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const [customPipesTotal, setCustomPipesTotal] = useState<number | null>(null);
   const [autoCalcPiping, setAutoCalcPiping] = useState<boolean>(true);
 
-  const calcRoomTonsAndWatts = (basis: 'area' | 'volume', size: number, occupants: number) => {
-    const canonicalSize = isMetric 
-      ? size 
-      : (basis === 'area' ? UnitConversionService.ft2ToM2(size) : UnitConversionService.ft3ToM3(size));
-      
-    const watts = (basis === 'area' ? canonicalSize * baseLoadPerSqm : canonicalSize * baseLoadPerCum) + (occupants * loadPerPerson);
-    const btu = watts * 3.412142;
-    const tons = btu / 12000;
-    return { watts, tons };
-  };
 
   const [vrfRooms, setVrfRooms] = useState<Array<{
     id: string;
@@ -130,10 +121,10 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     watts: number;
     pipeLength?: number;
   }>>([
-    { id: '1', name: 'Executive Suite', basis: 'area', size: 35, occupants: 3, pipeLength: 12, ...calcRoomTonsAndWatts('area', 35, 3) },
-    { id: '2', name: 'Open Office Area', basis: 'area', size: 150, occupants: 18, pipeLength: 28, ...calcRoomTonsAndWatts('area', 150, 18) },
-    { id: '3', name: 'Conference Zone', basis: 'area', size: 45, occupants: 12, pipeLength: 18, ...calcRoomTonsAndWatts('area', 45, 12) },
-    { id: '4', name: 'Reception & Lobby', basis: 'area', size: 30, occupants: 4, pipeLength: 15, ...calcRoomTonsAndWatts('area', 30, 4) }
+    { id: '1', name: 'Executive Suite', basis: 'area', size: 35, occupants: 3, pipeLength: 12, ...MechanicalCoolingEngine.calcRoomTonsAndWatts('area', 35, 3, isMetric) },
+    { id: '2', name: 'Open Office Area', basis: 'area', size: 150, occupants: 18, pipeLength: 28, ...MechanicalCoolingEngine.calcRoomTonsAndWatts('area', 150, 18, isMetric) },
+    { id: '3', name: 'Conference Zone', basis: 'area', size: 45, occupants: 12, pipeLength: 18, ...MechanicalCoolingEngine.calcRoomTonsAndWatts('area', 45, 12, isMetric) },
+    { id: '4', name: 'Reception & Lobby', basis: 'area', size: 30, occupants: 4, pipeLength: 15, ...MechanicalCoolingEngine.calcRoomTonsAndWatts('area', 30, 4, isMetric) }
   ]);
 
   // Synchronize piping length automatically based on canvas line sets
@@ -190,205 +181,25 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     }
   }, [restoredParams, loadedHistoryId]);
 
-    const calculateCoolingLoad = () => {
-    const numArea = area !== '' && area !== undefined ? Number(area) : NaN;
-    const numOccupants = occupants !== '' && occupants !== undefined ? Number(occupants) : NaN;
-    const numHeight = height !== '' && height !== undefined ? Number(height) : NaN;
-    
-    if (isNaN(numArea) || isNaN(numOccupants) || isNaN(numHeight)) {
-      return {
-        status: 'INCOMPLETE',
-        warning: 'Missing or invalid required geometry/occupancy parameters.',
-        peopleSensible: 0, peopleLatent: 0, lightingSensible: 0, equipmentSensible: 0,
-        wallSensible: 0, roofSensible: 0, windowCondSensible: 0, solarSensible: 0,
-        ventSensible: 0, ventLatent: 0, infiltrationSensible: 0, infiltrationLatent: 0, 
-        totalSensible: 0, totalLatent: 0,
-        calculatedTotal: 0, finalTotal: 0,
-        watts: 0, btu: 0, tons: 0
-      };
-    }
-    const status = 'PASS';
-
-    // 1. Convert User Inputs to Canonical Metric
-    const canonicalArea = isMetric ? numArea : UnitConversionService.ft2ToM2(numArea);
-    const canonicalVolume = estimationBasis === 'volume' 
-      ? (isMetric ? (volume !== '' ? Number(volume) : NaN) : UnitConversionService.ft3ToM3(volume !== '' ? Number(volume) : NaN))
-      : (canonicalArea * numHeight);
-    
-    const altMeters = isMetric ? altitude : UnitConversionService.ftToM(altitude);
-    const canonicalVentLps = isMetric ? ventilationLps : UnitConversionService.cfmToLs(ventilationLps);
-
-    // Hardcoded environmental state (already metric)
-    const dT = outdoorTemp - indoorTemp; 
-
-    // 1. People
-    const peopleSensible = numOccupants * sensiblePerPerson;
-    const peopleLatent = numOccupants * latentPerPerson;
-    
-    // 2. Lighting
-    const lightingSensible = canonicalArea * lightingWpm2;
-    
-    // 3. Equipment
-    const equipmentSensible = equipmentWatts;
-    
-    // 4. Envelope (Walls, Roof, Window Conduction)
-    const wallSensible = wallArea * wallUValue * dT;
-    const roofSensible = roofArea * roofUValue * dT;
-    const windowCondSensible = windowArea * windowUValue * dT;
-    
-    // 5. Solar (Window SHGC)
-    const solarIrradiance = 400; // Peak solar irradiance assumption W/m2
-    const solarSensible = windowArea * windowShgc * solarIrradiance;
-    
-    // 6. Ventilation (Sensible & Latent)
-    const outdoorProps = AirDensityService.getAirProperties(altMeters, outdoorTemp, relativeHumidity);
-    const indoorProps = AirDensityService.getAirProperties(altMeters, indoorTemp, indoorRelativeHumidity);
-    
-    const densityRatio = useAltitudeAdj ? outdoorProps.densityRatio : 1.0;
-    const actualAirDensity = useAltitudeAdj ? outdoorProps.densityKgM3 : outdoorProps.standardDensityKgM3;
-    
-    const dw = Math.max(0, outdoorProps.humidityRatioKgKg - indoorProps.humidityRatioKgKg);
-    const cpAir = 1.026 * actualAirDensity; 
-    const hfgVapor = 2501 * actualAirDensity; 
-    
-    const ventM3s = canonicalVentLps / 1000;
-    const ventSensible = (cpAir * ventM3s * dT) * 1000; 
-    const ventLatent = (hfgVapor * ventM3s * dw) * 1000; 
-    
-    // 7. Infiltration
-    const infiltrationM3s = (infiltrationACH * canonicalVolume) / 3600;
-    const infiltrationSensible = (cpAir * infiltrationM3s * dT) * 1000;
-    const infiltrationLatent = (hfgVapor * infiltrationM3s * dw) * 1000;
-
-    const totalSensible = peopleSensible + lightingSensible + equipmentSensible + wallSensible + roofSensible + windowCondSensible + solarSensible + ventSensible + infiltrationSensible;
-    const totalLatent = peopleLatent + ventLatent + infiltrationLatent;
-    const calculatedTotal = totalSensible + totalLatent;
-    const finalTotal = calculatedTotal * (1 + safetyFactor / 100);
-
-    return {
-      peopleSensible, peopleLatent, lightingSensible, equipmentSensible,
-      wallSensible, roofSensible, windowCondSensible, solarSensible,
-      ventSensible, ventLatent, infiltrationSensible, infiltrationLatent, 
-      totalSensible, totalLatent,
-      calculatedTotal, finalTotal,
-      watts: finalTotal,
-      btu: finalTotal * 3.412142,
-      tons: finalTotal / 3516.85284,
-      status
-    };
-  };
-
-  const results = calculateCoolingLoad();
+    const results = MechanicalCoolingEngine.calculateCoolingLoad({
+    isMetric, area, volume, height, estimationBasis, occupants,
+    ventilationLps, outdoorTemp, indoorTemp, indoorRelativeHumidity, relativeHumidity,
+    altitude, useAltitudeAdj, sensiblePerPerson, latentPerPerson,
+    lightingWpm2, equipmentWatts, wallArea, wallUValue, roofArea, roofUValue,
+    windowArea, windowUValue, windowShgc, infiltrationACH, safetyFactor
+  });
   const validationResult = !isVrf ? VentilationValidator.validate({ area, volume, occupants, ventilationLps, outdoorTemp, indoorTemp }) : null;
 
   
-  const getVrfCalculations = () => {
-    let totalConnectedTons = 0;
-    let totalConnectedWatts = 0;
-    let totalOccupants = 0;
-    
-    const enrichedRooms = vrfRooms.map(r => {
-      const loads = calcRoomTonsAndWatts(r.basis, r.size, r.occupants);
-      return {
-        ...r,
-        tons: loads.tons,
-        watts: loads.watts
-      };
-    });
-
-    enrichedRooms.forEach(r => {
-      totalConnectedTons += r.tons;
-      totalConnectedWatts += r.watts;
-      totalOccupants += r.occupants;
-    });
-
-    
-    const coincidentTons = totalConnectedTons / diversityFactor;
-    const coincidentWatts = totalConnectedWatts / diversityFactor;
-    
-    // Recommend ODU HP size
-    const vrfOduSizes = [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60];
-    const targetHP = coincidentTons / 0.8;
-    
-    let autoHP = vrfOduSizes[0];
-    for (const size of vrfOduSizes) {
-      if (size >= targetHP) {
-        autoHP = size;
-        break;
-      }
-      autoHP = size;
-    }
-
-    const selectedHP = isOduAuto ? autoHP : customOduHp;
-    
-    const oduCapacityTons = selectedHP * 0.8;
-    const oduCapacityWatts = selectedHP * 2800; // 1 HP ≈ 2800 Watts thermal
-    const combinationRatio = oduCapacityTons > 0 ? (totalConnectedTons / oduCapacityTons) * 100 : 0;
-    
-    // Refrigerant additional charge
-    const chargePerMeter = refrigerantType === 'R32' ? 0.050 : 0.055;
-    const additionalCharge = pipingLength * chargePerMeter;
-
-    // Derating capacity calculation
-    const deratingPercentPerMeter = 0.0015;
-    const deratingFactor = Math.max(0.65, 1.0 - Math.max(0, pipingLength - 7.5) * deratingPercentPerMeter);
-    const deratedOduCapacityTons = oduCapacityTons * deratingFactor;
-    const capacityDeficit = coincidentTons - deratedOduCapacityTons;
-    const hasCapacityDeficit = capacityDeficit > 0 && vrfRooms.length > 0;
-
-    // Safety limit concentration check (ASHRAE 15 / ISO 5149)
-    let toxicLimitExceeded = false;
-    let toxicConcentration = 0;
-    let smallestRoomName = '';
-    let smallestRoomVol = 0;
-    const baseOduCharge = selectedHP * 0.3; // kg pre-charge approximation
-    const totalCharge = additionalCharge + baseOduCharge;
-
-    if (vrfRooms.length > 0) {
-      const roomVolumes = vrfRooms.map(r => ({
-        name: r.name,
-        vol: r.basis === 'volume' ? r.size : r.size * 3
-      }));
-      const sortedRoomsByVol = [...roomVolumes].sort((a, b) => a.vol - b.vol);
-      if (sortedRoomsByVol.length > 0) {
-        smallestRoomName = sortedRoomsByVol[0].name;
-        smallestRoomVol = sortedRoomsByVol[0].vol;
-        toxicConcentration = totalCharge / ((smallestRoomVol > 0 ? smallestRoomVol : NaN));
-        const safeLimit = refrigerantType === 'R32' ? 0.30 : 0.44; // kg/m³
-        if (toxicConcentration > safeLimit) {
-          toxicLimitExceeded = true;
-        }
-      }
-    }
-    
-    return {
-      totalConnectedTons,
-      totalConnectedWatts,
-      totalOccupants,
-      coincidentTons,
-      coincidentWatts,
-      oduHP: selectedHP,
-      oduTons: oduCapacityTons,
-      oduWatts: oduCapacityWatts,
-      combinationRatio,
-      additionalCharge,
-      autoHP,
-      deratingFactor,
-      deratedOduCapacityTons,
-      hasCapacityDeficit,
-      capacityDeficit,
-      toxicLimitExceeded,
-      toxicConcentration,
-      smallestRoomName,
-      smallestRoomVol,
-      
-      baseOduCharge,
-      totalCharge,
-      enrichedRooms
-    };
-  };
-
-  const vrfResults = getVrfCalculations();
+  const vrfResults = MechanicalCoolingEngine.calculateVrfSystem({
+    rooms: vrfRooms,
+    isMetric,
+    diversityFactor,
+    isOduAuto,
+    customOduHp,
+    refrigerantType,
+    pipingLength
+  });
 
   return (
     <div className="space-y-6">
@@ -1002,11 +813,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <div className="text-slate-500">ΔT (Outdoor - Indoor):</div>
                         <div className="text-right">{((outdoorTemp - indoorTemp) || 0).toFixed(1)} {isMetric ? '°C' : '°F'}</div>
                         <div className="text-slate-500">Air Density Ratio (ρ):</div>
-                        <div className="text-right">{useAltitudeAdj ? (AirDensityService.getAirProperties(isMetric ? altitude : UnitConversionService.ftToM(altitude), outdoorTemp, relativeHumidity).densityRatio || 0).toFixed(3) : '1.000'}</div>
+                        <div className="text-right">{useAltitudeAdj ? (DensityCorrectionService.getAirProperties(isMetric ? altitude : UnitConversionService.ftToM(altitude), outdoorTemp, relativeHumidity).densityRatio || 0).toFixed(3) : '1.000'}</div>
                         <div className="text-slate-500">Specific Heat (Cp):</div>
-                        <div className="text-right">{(((useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : UnitConversionService.ftToM(altitude), outdoorTemp, relativeHumidity).densityRatio : 1.0) * 1.21) || 0).toFixed(3)} kJ/kg·K</div>
+                        <div className="text-right">{(((useAltitudeAdj ? DensityCorrectionService.getAirProperties(isMetric ? altitude : UnitConversionService.ftToM(altitude), outdoorTemp, relativeHumidity).densityRatio : 1.0) * 1.21) || 0).toFixed(3)} kJ/kg·K</div>
                         <div className="text-slate-500">Latent Heat (hfg):</div>
-                        <div className="text-right">{(((useAltitudeAdj ? AirDensityService.getAirProperties(isMetric ? altitude : UnitConversionService.ftToM(altitude), outdoorTemp, relativeHumidity).densityRatio : 1.0) * 3010) || 0).toFixed(0)} kJ/kg</div>
+                        <div className="text-right">{(((useAltitudeAdj ? DensityCorrectionService.getAirProperties(isMetric ? altitude : UnitConversionService.ftToM(altitude), outdoorTemp, relativeHumidity).densityRatio : 1.0) * 3010) || 0).toFixed(0)} kJ/kg</div>
                       </div>
                     </div>
                     
@@ -1689,7 +1500,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                   pipingLength={pipingLength}
                   mainPipingLength={mainPipingLength}
                   setMainPipingLength={setMainPipingLength}
-                  calcRoomTonsAndWatts={calcRoomTonsAndWatts}
+                  calcRoomTonsAndWatts={(basis, size, occupants) => MechanicalCoolingEngine.calcRoomTonsAndWatts(basis, size, occupants, isMetric)}
                   onCustomPipesChange={setCustomPipesTotal}
                   triggerToast={triggerToast}
                 />
@@ -1912,7 +1723,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             size,
                             occupants: occupantsCount,
                             pipeLength: 15,
-                            ...calcRoomTonsAndWatts(newRoomBasis, size, occupantsCount)
+                            ...MechanicalCoolingEngine.calcRoomTonsAndWatts(newRoomBasis, size, occupantsCount, isMetric)
                           };
                           
                           setVrfRooms([...vrfRooms, newRoom]);

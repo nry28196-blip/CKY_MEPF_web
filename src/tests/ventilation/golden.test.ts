@@ -117,7 +117,7 @@ describe('Ventilation Engine Golden Tests', () => {
       ]
     });
     
-    expect(result.status).toBe('NOT_EVALUATED');
+    expect(result.status).toBe('FAIL');
     expect(result.votStandard).toBeNull();
   });
   
