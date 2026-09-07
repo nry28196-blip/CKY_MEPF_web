@@ -114,7 +114,7 @@ function formatValue(key: string, value: any): string {
 }
 
 export default function CompareModal({ isOpen, onClose, items }: CompareModalProps) {
-  if (!isOpen) return null;
+  
 
   // Safeguard if we have fewer than 2 items
   const calcA = items[0];
@@ -137,6 +137,7 @@ export default function CompareModal({ isOpen, onClose, items }: CompareModalPro
       default: return tab.toUpperCase();
     }
   };
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-200">
@@ -311,7 +312,7 @@ export default function CompareModal({ isOpen, onClose, items }: CompareModalPro
           </button>
         </div>
 
-      </div>
+                      </div>
     </div>
   );
 }

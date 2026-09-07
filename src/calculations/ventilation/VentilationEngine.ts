@@ -1,6 +1,6 @@
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
 import { Ashrae621ZoneService, ZoneVentilationInput, ZoneVentilationResult } from './Ashrae621ZoneService';
-import { Ashrae621SimplifiedSystemService, SimplifiedSystemInput, SimplifiedSystemResult } from './Ashrae621SimplifiedSystemService';
+import { Ashrae621SimplifiedSystemService, SimplifiedSystemInput, SimplifiedSystemResult, SimplifiedSystemZoneInput } from './Ashrae621SimplifiedSystemService';
 import { Ashrae621AlternativeSystemService, AlternativeSystemInput, AlternativeSystemResult, AlternativeZoneInput } from './Ashrae621AlternativeSystemService';
 import { Ashrae621DensityService, DensityInput, DensityResult } from './Ashrae621DensityService';
 
@@ -14,8 +14,9 @@ export interface SingleZoneResult {
   density: DensityResult;
   vozStandard: number; // L/s
   votStandard: number; // L/s (for single zone, Vot = Voz)
-  votDensityCorrected: number; // L/s
-  finalDesignOutdoorAir: number; // The authoritative final value
+  votDensityCorrected: number | null; // L/s
+  finalDesignOutdoorAir: number | null; // The authoritative final value
+  revisionState: string;
   status: ValidationStatus;
 }
 
@@ -32,11 +33,12 @@ export interface MultiZoneResult {
   density: DensityResult;
   simplifiedSystem: SimplifiedSystemResult | null;
   alternativeSystem: AlternativeSystemResult | null;
-  vou: number; // Uncorrected outdoor air
-  ev: number; // System ventilation efficiency
-  votStandard: number; // L/s
-  votDensityCorrected: number; // L/s
-  finalDesignOutdoorAir: number;
+  vou: number | null; // Uncorrected outdoor air
+  ev: number | null; // System ventilation efficiency
+  votStandard: number | null; // L/s
+  votDensityCorrected: number | null; // L/s
+  finalDesignOutdoorAir: number | null;
+  revisionState: string;
   status: ValidationStatus;
 }
 
@@ -46,12 +48,19 @@ export class VentilationEngine {
     const zoneResult = Ashrae621ZoneService.calculateZone(input.zone);
     const densityResult = Ashrae621DensityService.calculateDensityCorrection(input.density);
     
-    const vozStandard = zoneResult.voz;
-    const votStandard = vozStandard; // Ev = 1.0 implicitly for 100% OA single zone directly feeding the space? Wait, standard is Vot = Voz.
-    const votDensityCorrected = votStandard * densityResult.eRho;
-    
-    const statuses = [zoneResult.status];
+    const statuses = [zoneResult.status, densityResult.status];
     const status = VentilationValidationService.aggregateStatus(statuses);
+    
+    if (status === 'FAIL' || status === 'INCOMPLETE') {
+        return {
+          zone: zoneResult, density: densityResult, vozStandard: zoneResult.voz, votStandard: zoneResult.voz, 
+          votDensityCorrected: null, finalDesignOutdoorAir: null, revisionState: 'ASHRAE 62.1-2025 Base + Errata', status
+        };
+    }
+    
+    const vozStandard = zoneResult.voz;
+    const votStandard = vozStandard;
+    const votDensityCorrected = votStandard * densityResult.eRho;
     
     return {
       zone: zoneResult,
@@ -60,6 +69,7 @@ export class VentilationEngine {
       votStandard,
       votDensityCorrected,
       finalDesignOutdoorAir: votDensityCorrected,
+      revisionState: 'ASHRAE 62.1-2025 Base + Errata',
       status
     };
   }
@@ -72,33 +82,40 @@ export class VentilationEngine {
     
     const densityResult = Ashrae621DensityService.calculateDensityCorrection(input.density);
     
-    let vou = 0;
-    for (const z of zoneResults) {
-      if (z.status === 'PASS' || z.status === 'WARNING') {
-        vou += z.voz;
-      }
-    }
+    let vou: number | null = null;
+    let ev: number | null = null;
     
-    let ev = 1.0;
     let simplifiedSystem: SimplifiedSystemResult | null = null;
     let alternativeSystem: AlternativeSystemResult | null = null;
     
     const statuses = zoneResults.map(z => z.status);
-
+    
     if (input.method === 'Simplified') {
+      const simplifiedZones: SimplifiedSystemZoneInput[] = input.zones.map((z, idx) => ({
+        id: z.id,
+        pz: zoneResults[idx].pz,
+        rp: zoneResults[idx].rp,
+        ra: zoneResults[idx].ra,
+        az: zoneResults[idx].az,
+        voz: zoneResults[idx].voz,
+        vpz: z.vpz,
+        vpzMinDesign: z.vpzMinDesign,
+        dMode: z.dMode
+      }));
+
       simplifiedSystem = Ashrae621SimplifiedSystemService.calculate({
-        zones: zoneResults,
-        ps: input.systemPopulation,
-        dMode: 'CV' // For simplified, dMode is largely irrelevant to the simple Ev formula in 2025.
+        zones: simplifiedZones,
+        ps: input.systemPopulation
       });
       ev = simplifiedSystem.ev;
+      vou = simplifiedSystem.vou;
       statuses.push(simplifiedSystem.status);
     } else {
       const altZones: AlternativeZoneInput[] = input.zones.map((z, idx) => ({
         id: z.id,
         voz: zoneResults[idx].voz,
         vpz: z.vpz,
-        vpzMinRequired: zoneResults[idx].voz, // For CV it's Voz. For VAV, it depends on system.
+        vpzMinRequired: zoneResults[idx].voz, 
         vpzMinDesign: z.vpzMinDesign,
         ep: z.ep,
         er: z.er,
@@ -111,17 +128,26 @@ export class VentilationEngine {
         systemType: input.systemType
       });
       ev = alternativeSystem.ev;
+      vou = alternativeSystem.vou;
       statuses.push(alternativeSystem.status);
     }
     
-    if (ev <= 0 || isNaN(ev)) {
-      statuses.push('FAIL');
-    }
+    statuses.push(densityResult.status);
     
     const status = VentilationValidationService.aggregateStatus(statuses);
     
-    const votStandard = status === 'FAIL' || ev <= 0 ? 0 : vou / ev;
-    const votDensityCorrected = status === 'FAIL' ? 0 : votStandard * densityResult.eRho;
+    let votStandard: number | null = null;
+    let votDensityCorrected: number | null = null;
+    
+    if (status !== 'FAIL' && status !== 'INCOMPLETE' && status !== 'NOT_EVALUATED' && ev !== null && ev > 0 && vou !== null) {
+      votStandard = vou / ev;
+      votDensityCorrected = votStandard * densityResult.eRho;
+    }
+    
+    let finalStatus = status;
+    if ((ev === null || ev <= 0) && finalStatus === 'PASS') {
+      finalStatus = (input.method === 'Alternative' && ev === null) ? 'NOT_EVALUATED' : 'FAIL';
+    }
     
     return {
       zones: zoneResults,
@@ -132,8 +158,9 @@ export class VentilationEngine {
       ev,
       votStandard,
       votDensityCorrected,
-      finalDesignOutdoorAir: status === 'FAIL' ? 0 : votDensityCorrected,
-      status
+      finalDesignOutdoorAir: votDensityCorrected,
+      revisionState: 'ASHRAE 62.1-2025 Base + Errata',
+      status: finalStatus
     };
   }
 }

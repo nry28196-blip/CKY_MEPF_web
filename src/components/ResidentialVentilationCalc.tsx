@@ -22,6 +22,10 @@ export default function ResidentialVentilationCalc() {
   
   const [qInf, setQInf] = useState<number | ''>('');
   const [infiltrationVerified, setInfiltrationVerified] = useState<boolean>(false);
+  const [kitchenRequired, setKitchenRequired] = useState<number>(isMetric ? 25 : 50);
+  const [kitchenInstalled, setKitchenInstalled] = useState<number>(0);
+  const [bathRequired, setBathRequired] = useState<number>(isMetric ? 25 : 50);
+  const [bathInstalled, setBathInstalled] = useState<number>(0);
 
   const engineResult = useMemo(() => {
     let areaM2 = isMetric ? floorArea : UnitConversionService.ft2ToM2(floorArea);
@@ -37,9 +41,15 @@ export default function ResidentialVentilationCalc() {
       bedrooms,
       infiltrationCredit: credit,
       infiltrationVerified,
+      localExhaust: {
+        kitchenRequired: isMetric ? kitchenRequired : UnitConversionService.cfmToLs(kitchenRequired),
+        kitchenInstalled: isMetric ? kitchenInstalled : UnitConversionService.cfmToLs(kitchenInstalled),
+        bathRequired: isMetric ? bathRequired : UnitConversionService.cfmToLs(bathRequired),
+        bathInstalled: isMetric ? bathInstalled : UnitConversionService.cfmToLs(bathInstalled)
+      },
       coefficients
     });
-  }, [floorArea, bedrooms, qInf, infiltrationVerified, isMetric, edition]);
+  }, [floorArea, bedrooms, qInf, infiltrationVerified, isMetric, edition, kitchenRequired, kitchenInstalled, bathRequired, bathInstalled]);
 
   const flowUnit = isMetric ? 'L/s' : 'cfm';
 
@@ -63,7 +73,7 @@ export default function ResidentialVentilationCalc() {
         message={`ASHRAE 62.2-${edition} Whole-Dwelling - ${engineResult.status === 'PASS' ? 'Ventilation requirements met' : 'Check requirements'}`} 
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
           <div className="flex items-center gap-2 mb-4 text-cyan-400">
             <Home className="w-5 h-5" />
@@ -97,16 +107,44 @@ export default function ResidentialVentilationCalc() {
             </label>
           </div>
         </div>
+        <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-2 mb-4 text-purple-400">
+            <ChefHat className="w-5 h-5" />
+            <h3 className="font-semibold text-white">Local Exhaust Deficit</h3>
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <TooltipLabel label={`Kit. Req (${flowUnit})`} tooltip="Kitchen Exhaust Required" />
+                <input type="number" className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800" value={kitchenRequired} onChange={e => setKitchenRequired(Number(e.target.value))} />
+              </div>
+              <div>
+                <TooltipLabel label={`Kit. Inst (${flowUnit})`} tooltip="Kitchen Exhaust Installed" />
+                <input type="number" className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800" value={kitchenInstalled} onChange={e => setKitchenInstalled(Number(e.target.value))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <TooltipLabel label={`Bath Req (${flowUnit})`} tooltip="Bathroom Exhaust Required" />
+                <input type="number" className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800" value={bathRequired} onChange={e => setBathRequired(Number(e.target.value))} />
+              </div>
+              <div>
+                <TooltipLabel label={`Bath Inst (${flowUnit})`} tooltip="Bathroom Exhaust Installed" />
+                <input type="number" className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800" value={bathInstalled} onChange={e => setBathInstalled(Number(e.target.value))} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 flex flex-col items-center text-center">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Required Fan Airflow (Qfan)</h2>
         <div className="text-5xl font-black text-cyan-400 font-mono tracking-tight flex items-baseline gap-3">
-          {(isMetric ? engineResult.qFan : UnitConversionService.lsToCfm(engineResult.qFan)).toFixed(1)}
+          {engineResult.qFan === null ? '--' : (isMetric ? engineResult.qFan : UnitConversionService.lsToCfm(engineResult.qFan)).toFixed(1)}
           <span className="text-xl text-slate-500">{flowUnit}</span>
         </div>
         <p className="text-slate-500 text-sm mt-3 max-w-lg">
-          Final required mechanical ventilation. Total required (Qtot) is {(isMetric ? engineResult.qTot : UnitConversionService.lsToCfm(engineResult.qTot)).toFixed(1)} {flowUnit}.
+          Final required mechanical ventilation. Total required (Qtot) is {engineResult.qTot === null ? '--' : (isMetric ? engineResult.qTot : UnitConversionService.lsToCfm(engineResult.qTot)).toFixed(1)} {flowUnit}.
         </p>
       </div>
     </div>

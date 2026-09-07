@@ -1,7 +1,7 @@
+import { motion, AnimatePresence } from 'motion/react';
 import React from 'react';
 import { useLanguage } from '../lib/translations';
 import { X, Droplets, Info } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 
 interface FrictionLossReferenceProps {
   isOpen: boolean;
@@ -23,11 +23,9 @@ const MATERIAL_DATA = [
 
 export default function FrictionLossReference({ isOpen, onClose }: FrictionLossReferenceProps) {
   const { isKhmer, setLanguage, language } = useLanguage();
-  if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
+    <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -94,8 +92,7 @@ export default function FrictionLossReference({ isOpen, onClose }: FrictionLossR
               </p>
             </div>
           </div>
-        </motion.div>
+                </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 }

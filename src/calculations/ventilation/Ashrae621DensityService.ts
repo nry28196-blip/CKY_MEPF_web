@@ -1,4 +1,5 @@
 import { AuditTrailItem } from './Ashrae621ZoneService';
+import { ValidationStatus } from './VentilationValidationService';
 
 export interface DensityInput {
   elevation: number; // m
@@ -11,6 +12,7 @@ export interface DensityResult {
   pressureAtm: number; // kPa
   density: number; // kg/m³
   eRho: number;
+  status: ValidationStatus;
   auditTrail: AuditTrailItem[];
 }
 
@@ -26,6 +28,7 @@ export class Ashrae621DensityService {
         pressureAtm: 101.325,
         density: 1.2041,
         eRho: 1.0,
+        status: 'PASS',
         auditTrail: []
       };
     }
@@ -66,6 +69,7 @@ export class Ashrae621DensityService {
       pressureAtm,
       density,
       eRho,
+      status: 'PASS',
       auditTrail
     };
   }

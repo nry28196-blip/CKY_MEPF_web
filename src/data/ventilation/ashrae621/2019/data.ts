@@ -1,11 +1,11 @@
 import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType } from '../types';
 
 export const ASHRAE_621_2019_SPACE_TYPES: Ashrae621SpaceType[] = [
-  { id: 'office', name: 'Office space', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 5.0, exhaustRequired: false, reference: 'Table 6.2.2.1' },
-  { id: 'conference', name: 'Conference/meeting', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 50, exhaustRequired: false, reference: 'Table 6.2.2.1' },
-  { id: 'retail', name: 'Retail sales', category: 'Retail', rpMetric: 3.8, raMetric: 0.6, defaultOccupancyMetric: 15, exhaustRequired: false, reference: 'Table 6.2.2.1' },
-  { id: 'classroom', name: 'Classroom (ages 9+)', category: 'Education', rpMetric: 5.0, raMetric: 0.6, defaultOccupancyMetric: 35, exhaustRequired: false, reference: 'Table 6.2.2.1' },
-  { id: 'corridor', name: 'Corridor', category: 'General', rpMetric: 0, raMetric: 0.3, defaultOccupancyMetric: 0, exhaustRequired: false, reference: 'Table 6.2.2.1' }
+  { id: 'office', name: 'Office space', standard: 'ASHRAE 62.1', edition: '2019', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 5.0, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', revisionSource: 'Base' },
+  { id: 'conference', name: 'Conference/meeting', standard: 'ASHRAE 62.1', edition: '2019', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 50, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', revisionSource: 'Base' },
+  { id: 'retail', name: 'Retail sales', standard: 'ASHRAE 62.1', edition: '2019', category: 'Retail', rpMetric: 3.8, raMetric: 0.6, defaultOccupancyMetric: 15, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', revisionSource: 'Base' },
+  { id: 'classroom', name: 'Classroom (ages 9+)', standard: 'ASHRAE 62.1', edition: '2019', category: 'Education', rpMetric: 5.0, raMetric: 0.6, defaultOccupancyMetric: 35, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', revisionSource: 'Base' },
+  { id: 'corridor', name: 'Corridor', standard: 'ASHRAE 62.1', edition: '2019', category: 'General', rpMetric: 0, raMetric: 0.3, defaultOccupancyMetric: 0, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', revisionSource: 'Base' }
 ];
 
 export const ASHRAE_621_2019_EZ_VALUES: Ashrae621Ez[] = [
@@ -16,11 +16,12 @@ export const ASHRAE_621_2019_EZ_VALUES: Ashrae621Ez[] = [
 ];
 
 export const ASHRAE_621_2019_EXHAUST_RATES: Ashrae621ExhaustType[] = [
-  { id: 'toilet_public', name: 'Toilet rooms - Public', rate: 25, unitType: 'fixture', exhaustClass: 2, reference: 'Table 6.5.1' },
-  { id: 'toilet_private', name: 'Toilet rooms - Private', rate: 12.5, unitType: 'fixture', exhaustClass: 2, reference: 'Table 6.5.1' },
-  { id: 'kitchen_commercial', name: 'Commercial kitchen', rate: 3.5, unitType: 'm2', exhaustClass: 3, reference: 'Table 6.5.1' },
-  { id: 'parking_garage', name: 'Enclosed parking garage', rate: 3.7, unitType: 'm2', exhaustClass: 2, reference: 'Table 6.5.1' },
-  { id: 'janitor', name: 'Janitor closet', rate: 5.0, unitType: 'm2', exhaustClass: 2, reference: 'Table 6.5.1' },
-  { id: 'copy_room', name: 'Copy, printing room', rate: 2.5, unitType: 'm2', exhaustClass: 2, reference: 'Table 6.5.1' }
+  { id: 'toilet_public', name: 'Toilet rooms - Public', category: 'Public', rate: 25, unitType: 'fixture', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2019', revision: 'Base' },
+  { id: 'toilet_private', name: 'Toilet rooms - Private', category: 'Private', rate: 12.5, unitType: 'fixture', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2019', revision: 'Base' },
+  { id: 'kitchen_commercial', name: 'Commercial kitchen', category: 'Commercial', rate: 3.5, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 3, reference: 'Table 6.5.1', edition: '2019', revision: 'Base' },
+  { id: 'parking_garage', name: 'Enclosed parking garage', category: 'Parking', rate: 3.7, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2019', revision: 'Base' },
+  { id: 'janitor', name: 'Janitor closet', category: 'Service', rate: 5.0, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2019', revision: 'Base' },
+  { id: 'copy_room', name: 'Copy, printing room', category: 'Office', rate: 2.5, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2019', revision: 'Base' }
 ];
+
 export * from '../types';

@@ -1,10 +1,21 @@
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
 import { AuditTrailItem } from './Ashrae621ZoneService';
 
-export interface SimplifiedSystemInput {
-  zones: { pz: number; }[];
-  ps: number | null; // System population
+export interface SimplifiedSystemZoneInput {
+  id: string;
+  pz: number;
+  rp: number;
+  ra: number;
+  az: number;
+  voz: number;
+  vpz: number | null;
+  vpzMinDesign: number | null;
   dMode: 'VAV' | 'CV';
+}
+
+export interface SimplifiedSystemInput {
+  zones: SimplifiedSystemZoneInput[];
+  ps: number | null; // System population
 }
 
 export interface SimplifiedSystemResult {
@@ -12,6 +23,7 @@ export interface SimplifiedSystemResult {
   ps: number;
   d: number;
   ev: number;
+  vou: number;
   status: ValidationStatus;
   auditTrail: AuditTrailItem[];
 }
@@ -20,29 +32,40 @@ export class Ashrae621SimplifiedSystemService {
   static calculate(input: SimplifiedSystemInput): SimplifiedSystemResult {
     const auditTrail: AuditTrailItem[] = [];
     const sumPz = input.zones.reduce((sum, z) => sum + z.pz, 0);
+    const sumRaAz = input.zones.reduce((sum, z) => sum + (z.ra * z.az), 0);
+    const sumRpPz = input.zones.reduce((sum, z) => sum + (z.rp * z.pz), 0);
+
+    const statuses: ValidationStatus[] = [];
 
     if (input.ps === null || isNaN(input.ps) || input.ps < 0) {
-      return {
-        sumPz, ps: 0, d: 1.0, ev: 0, status: 'INCOMPLETE', auditTrail: []
-      };
+      statuses.push('INCOMPLETE');
     }
-    
-    const ps = input.ps;
+
+    // VAV logic checks
+    for (const z of input.zones) {
+      if (z.dMode === 'VAV') {
+        if (z.vpzMinDesign === null || isNaN(z.vpzMinDesign)) {
+          statuses.push('INCOMPLETE');
+        } else if (z.vpzMinDesign < z.voz) {
+          statuses.push('FAIL'); // Insufficient Vpz-min
+        } else if (z.vpz !== null && z.vpzMinDesign > z.vpz) {
+          statuses.push('FAIL'); // Min > Design
+        }
+      }
+    }
+
+    const ps = (input.ps !== null && !isNaN(input.ps)) ? input.ps : 0;
     const d = sumPz > 0 ? ps / sumPz : 1.0;
     
-    // According to 62.1 Simplified Procedure (6.2.5.3)
     let ev = 0;
-    
     if (d < 0.60) {
       ev = 0.60;
     } else {
       ev = 0.75;
     }
     
-    // In VAV, if D < 0.6, it's often more complex or might have a different default.
-    // Assuming standard 2025 simplified procedure:
-    // If D < 0.60, Ev = 0.60; If D >= 0.60, Ev = 0.75.
-    
+    const vou = d * sumRpPz + sumRaAz;
+
     auditTrail.push({
       symbol: 'D',
       name: 'Occupant Diversity',
@@ -50,7 +73,17 @@ export class Ashrae621SimplifiedSystemService {
       inputs: { 'Ps': ps, 'ΣPz': sumPz },
       result: d,
       unit: '',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3.1'
+      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3'
+    });
+    
+    auditTrail.push({
+      symbol: 'Vou',
+      name: 'Uncorrected Outdoor Air Intake',
+      formula: 'D × Σ(Rp×Pz) + Σ(Ra×Az)',
+      inputs: { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz },
+      result: vou,
+      unit: 'L/s',
+      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3'
     });
 
     auditTrail.push({
@@ -60,12 +93,15 @@ export class Ashrae621SimplifiedSystemService {
       inputs: { 'D': d },
       result: ev,
       unit: '',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3.2'
+      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3'
     });
 
+    statuses.push('PASS');
+    const finalStatus = VentilationValidationService.aggregateStatus(statuses);
+
     return {
-      sumPz, ps, d, ev,
-      status: 'PASS',
+      sumPz, ps, d, ev, vou,
+      status: finalStatus,
       auditTrail
     };
   }

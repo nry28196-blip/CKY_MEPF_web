@@ -13,7 +13,11 @@ export default function FireReferenceModal({ isOpen, onClose }: FireReferenceMod
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+      <div 
+        className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/50 shrink-0">
@@ -203,7 +207,7 @@ export default function FireReferenceModal({ isOpen, onClose }: FireReferenceMod
           </div>
           
         </div>
-      </div>
+                      </div>
     </div>
   );
 }

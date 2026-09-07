@@ -18,7 +18,7 @@ export default function ReferenceModal({ isOpen, onClose }: ReferenceModalProps)
   const [activeTab, setActiveTab] = useState<RefTab>('all');
   const { isKhmer, setLanguage, language } = useLanguage();
 
-  if (!isOpen) return null;
+  
 
   const sections = [
     {
@@ -399,6 +399,7 @@ export default function ReferenceModal({ isOpen, onClose }: ReferenceModalProps)
   const filteredSections = activeTab === 'all' 
     ? sections 
     : sections.filter(s => s.id === activeTab);
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-200">
@@ -546,7 +547,7 @@ export default function ReferenceModal({ isOpen, onClose }: ReferenceModalProps)
           </button>
         </div>
 
-      </div>
+                      </div>
     </div>
   );
 }

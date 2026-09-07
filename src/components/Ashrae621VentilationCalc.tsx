@@ -159,7 +159,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
     }
   }, [engineResult, isMetric, onVentilationChange]);
 
-  const finalAirflowDisplay = isMetric ? engineResult.finalDesignOutdoorAir : UnitConversionService.lsToCfm(engineResult.finalDesignOutdoorAir);
+  const finalAirflowDisplay = engineResult.finalDesignOutdoorAir === null ? null : (isMetric ? engineResult.finalDesignOutdoorAir : UnitConversionService.lsToCfm(engineResult.finalDesignOutdoorAir));
 
   // Extract all audit trails for report
   const allAuditTrails = [];
@@ -431,7 +431,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 flex flex-col items-center text-center">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Final Design Outdoor Air</h2>
         <div className="text-5xl font-black text-cyan-400 font-mono tracking-tight flex items-baseline gap-3">
-          {isNaN(finalAirflowDisplay) ? '--' : finalAirflowDisplay.toFixed(1)}
+          {finalAirflowDisplay === null || isNaN(finalAirflowDisplay) ? '--' : finalAirflowDisplay.toFixed(1)}
           <span className="text-xl text-slate-500">{isMetric ? 'L/s' : 'cfm'}</span>
         </div>
         <p className="text-slate-500 text-sm mt-3 max-w-lg">

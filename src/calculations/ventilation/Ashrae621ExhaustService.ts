@@ -21,7 +21,10 @@ export class Ashrae621ExhaustService {
       return { requiredExhaust: 0, designExhaust: 0, unitType: 'unknown', exhaustClass: 1, status: 'INCOMPLETE' };
     }
 
-    if (input.qty === null || isNaN(input.qty) || input.qty < 0) {
+    if (input.qty === null || isNaN(input.qty)) {
+      return { requiredExhaust: 0, designExhaust: 0, unitType: input.exhaustType.unitType, exhaustClass: input.exhaustType.exhaustClass, status: 'INCOMPLETE' };
+    }
+    if (input.qty < 0) {
       return { requiredExhaust: 0, designExhaust: 0, unitType: input.exhaustType.unitType, exhaustClass: input.exhaustType.exhaustClass, status: 'FAIL' };
     }
 

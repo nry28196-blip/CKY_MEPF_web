@@ -27,7 +27,7 @@ export default function MaterialOptimizerModal({
   appliedFittings,
   onSelectMaterial
 }: MaterialOptimizerModalProps) {
-  if (!isOpen) return null;
+  
 
   const materials: { id: 'pvc'|'copper'|'steel', name: string, cFactor: number, costIndex: number, desc: string }[] = [
     { id: 'pvc', name: 'PVC / CPVC', cFactor: 150, costIndex: 1, desc: 'Lowest friction, lowest cost. Ideal for general cold water.' },
@@ -106,10 +106,15 @@ export default function MaterialOptimizerModal({
     });
     optimalId = validResults[0].id;
   }
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-4xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div 
+        className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+
         <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
@@ -212,7 +217,7 @@ export default function MaterialOptimizerModal({
             })}
           </div>
         </div>
-      </div>
+                      </div>
     </div>
   );
 }
