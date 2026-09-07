@@ -9,10 +9,10 @@ export const ASHRAE_621_2019_SPACE_TYPES: Ashrae621SpaceType[] = [
 ];
 
 export const ASHRAE_621_2019_EZ_VALUES: Ashrae621Ez[] = [
-  { id: 'ez_cooling_ceiling', name: 'Cooling, ceiling supply', ez: 1.0, reference: 'Table 6.2.2.2' },
-  { id: 'ez_heating_ceiling', name: 'Heating, ceiling supply (warm air < 8°C above space)', ez: 0.8, reference: 'Table 6.2.2.2' },
-  { id: 'ez_makeup_ceiling', name: 'Makeup air drawn in on opposite side', ez: 0.8, reference: 'Table 6.2.2.2' },
-  { id: 'ez_floor_cooling', name: 'Floor supply, ceiling return (cooling)', ez: 1.2, reference: 'Table 6.2.2.2' }
+  { id: 'ez-1', name: 'Ceiling Supply / Ceiling Return (Cooling)', ez: 1.0, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2019', configuration: 'Ceiling Supply / Ceiling Return', applicableCondition: 'Cooling', supplyArrangement: 'Ceiling', returnArrangement: 'Ceiling', revision: 'Base' },
+  { id: 'ez-2', name: 'Ceiling Supply / Ceiling Return (Heating, >= 8C diff)', ez: 0.8, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2019', configuration: 'Ceiling Supply / Ceiling Return', applicableCondition: 'Heating >= 8C diff', supplyArrangement: 'Ceiling', returnArrangement: 'Ceiling', revision: 'Base' },
+  { id: 'ez-3', name: 'Floor Supply / Ceiling Return (Low Velocity)', ez: 1.2, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2019', configuration: 'Floor Supply / Ceiling Return', applicableCondition: 'Low Velocity', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', revision: 'Base' },
+  { id: 'ez-4', name: 'Floor Supply / Ceiling Return (High Velocity)', ez: 1.0, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2019', configuration: 'Floor Supply / Ceiling Return', applicableCondition: 'High Velocity', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', revision: 'Base' }
 ];
 
 export const ASHRAE_621_2019_EXHAUST_RATES: Ashrae621ExhaustType[] = [

@@ -6,10 +6,10 @@ import TooltipLabel from './TooltipLabel';
 import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { Ashrae622Service } from '../calculations/ventilation/Ashrae622Service';
-import { UnitConversionService } from '../services/UnitConversionService';
-import { ASHRAE_622_2025_COEFFICIENTS } from '../data/ventilation/ashrae622/2025/data';
-import { ASHRAE_622_2022_COEFFICIENTS } from '../data/ventilation/ashrae622/2022/data';
-import { ASHRAE_622_2019_COEFFICIENTS } from '../data/ventilation/ashrae622/2019/data';
+import { UnitConversionService } from '../lib/UnitConversionService';
+import { StandardDataProvider } from '../data/ventilation/StandardDataProvider';
+
+
 
 export default function ResidentialVentilationCalc() {
   const { t } = useLanguage();
@@ -32,9 +32,7 @@ export default function ResidentialVentilationCalc() {
     let credit = qInf === '' ? null : qInf;
     if (credit !== null && !isMetric) credit = UnitConversionService.cfmToLs(credit);
     
-    let coefficients = ASHRAE_622_2025_COEFFICIENTS;
-    if (edition === '2022') coefficients = ASHRAE_622_2022_COEFFICIENTS;
-    else if (edition === '2019') coefficients = ASHRAE_622_2019_COEFFICIENTS;
+    const coefficients = StandardDataProvider.get622Coefficients(edition);
 
     return Ashrae622Service.calculateWholeDwelling({
       floorArea: areaM2,

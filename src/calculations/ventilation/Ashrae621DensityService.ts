@@ -20,7 +20,7 @@ export class Ashrae621DensityService {
   static calculateDensityCorrection(input: DensityInput | null): DensityResult {
     const auditTrail: AuditTrailItem[] = [];
 
-    if (!input || isNaN(input.elevation) || isNaN(input.temperature)) {
+    if (!input || input.elevation === null || input.temperature === null || isNaN(input.elevation) || isNaN(input.temperature)) {
       // Default to sea level, 20°C standard conditions if missing
       return {
         elevation: 0,
@@ -28,7 +28,7 @@ export class Ashrae621DensityService {
         pressureAtm: 101.325,
         density: 1.2041,
         eRho: 1.0,
-        status: 'PASS',
+        status: 'INCOMPLETE',
         auditTrail: []
       };
     }
@@ -60,7 +60,7 @@ export class Ashrae621DensityService {
       },
       result: eRho,
       unit: '',
-      reference: 'ASHRAE 62.1-2025 (Errata) Section 6.2.2.1.2'
+      reference: 'ASHRAE 62.1-2025 Section 6.2.4.4 (Errata)'
     });
 
     return {

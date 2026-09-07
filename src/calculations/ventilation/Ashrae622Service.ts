@@ -37,7 +37,9 @@ export class Ashrae622Service {
     let qInf = 0;
     let status: ValidationStatus = 'PASS';
 
-    if (input.infiltrationCredit !== null && input.infiltrationCredit > 0) {
+    if (input.infiltrationCredit === null) {
+      status = 'INCOMPLETE';
+    } else if (input.infiltrationCredit > 0) {
       if (!input.infiltrationVerified) {
         status = 'WARNING'; // Credit not verified
       } else {
@@ -49,7 +51,7 @@ export class Ashrae622Service {
     if (input.localExhaust) {
       const kitchenDeficit = Math.max(0, input.localExhaust.kitchenRequired - input.localExhaust.kitchenInstalled);
       const bathDeficit = Math.max(0, input.localExhaust.bathRequired - input.localExhaust.bathInstalled);
-      qDeficit = 0.25 * (kitchenDeficit + bathDeficit);
+      qDeficit = input.coefficients.localExhaustDeficitCoefficient * (kitchenDeficit + bathDeficit);
     }
 
     // Qfan = Qtot - Qinf + Qdeficit (must be >= 0)

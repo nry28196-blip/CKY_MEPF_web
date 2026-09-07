@@ -46,7 +46,7 @@ export class Ashrae621SimplifiedSystemService {
       if (z.dMode === 'VAV') {
         if (z.vpzMinDesign === null || isNaN(z.vpzMinDesign)) {
           statuses.push('INCOMPLETE');
-        } else if (z.vpzMinDesign < z.voz) {
+        } else if (z.vpzMinDesign < 1.5 * z.voz) {
           statuses.push('FAIL'); // Insufficient Vpz-min
         } else if (z.vpz !== null && z.vpzMinDesign > z.vpz) {
           statuses.push('FAIL'); // Min > Design
@@ -59,7 +59,7 @@ export class Ashrae621SimplifiedSystemService {
     
     let ev = 0;
     if (d < 0.60) {
-      ev = 0.60;
+      ev = 0.88 * d + 0.22;
     } else {
       ev = 0.75;
     }
@@ -89,7 +89,7 @@ export class Ashrae621SimplifiedSystemService {
     auditTrail.push({
       symbol: 'Ev',
       name: 'System Ventilation Efficiency (Simplified)',
-      formula: 'D < 0.60 ? 0.60 : 0.75',
+      formula: 'D < 0.60 ? 0.88×D + 0.22 : 0.75',
       inputs: { 'D': d },
       result: ev,
       unit: '',

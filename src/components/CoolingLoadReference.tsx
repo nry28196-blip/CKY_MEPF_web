@@ -14,9 +14,9 @@ const REFERENCE_DATA = [
     icon: Building,
     description: 'Standard office spaces, meeting rooms, and corporate lobbies.',
     metrics: [
-      { type: 'Private Office', wm2: '80 - 100', sqftTon: '350 - 450' },
-      { type: 'Open Plan Office', wm2: '90 - 120', sqftTon: '300 - 400' },
-      { type: 'Conference Room', wm2: '130 - 170', sqftTon: '200 - 300' },
+      { type: 'Private Office', wm2: '80 - 100', ft2Ton: '350 - 450' },
+      { type: 'Open Plan Office', wm2: '90 - 120', ft2Ton: '300 - 400' },
+      { type: 'Conference Room', wm2: '130 - 170', ft2Ton: '200 - 300' },
     ]
   },
   {
@@ -24,9 +24,9 @@ const REFERENCE_DATA = [
     icon: ShoppingCart,
     description: 'Shops, restaurants, and hotels with varying occupancy rates.',
     metrics: [
-      { type: 'Retail Store', wm2: '120 - 160', sqftTon: '250 - 350' },
-      { type: 'Restaurant (Dining)', wm2: '150 - 250', sqftTon: '150 - 250' },
-      { type: 'Hotel Guest Room', wm2: '80 - 110', sqftTon: '350 - 450' },
+      { type: 'Retail Store', wm2: '120 - 160', ft2Ton: '250 - 350' },
+      { type: 'Restaurant (Dining)', wm2: '150 - 250', ft2Ton: '150 - 250' },
+      { type: 'Hotel Guest Room', wm2: '80 - 110', ft2Ton: '350 - 450' },
     ]
   },
   {
@@ -34,8 +34,8 @@ const REFERENCE_DATA = [
     icon: Home,
     description: 'Apartments, single-family homes, and dormitories.',
     metrics: [
-      { type: 'Apartment / Condo', wm2: '60 - 90', sqftTon: '450 - 600' },
-      { type: 'Single Family Home', wm2: '50 - 80', sqftTon: '500 - 700' },
+      { type: 'Apartment / Condo', wm2: '60 - 90', ft2Ton: '450 - 600' },
+      { type: 'Single Family Home', wm2: '50 - 80', ft2Ton: '500 - 700' },
     ]
   },
   {
@@ -43,9 +43,9 @@ const REFERENCE_DATA = [
     icon: Info,
     description: 'Clinics, hospitals, schools, and university facilities.',
     metrics: [
-      { type: 'Hospital / Clinic', wm2: '120 - 180', sqftTon: '200 - 300' },
-      { type: 'School Classroom', wm2: '100 - 130', sqftTon: '300 - 400' },
-      { type: 'Laboratory', wm2: '150 - 250', sqftTon: '150 - 250' },
+      { type: 'Hospital / Clinic', wm2: '120 - 180', ft2Ton: '200 - 300' },
+      { type: 'School Classroom', wm2: '100 - 130', ft2Ton: '300 - 400' },
+      { type: 'Laboratory', wm2: '150 - 250', ft2Ton: '150 - 250' },
     ]
   },
   {
@@ -53,8 +53,8 @@ const REFERENCE_DATA = [
     icon: Server,
     description: 'Data centers, server rooms, and light manufacturing.',
     metrics: [
-      { type: 'IT / Server Room', wm2: '500 - 1500+', sqftTon: '50 - 100' },
-      { type: 'Light Manufacturing', wm2: '100 - 150', sqftTon: '250 - 400' },
+      { type: 'IT / Server Room', wm2: '500 - 1500+', ft2Ton: '50 - 100' },
+      { type: 'Light Manufacturing', wm2: '100 - 150', ft2Ton: '250 - 400' },
     ]
   }
 ];
@@ -135,7 +135,7 @@ export default function CoolingLoadReference({ isOpen, onClose }: CoolingLoadRef
                         <div key={mIdx} className="grid grid-cols-12 gap-2 text-xs items-center">
                           <div className="col-span-5 text-slate-300 font-medium">{metric.type}</div>
                           <div className="col-span-3 text-right font-mono text-emerald-400 font-bold">{metric.wm2}</div>
-                          <div className="col-span-4 text-right font-mono text-sky-400 font-bold">{metric.sqftTon}</div>
+                          <div className="col-span-4 text-right font-mono text-sky-400 font-bold">{metric.ft2Ton}</div>
                         </div>
                       ))}
                     </div>

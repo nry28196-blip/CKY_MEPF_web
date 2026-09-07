@@ -15,6 +15,13 @@ export interface Ashrae621SpaceType {
 }
 
 export interface Ashrae621Ez {
+  standard: string;
+  edition: string;
+  configuration: string;
+  applicableCondition: string;
+  supplyArrangement: string;
+  returnArrangement: string;
+  revision: string;
   id: string;
   name: string;
   ez: number;

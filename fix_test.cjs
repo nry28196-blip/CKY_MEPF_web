@@ -1,16 +1,21 @@
+const fs = require('fs');
+const testPath = 'src/tests/ventilation/golden.test.ts';
+let content = fs.readFileSync(testPath, 'utf8');
 
+// Replace everything with a clean golden test file
+content = `import { ASHRAE_622_2025_COEFFICIENTS } from '../../data/ventilation/ashrae622/2025/data';
 import { Ashrae622Service } from '../../calculations/ventilation/Ashrae622Service';
 import { describe, it, expect } from 'vitest';
-import { UnitConversionService } from '../../lib/UnitConversionService';
-import { VentilationEngine } from '../../lib/VentilationEngine';
-import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
+import { UnitConversionService } from '../../services/UnitConversionService';
+import { VentilationEngine } from '../../calculations/ventilation/VentilationEngine';
+import { ASHRAE_621_2025_SPACE_TYPES, ASHRAE_621_2025_EZ_VALUES } from '../../data/ventilation/ashrae621/2025/data';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
-
+import { ASHRAE_621_2025_EXHAUST_RATES } from '../../data/ventilation/ashrae621/2025/data';
 
 describe('Ventilation Engine Golden Tests', () => {
   it('Single-Zone: Metric and Imperial Equivalence', () => {
-    const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
-    const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const spaceType = ASHRAE_621_2025_SPACE_TYPES.find(s => s.id === 'office')!;
+    const ezConfig = ASHRAE_621_2025_EZ_VALUES.find(e => e.id === 'ez_cooling_ceiling')!;
     
     // Metric Input: 100 m2, 5 people
     const metricResult = VentilationEngine.runSingleZone({
@@ -49,8 +54,8 @@ describe('Ventilation Engine Golden Tests', () => {
   });
 
   it('Density Correction: Hot and Elevated Condition', () => {
-    const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
-    const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const spaceType = ASHRAE_621_2025_SPACE_TYPES.find(s => s.id === 'office')!;
+    const ezConfig = ASHRAE_621_2025_EZ_VALUES.find(e => e.id === 'ez_cooling_ceiling')!;
     
     const result = VentilationEngine.runSingleZone({
       density: { elevation: 1600, temperature: 35 },
@@ -65,8 +70,8 @@ describe('Ventilation Engine Golden Tests', () => {
   });
 
   it('Simplified Multi-Zone Procedure D < 0.60', () => {
-    const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
-    const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const spaceType = ASHRAE_621_2025_SPACE_TYPES.find(s => s.id === 'office')!;
+    const ezConfig = ASHRAE_621_2025_EZ_VALUES.find(e => e.id === 'ez_cooling_ceiling')!;
     
     const result = VentilationEngine.runMultiZone({
       method: 'Simplified',
@@ -85,8 +90,8 @@ describe('Ventilation Engine Golden Tests', () => {
   });
   
   it('Simplified Multi-Zone Procedure D >= 0.60', () => {
-    const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
-    const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const spaceType = ASHRAE_621_2025_SPACE_TYPES.find(s => s.id === 'office')!;
+    const ezConfig = ASHRAE_621_2025_EZ_VALUES.find(e => e.id === 'ez_cooling_ceiling')!;
     
     const result = VentilationEngine.runMultiZone({
       method: 'Simplified',
@@ -104,8 +109,8 @@ describe('Ventilation Engine Golden Tests', () => {
   });
 
   it('Alternative Procedure VAV Minimum Check', () => {
-    const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
-    const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const spaceType = ASHRAE_621_2025_SPACE_TYPES.find(s => s.id === 'office')!;
+    const ezConfig = ASHRAE_621_2025_EZ_VALUES.find(e => e.id === 'ez_cooling_ceiling')!;
     
     const result = VentilationEngine.runMultiZone({
       method: 'Alternative',
@@ -122,8 +127,8 @@ describe('Ventilation Engine Golden Tests', () => {
   });
   
   it('Simplified Procedure VAV Minimum Check', () => {
-    const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
-    const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const spaceType = ASHRAE_621_2025_SPACE_TYPES.find(s => s.id === 'office')!;
+    const ezConfig = ASHRAE_621_2025_EZ_VALUES.find(e => e.id === 'ez_cooling_ceiling')!;
     
     const result = VentilationEngine.runMultiZone({
       method: 'Simplified',
@@ -139,7 +144,7 @@ describe('Ventilation Engine Golden Tests', () => {
   });
 
   it('Exhaust Requirements', () => {
-    const type = StandardDataProvider.get621ExhaustRates('2025').find(t => t.id === 'toilet_public')!;
+    const type = ASHRAE_621_2025_EXHAUST_RATES.find(t => t.id === 'toilet_public')!;
     
     const result = Ashrae621ExhaustService.calculate({
       exhaustType: type,
@@ -167,7 +172,7 @@ describe('ASHRAE 62.2 Engine Golden Tests', () => {
       infiltrationCredit: 0,
       infiltrationVerified: false,
       localExhaust: null,
-      coefficients: StandardDataProvider.get622Coefficients('2025')
+      coefficients: ASHRAE_622_2025_COEFFICIENTS
     });
     
     expect(result.qTot).toBe(29);
@@ -182,10 +187,12 @@ describe('ASHRAE 62.2 Engine Golden Tests', () => {
       infiltrationCredit: 10,
       infiltrationVerified: false,
       localExhaust: null,
-      coefficients: StandardDataProvider.get622Coefficients('2025')
+      coefficients: ASHRAE_622_2025_COEFFICIENTS
     });
     
     expect(result.status).toBe('WARNING');
     expect(result.qFan).toBe(29); 
   });
 });
+`;
+fs.writeFileSync(testPath, content);

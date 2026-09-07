@@ -7,11 +7,11 @@ import EngineeringWarning from './EngineeringWarning';
 import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 
-import { VentilationEngine, MultiZoneInput, SingleZoneInput } from '../calculations/ventilation/VentilationEngine';
-import { UnitConversionService } from '../services/UnitConversionService';
-import { ASHRAE_621_2025_SPACE_TYPES, ASHRAE_621_2025_EZ_VALUES } from '../data/ventilation/ashrae621/2025/data';
-import { ASHRAE_621_2022_SPACE_TYPES, ASHRAE_621_2022_EZ_VALUES } from '../data/ventilation/ashrae621/2022/data';
-import { ASHRAE_621_2019_SPACE_TYPES, ASHRAE_621_2019_EZ_VALUES } from '../data/ventilation/ashrae621/2019/data';
+import { VentilationEngine, MultiZoneInput, SingleZoneInput } from '../lib/VentilationEngine';
+import { UnitConversionService } from '../lib/UnitConversionService';
+import { StandardDataProvider, AshraeEdition } from '../data/ventilation/StandardDataProvider';
+
+
 
 interface ZoneState {
   id: string;
@@ -36,8 +36,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
   const [alternativeConfig, setAlternativeConfig] = useState<'single-supply' | 'secondary-recirculation'>('single-supply');
   const [systemPopulation, setSystemPopulation] = useState<number | ''>('');
   
-  const spaceTypes = edition === '2019' ? ASHRAE_621_2019_SPACE_TYPES : edition === '2022' ? ASHRAE_621_2022_SPACE_TYPES : ASHRAE_621_2025_SPACE_TYPES;
-  const ezValues = edition === '2019' ? ASHRAE_621_2019_EZ_VALUES : edition === '2022' ? ASHRAE_621_2022_EZ_VALUES : ASHRAE_621_2025_EZ_VALUES;
+  const spaceTypes = StandardDataProvider.get621SpaceTypes(edition);
+  const ezValues = StandardDataProvider.get621EzValues(edition);
 
   const [altitude, setAltitude] = useState<number>(0);
   const [airTemp, setAirTemp] = useState<number>(isMetric ? 20 : 68);

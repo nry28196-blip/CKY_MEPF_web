@@ -19,7 +19,7 @@ import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
 import { AirDensityService } from '../calculations/services/AirDensityService';
-import { UnitConversionService } from '../calculations/services/UnitConversionService';
+import { UnitConversionService } from '../lib/UnitConversionService';
 import { VentilationValidator } from '../validation/VentilationValidator';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 
@@ -112,7 +112,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const calcRoomTonsAndWatts = (basis: 'area' | 'volume', size: number, occupants: number) => {
     const canonicalSize = isMetric 
       ? size 
-      : (basis === 'area' ? UnitConversionService.sqftToSqM(size) : UnitConversionService.cuFtToCuM(size));
+      : (basis === 'area' ? UnitConversionService.ft2ToM2(size) : UnitConversionService.ft3ToM3(size));
       
     const watts = (basis === 'area' ? canonicalSize * baseLoadPerSqm : canonicalSize * baseLoadPerCum) + (occupants * loadPerPerson);
     const btu = watts * 3.412142;
@@ -210,9 +210,9 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
     const status = 'PASS';
 
     // 1. Convert User Inputs to Canonical Metric
-    const canonicalArea = isMetric ? numArea : UnitConversionService.sqftToSqM(numArea);
+    const canonicalArea = isMetric ? numArea : UnitConversionService.ft2ToM2(numArea);
     const canonicalVolume = estimationBasis === 'volume' 
-      ? (isMetric ? (volume !== '' ? Number(volume) : NaN) : UnitConversionService.cuFtToCuM(volume !== '' ? Number(volume) : NaN))
+      ? (isMetric ? (volume !== '' ? Number(volume) : NaN) : UnitConversionService.ft3ToM3(volume !== '' ? Number(volume) : NaN))
       : (canonicalArea * numHeight);
     
     const altMeters = isMetric ? altitude : UnitConversionService.ftToM(altitude);

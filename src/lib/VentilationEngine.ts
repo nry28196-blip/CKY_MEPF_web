@@ -1,8 +1,8 @@
-import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
-import { Ashrae621ZoneService, ZoneVentilationInput, ZoneVentilationResult } from './Ashrae621ZoneService';
-import { Ashrae621SimplifiedSystemService, SimplifiedSystemInput, SimplifiedSystemResult, SimplifiedSystemZoneInput } from './Ashrae621SimplifiedSystemService';
-import { Ashrae621AlternativeSystemService, AlternativeSystemInput, AlternativeSystemResult, AlternativeZoneInput } from './Ashrae621AlternativeSystemService';
-import { Ashrae621DensityService, DensityInput, DensityResult } from './Ashrae621DensityService';
+import { ValidationStatus, VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
+import { Ashrae621ZoneService, ZoneVentilationInput, ZoneVentilationResult } from '../calculations/ventilation/Ashrae621ZoneService';
+import { Ashrae621SimplifiedSystemService, SimplifiedSystemInput, SimplifiedSystemResult, SimplifiedSystemZoneInput } from '../calculations/ventilation/Ashrae621SimplifiedSystemService';
+import { Ashrae621AlternativeSystemService, AlternativeSystemInput, AlternativeSystemResult, AlternativeZoneInput } from '../calculations/ventilation/Ashrae621AlternativeSystemService';
+import { Ashrae621DensityService, DensityInput, DensityResult } from '../calculations/ventilation/Ashrae621DensityService';
 
 export interface SingleZoneInput {
   zone: ZoneVentilationInput;

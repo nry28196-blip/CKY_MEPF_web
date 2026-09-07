@@ -16,6 +16,7 @@ export class VentilationValidationService {
     
     const validStatuses = statuses.filter(s => s !== 'NOT_EVALUATED');
     if (validStatuses.length === 0) return 'NOT_EVALUATED';
+    if (statuses.includes('NOT_EVALUATED')) return 'NOT_EVALUATED';
     
     return 'PASS';
   }

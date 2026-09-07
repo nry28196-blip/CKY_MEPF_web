@@ -1,5 +1,5 @@
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
-import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/2025/data';
+import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/types';
 
 export interface AuditTrailItem {
   symbol: string;
@@ -20,6 +20,10 @@ export interface ZoneVentilationInput {
 }
 
 export interface ZoneVentilationResult {
+  standard: string;
+  edition: string;
+  revision: string;
+  references: string[];
   az: number; // m2
   pz: number; // people
   rp: number; // L/s-person
@@ -110,7 +114,11 @@ export class Ashrae621ZoneService {
       az, pz, rp, ra, vbp, vba, vbz, ez, voz,
       occupancySource,
       status: finalStatus,
-      auditTrail
+      auditTrail,
+      standard: input.spaceType.standard,
+      edition: input.spaceType.edition,
+      revision: input.spaceType.revisionSource,
+      references: [input.spaceType.reference, input.ezConfig.reference]
     };
   }
 
@@ -119,7 +127,11 @@ export class Ashrae621ZoneService {
       az: 0, pz: 0, rp: 0, ra: 0, vbp: 0, vba: 0, vbz: 0, ez: 1, voz: 0,
       occupancySource: 'design',
       status,
-      auditTrail: []
+      auditTrail: [],
+      standard: '',
+      edition: '',
+      revision: '',
+      references: []
     };
   }
 }

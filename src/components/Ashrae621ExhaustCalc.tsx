@@ -4,11 +4,11 @@ import { useUnit } from '../lib/UnitContext';
 import TooltipLabel from './TooltipLabel';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { Ashrae621ExhaustService, ExhaustInput } from '../calculations/ventilation/Ashrae621ExhaustService';
-import { ASHRAE_621_2025_EXHAUST_RATES } from '../data/ventilation/ashrae621/2025/data';
-import { ASHRAE_621_2022_EXHAUST_RATES } from '../data/ventilation/ashrae621/2022/data';
-import { ASHRAE_621_2019_EXHAUST_RATES } from '../data/ventilation/ashrae621/2019/data';
+import { StandardDataProvider } from '../data/ventilation/StandardDataProvider';
+
+
 import { VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
-import { UnitConversionService } from '../services/UnitConversionService';
+import { UnitConversionService } from '../lib/UnitConversionService';
 
 interface ExhaustRow {
   id: string;
@@ -20,7 +20,7 @@ interface ExhaustRow {
 
 export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: string }) {
   const { unitSystem } = useUnit();
-  const exhaustRates = edition === '2019' ? ASHRAE_621_2019_EXHAUST_RATES : edition === '2022' ? ASHRAE_621_2022_EXHAUST_RATES : ASHRAE_621_2025_EXHAUST_RATES;
+  const exhaustRates = StandardDataProvider.get621ExhaustRates(edition);
   const isMetric = unitSystem === 'metric';
 
   const [rows, setRows] = useState<ExhaustRow[]>([
