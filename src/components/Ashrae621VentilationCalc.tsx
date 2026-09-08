@@ -27,6 +27,8 @@ interface ZoneState {
   er?: number | '';
 }
 
+import { exportVentilationToCsv } from "../lib/exportCsv";
+
 export default function Ashrae621VentilationCalc({ onVentilationChange, edition = '2025' }: { onVentilationChange?: (flow: number, details?: any) => void, edition?: '2019' | '2022' | '2025' }) {
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
@@ -439,7 +441,17 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         </p>
       </div>
 
-      <AuditTrailTable title="ASHRAE 62.1 Engine Audit Log" trail={allAuditTrails} />
+      
+      <div className="flex justify-end mb-4">
+        <button 
+          onClick={() => exportVentilationToCsv({ isMetric, systemType, result: engineResult, zones })}
+          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-700"
+        >
+          Export Calculation (CSV)
+        </button>
+      </div>
+      <AuditTrailTable
+ title="ASHRAE 62.1 Engine Audit Log" trail={allAuditTrails} />
     </div>
   );
 }

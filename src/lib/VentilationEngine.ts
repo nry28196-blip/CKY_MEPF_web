@@ -149,6 +149,10 @@ export class VentilationEngine {
     } else {
       const altZones: AlternativeZoneInput[] = input.zones.map((z, idx) => ({
         id: z.id,
+        pz: zoneResults[idx].pz,
+        rp: zoneResults[idx].rp,
+        ra: zoneResults[idx].ra,
+        az: zoneResults[idx].az,
         voz: zoneResults[idx].voz,
         vpz: z.vpz,
         vpzMinRequired: zoneResults[idx].voz, 
@@ -161,6 +165,7 @@ export class VentilationEngine {
       
       alternativeSystem = Ashrae621AlternativeSystemService.calculate({
         zones: altZones,
+        ps: input.systemPopulation,
         systemType: input.systemType
       });
       ev = alternativeSystem.ev;

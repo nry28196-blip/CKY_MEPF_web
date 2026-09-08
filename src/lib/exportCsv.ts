@@ -231,3 +231,93 @@ export function exportVrfToCsv(params: {
   downloadCsv("vrf_system_calculation", "Multi-Space VRF-VRV System Design Report", rows);
 }
 
+
+export function exportVentilationToCsv(params: {
+  isMetric: boolean;
+  systemType: string;
+  result: any;
+  zones: any[];
+}) {
+  const rows: CsvRow[] = [];
+  
+  rows.push({
+    section: 'System Information',
+    parameter: 'System Configuration',
+    value: params.systemType.replace('_', ' ').toUpperCase(),
+    unit: '-',
+    notes: 'ASHRAE 62.1 Configuration'
+  });
+
+  rows.push({
+    section: 'System Results',
+    parameter: 'System Status',
+    value: params.result?.status || 'UNKNOWN',
+    unit: '-',
+    notes: 'Overall Validation Status'
+  });
+
+  if (params.result?.finalDesignOutdoorAir !== undefined && params.result.finalDesignOutdoorAir !== null) {
+    rows.push({
+      section: 'System Results',
+      parameter: 'Final Design Outdoor Air',
+      value: Number(params.result.finalDesignOutdoorAir).toFixed(2),
+      unit: params.isMetric ? 'L/s' : 'cfm',
+      notes: 'Authoritative value for system'
+    });
+  }
+
+  if (params.result?.auditTrail) {
+    params.result.auditTrail.forEach((item: any) => {
+      rows.push({
+        section: 'System Audit Trail',
+        parameter: `${item.symbol} (${item.name})`,
+        value: typeof item.result === 'number' ? Number(item.result).toFixed(3) : item.result,
+        unit: item.unit || '-',
+        notes: `Formula: ${item.formula} | Ref: ${item.reference}`
+      });
+    });
+  }
+
+  if (params.result?.multiZoneResult?.auditTrail) {
+    params.result.multiZoneResult.auditTrail.forEach((item: any) => {
+      rows.push({
+        section: 'Multi-Zone System Audit Trail',
+        parameter: `${item.symbol} (${item.name})`,
+        value: typeof item.result === 'number' ? Number(item.result).toFixed(3) : item.result,
+        unit: item.unit || '-',
+        notes: `Formula: ${item.formula} | Ref: ${item.reference}`
+      });
+    });
+  }
+
+  if (params.zones && params.zones.length > 0) {
+    params.zones.forEach((zone: any, index: number) => {
+      const zResult = params.result?.zoneResults ? params.result.zoneResults[index] : null;
+      rows.push({
+        section: `Zone ${index + 1}: ${zone.name || 'Unnamed'}`,
+        parameter: 'Area',
+        value: Number(zone.area).toFixed(2),
+        unit: params.isMetric ? 'm²' : 'ft²',
+        notes: ''
+      });
+      rows.push({
+        section: `Zone ${index + 1}: ${zone.name || 'Unnamed'}`,
+        parameter: 'Population',
+        value: Number(zone.population).toFixed(1),
+        unit: 'people',
+        notes: ''
+      });
+      if (zResult) {
+        rows.push({
+          section: `Zone ${index + 1}: ${zone.name || 'Unnamed'}`,
+          parameter: 'Zone Outdoor Airflow (Voz)',
+          value: Number(zResult.voz).toFixed(2),
+          unit: params.isMetric ? 'L/s' : 'cfm',
+          notes: ''
+        });
+      }
+    });
+  }
+
+  downloadCsv('ashrae_62_1_ventilation', 'ASHRAE 62.1 Ventilation Calculation', rows);
+}
