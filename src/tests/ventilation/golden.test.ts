@@ -7,20 +7,40 @@ import { StandardDataProvider } from '../../data/ventilation/StandardDataProvide
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
 
 
+
+const makeVerified = (item) => {
+  if (!item) return item;
+  return {
+    ...item,
+    sourceType: 'ASHRAE_PUBLISHED',
+    reference: item.reference || 'ASHRAE 62.1 Section 6.2.2.1',
+    revisionState: {
+      ...item.revisionState,
+      standard: 'ASHRAE 62.1',
+      edition: '2025',
+      baseEdition: '2025',
+      source: 'VERIFIED'
+    }
+  };
+};
+
 describe('Ventilation Engine Golden Tests', () => {
   it('Single-Zone: Metric and Imperial Equivalence', () => {
     const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
+    const verifiedSpaceType = makeVerified(spaceType);
     const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const verifiedEz = makeVerified(ezConfig);
     
     // Metric Input: 100 m2, 5 people
     const metricResult = VentilationEngine.runSingleZone({
       density: { elevation: 0, temperature: 20 },
       zone: {
-        spaceType,
-        area: 100,
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2025',
+        spaceType: verifiedSpaceType, area: 100,
         designOccupancy: 5,
         useDefaultOccupancy: false,
-        ezConfig
+        ezConfig: verifiedEz
       }
     });
     
@@ -36,11 +56,12 @@ describe('Ventilation Engine Golden Tests', () => {
     const imperialResult = VentilationEngine.runSingleZone({
       density: { elevation: 0, temperature: 20 },
       zone: {
-        spaceType,
-        area: imperialAreaM2,
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2025',
+        spaceType: verifiedSpaceType, area: imperialAreaM2,
         designOccupancy: 5,
         useDefaultOccupancy: false,
-        ezConfig
+        ezConfig: verifiedEz
       }
     });
     
@@ -50,12 +71,16 @@ describe('Ventilation Engine Golden Tests', () => {
 
   it('Density Correction: Hot and Elevated Condition', () => {
     const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
+    const verifiedSpaceType = makeVerified(spaceType);
     const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const verifiedEz = makeVerified(ezConfig);
     
     const result = VentilationEngine.runSingleZone({
       density: { elevation: 1600, temperature: 35 },
       zone: {
-        spaceType, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2025',
+        spaceType: verifiedSpaceType, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
       }
     });
     
@@ -66,7 +91,9 @@ describe('Ventilation Engine Golden Tests', () => {
 
   it('Simplified Multi-Zone Procedure D < 0.60', () => {
     const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
+    const verifiedSpaceType = makeVerified(spaceType);
     const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const verifiedEz = makeVerified(ezConfig);
     
     const result = VentilationEngine.runMultiZone({
       method: 'Simplified',
@@ -74,8 +101,8 @@ describe('Ventilation Engine Golden Tests', () => {
       systemType: 'single_supply',
       density: { elevation: 0, temperature: 20 },
       zones: [
-        { id: 'z1', spaceType, area: 100, designOccupancy: 10, useDefaultOccupancy: false, ezConfig, dMode: 'CV', vpz: null, vpzMinDesign: null, ep: null, er: null },
-        { id: 'z2', spaceType, area: 100, designOccupancy: 10, useDefaultOccupancy: false, ezConfig, dMode: 'CV', vpz: null, vpzMinDesign: null, ep: null, er: null }
+        { expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', id: 'z1', spaceType: verifiedSpaceType, area: 100, designOccupancy: 10, useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'CV', vpz: null, vpzMinDesign: null, ep: null, er: null },
+        { expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', id: 'z2', spaceType: verifiedSpaceType, area: 100, designOccupancy: 10, useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'CV', vpz: null, vpzMinDesign: null, ep: null, er: null }
       ]
     });
     
@@ -86,7 +113,9 @@ describe('Ventilation Engine Golden Tests', () => {
   
   it('Simplified Multi-Zone Procedure D >= 0.60', () => {
     const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
+    const verifiedSpaceType = makeVerified(spaceType);
     const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const verifiedEz = makeVerified(ezConfig);
     
     const result = VentilationEngine.runMultiZone({
       method: 'Simplified',
@@ -94,8 +123,8 @@ describe('Ventilation Engine Golden Tests', () => {
       systemType: 'single_supply',
       density: { elevation: 0, temperature: 20 },
       zones: [
-        { id: 'z1', spaceType, area: 100, designOccupancy: 10, useDefaultOccupancy: false, ezConfig, dMode: 'CV', vpz: null, vpzMinDesign: null, ep: null, er: null },
-        { id: 'z2', spaceType, area: 100, designOccupancy: 10, useDefaultOccupancy: false, ezConfig, dMode: 'CV', vpz: null, vpzMinDesign: null, ep: null, er: null }
+        { expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', id: 'z1', spaceType: verifiedSpaceType, area: 100, designOccupancy: 10, useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'CV', vpz: null, vpzMinDesign: null, ep: null, er: null },
+        { expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', id: 'z2', spaceType: verifiedSpaceType, area: 100, designOccupancy: 10, useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'CV', vpz: null, vpzMinDesign: null, ep: null, er: null }
       ]
     });
     
@@ -105,7 +134,9 @@ describe('Ventilation Engine Golden Tests', () => {
 
   it('Alternative Procedure VAV Minimum Check', () => {
     const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
+    const verifiedSpaceType = makeVerified(spaceType);
     const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const verifiedEz = makeVerified(ezConfig);
     
     const result = VentilationEngine.runMultiZone({
       method: 'Alternative',
@@ -113,7 +144,7 @@ describe('Ventilation Engine Golden Tests', () => {
       systemType: 'single_supply',
       density: { elevation: 0, temperature: 20 },
       zones: [
-        { id: 'z1', spaceType, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig, dMode: 'VAV', vpz: 100, vpzMinDesign: 30, ep: 1, er: 0 }
+        { expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', id: 'z1', spaceType: verifiedSpaceType, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'VAV', vpz: 100, vpzMinDesign: 30, ep: 1, er: 0 }
       ]
     });
     
@@ -123,7 +154,9 @@ describe('Ventilation Engine Golden Tests', () => {
   
   it('Simplified Procedure VAV Minimum Check', () => {
     const spaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
+    const verifiedSpaceType = makeVerified(spaceType);
     const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+    const verifiedEz = makeVerified(ezConfig);
     
     const result = VentilationEngine.runMultiZone({
       method: 'Simplified',
@@ -131,7 +164,7 @@ describe('Ventilation Engine Golden Tests', () => {
       systemType: 'single_supply',
       density: { elevation: 0, temperature: 20 },
       zones: [
-        { id: 'z1', spaceType, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig, dMode: 'VAV', vpz: 100, vpzMinDesign: 30, ep: null, er: null }
+        { expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', id: 'z1', spaceType: verifiedSpaceType, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'VAV', vpz: 100, vpzMinDesign: 30, ep: null, er: null }
       ]
     });
     

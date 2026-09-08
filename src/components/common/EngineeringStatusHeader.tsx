@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle2, AlertTriangle, XCircle, Info, HelpCircle } from 'lucide-react';
 
-export type EngineeringStatus = 'READY' | 'CALCULATED' | 'PASS' | 'WARNING' | 'FAIL' | 'INCOMPLETE' | 'NOT_APPLICABLE';
+export type EngineeringStatus = 'READY' | 'CALCULATED' | 'PASS' | 'WARNING' | 'FAIL' | 'NOT_VERIFIED' | 'INCOMPLETE' | 'NOT_APPLICABLE';
 
 interface Props {
   status: EngineeringStatus;
@@ -26,6 +26,13 @@ export default function EngineeringStatusHeader({ status, message, className = '
       bgColor = 'bg-amber-950/20';
       borderColor = 'border-amber-500/50';
       textColor = 'text-amber-400';
+      Icon = AlertTriangle;
+      break;
+
+    case 'NOT_VERIFIED':
+      bgColor = 'bg-fuchsia-950/20';
+      borderColor = 'border-fuchsia-500/50';
+      textColor = 'text-fuchsia-400';
       Icon = AlertTriangle;
       break;
     case 'FAIL':

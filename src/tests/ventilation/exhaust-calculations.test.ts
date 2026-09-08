@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
-import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/2025/data';
+import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
 
 describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
   it('Should correctly compute Art Classrooms rate per Unit', () => {

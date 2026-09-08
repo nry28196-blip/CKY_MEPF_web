@@ -105,6 +105,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       
       const input: SingleZoneInput = {
         zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: edition,
           spaceType,
           area: areaM2,
           designOccupancy: z.occupants === '' ? null : z.occupants,

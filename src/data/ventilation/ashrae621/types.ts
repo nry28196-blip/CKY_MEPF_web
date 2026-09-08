@@ -59,3 +59,20 @@ export interface Ashrae621ExhaustType {
   sourceType: string;
   verificationDate?: string;
 }
+
+export interface Ashrae621FiltrationRequirements {
+  minimumMERV: number;
+  pm25DesignThreshold: number;
+  ozoneNonattainmentRequired: boolean;
+}
+
+export interface Ashrae621ExhaustClass {
+  class: number;
+  recirculationAllowed: boolean | 'limited';
+  description: string;
+}
+
+export interface Ashrae621AirQualityStandards {
+  filtrationRequirements: Ashrae621FiltrationRequirements;
+  exhaustClasses: Ashrae621ExhaustClass[];
+}

@@ -145,3 +145,17 @@ export const ASHRAE_621_2019_EXHAUST_RATES: Ashrae621ExhaustType[] = [
 ];
 
 export * from '../types';
+
+export const ASHRAE_621_2019_AIR_QUALITY_STANDARDS = {
+  filtrationRequirements: {
+    minimumMERV: 8,
+    pm25DesignThreshold: 12,
+    ozoneNonattainmentRequired: true
+  },
+  exhaustClasses: [
+    { class: 1, recirculationAllowed: true, description: "Low contaminant concentration" },
+    { class: 2, recirculationAllowed: "limited", description: "Moderate contaminant concentration" },
+    { class: 3, recirculationAllowed: false, description: "Significant contaminant concentration" },
+    { class: 4, recirculationAllowed: false, description: "Highly objectionable/harmful" }
+  ]
+};

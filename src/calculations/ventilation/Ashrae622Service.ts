@@ -1,5 +1,5 @@
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
-import { Ashrae622Coefficients } from '../../data/ventilation/ashrae622/2025/data';
+import { Ashrae622Coefficients } from '../../data/ventilation/ashrae622/types';
 
 export interface LocalExhaustInput {
   kitchenRequired: number | null; // L/s

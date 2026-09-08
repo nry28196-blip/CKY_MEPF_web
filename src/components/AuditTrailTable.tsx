@@ -36,6 +36,8 @@ export default function AuditTrailTable({
       case 'PASS':
       case 'VERIFIED':
         return <CheckCircle2 className="w-3 h-3 text-emerald-400" />;
+      case 'NOT_VERIFIED':
+        return <AlertTriangle className="w-3 h-3 text-fuchsia-400" />;
       case 'FAIL':
         return <XCircle className="w-3 h-3 text-red-400" />;
       case 'ESTIMATED':
@@ -51,6 +53,8 @@ export default function AuditTrailTable({
       case 'PASS':
       case 'VERIFIED':
         return 'text-emerald-400';
+      case 'NOT_VERIFIED':
+        return 'text-fuchsia-400';
       case 'FAIL':
         return 'text-red-400';
       case 'ESTIMATED':

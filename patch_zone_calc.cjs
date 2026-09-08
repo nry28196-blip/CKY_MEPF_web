@@ -1,4 +1,6 @@
-import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
+const fs = require('fs');
+
+const code = `import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
 import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/types';
 
 export interface AuditTrailItem {
@@ -203,3 +205,5 @@ export class Ashrae621ZoneService {
     };
   }
 }
+`;
+fs.writeFileSync('src/calculations/ventilation/Ashrae621ZoneService.ts', code);

@@ -1,5 +1,5 @@
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
-import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/2025/data';
+import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
 
 export interface ExhaustInput {
   exhaustType: Ashrae621ExhaustType | null;

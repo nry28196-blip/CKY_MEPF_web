@@ -1,10 +1,4 @@
-export interface Ashrae622Coefficients {
-  areaCoefficientSI: number;
-  occupancyCoefficientSI: number;
-  areaCoefficientIP: number;
-  occupancyCoefficientIP: number;
-  localExhaustDeficitCoefficient: number;
-}
+import { Ashrae622Coefficients } from "../types";
 
 export const ASHRAE_622_2025_COEFFICIENTS: Ashrae622Coefficients = {
   areaCoefficientSI: 0.15,

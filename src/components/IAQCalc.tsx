@@ -4,7 +4,7 @@ import { useUnit } from '../lib/UnitContext';
 import ValidatedInput from './ValidatedInput';
 import TooltipLabel from './TooltipLabel';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
-import ashrae2025Data from '../data/ashrae62_1_2025.json';
+import { StandardDataProvider } from '../data/ventilation/StandardDataProvider';
 
 const MERV_DATA = [
   { rating: '1-4', e1: 'n/a', e2: 'n/a', e3: '< 20%', app: 'Residential window AC' },
@@ -19,9 +19,12 @@ const MERV_DATA = [
 ];
 
 export default function IAQCalc() {
-  const minMerv = ashrae2025Data.airQualityStandards.filtrationRequirements.minimumMERV;
-  const pm25Threshold = ashrae2025Data.airQualityStandards.filtrationRequirements.pm25DesignThreshold;
-  const exhaustClasses = ashrae2025Data.airQualityStandards.exhaustClasses;
+
+  const aqs = StandardDataProvider.get621AirQualityStandards('2025');
+  const minMerv = aqs.filtrationRequirements.minimumMERV;
+  const pm25Threshold = aqs.filtrationRequirements.pm25DesignThreshold;
+  const exhaustClasses = aqs.exhaustClasses;
+
 
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
