@@ -12,6 +12,7 @@ import TrendVisualizer from './TrendVisualizer';
 import VrfTopologyCanvas from './VrfTopologyCanvas';
 import VrfLoadDistributionChart from './VrfLoadDistributionChart';
 import TooltipLabel from './TooltipLabel';
+import EngineeringAuditTrail from './common/EngineeringAuditTrail';
 import InputAlert from './InputAlert';
 import ValidatedInput from './ValidatedInput';
 import FormulaVisualizer, { FormulaDef } from './FormulaVisualizer';

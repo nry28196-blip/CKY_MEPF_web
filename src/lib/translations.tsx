@@ -23,7 +23,7 @@ export const translations: Record<LanguageType, Record<string, string>> = {
     // Tabs
     mechanical: "Mechanical / HVAC",
     electrical: "Electrical FLC",
-    plumbing: "Plumbing Velocity",
+    plumbing: "Plumbing",
     fire: "FIRE FIGHTING",
 
     // Mechanical

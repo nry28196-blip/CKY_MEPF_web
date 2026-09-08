@@ -25,7 +25,9 @@ export default function FrictionLossReference({ isOpen, onClose }: FrictionLossR
   const { isKhmer, setLanguage, language } = useLanguage();
 
   return (
-    <motion.div
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -94,5 +96,7 @@ export default function FrictionLossReference({ isOpen, onClose }: FrictionLossR
           </div>
                 </motion.div>
       </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

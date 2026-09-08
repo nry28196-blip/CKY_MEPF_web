@@ -247,7 +247,7 @@ export default function App() {
     },
     { 
       id: 'plumbing' as TabType, 
-      label: 'Plumbing Velocity', 
+      label: 'Plumbing', 
       icon: Droplet, 
       color: 'text-cyan-400', 
       bgHover: 'hover:bg-slate-900 hover:text-cyan-300', 
