@@ -253,6 +253,7 @@ export interface CoolingLoadInput {
 }
 
 export interface CoolingLoadResult {
+  auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[];
   status: ValidationStatus;
   warning?: string;
   peopleSensible: number; peopleLatent: number; lightingSensible: number; equipmentSensible: number;
@@ -288,6 +289,7 @@ export interface VrfSystemInput {
 }
 
 export interface VrfSystemResult {
+  auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[];
   enrichedRooms: VrfRoomResult[];
   oduHP: number;
   oduTons: number;
@@ -330,6 +332,7 @@ export class MechanicalCoolingEngine {
   }
 
   static calculateCoolingLoad(input: CoolingLoadInput): CoolingLoadResult {
+    const auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[] = [];
     const { isMetric, estimationBasis, useAltitudeAdj, safetyFactor } = input;
     
     const numArea = input.area !== '' && input.area !== undefined ? Number(input.area) : NaN;
@@ -340,6 +343,7 @@ export class MechanicalCoolingEngine {
       return {
         status: 'INCOMPLETE',
         warning: 'Missing or invalid required geometry/occupancy parameters.',
+        auditTrail,
         peopleSensible: 0, peopleLatent: 0, lightingSensible: 0, equipmentSensible: 0,
         wallSensible: 0, roofSensible: 0, windowCondSensible: 0, solarSensible: 0,
         ventSensible: 0, ventLatent: 0, infiltrationSensible: 0, infiltrationLatent: 0, 
@@ -392,8 +396,30 @@ export class MechanicalCoolingEngine {
     const calculatedTotal = totalSensible + totalLatent;
     const finalTotal = calculatedTotal * (1 + safetyFactor / 100);
 
+    
+    auditTrail.push({
+      symbol: 'Qt',
+      name: 'Total Sensible Cooling Load',
+      formula: 'Qp + Ql + Qe + Qw + Qr + Qwc + Qs + Qv + Qi',
+      inputs: { 'Qp': peopleSensible, 'Ql': lightingSensible, 'Qv': ventSensible, 'Qs': solarSensible },
+      result: totalSensible,
+      unit: 'W',
+      reference: 'ASHRAE Fundamentals → 2021 → Chapter 18 → Base'
+    });
+    
+    auditTrail.push({
+      symbol: 'Qtot',
+      name: 'Total Space Cooling Load',
+      formula: '(Qt_sensible + Qt_latent) × (1 + Safety)',
+      inputs: { 'Qt_sens': totalSensible, 'Qt_lat': totalLatent, 'Safety': safetyFactor },
+      result: finalTotal,
+      unit: 'W',
+      reference: 'ASHRAE Fundamentals → 2021 → Chapter 18 → Base'
+    });
+    
     return {
       status: 'PASS',
+      auditTrail,
       peopleSensible, peopleLatent, lightingSensible, equipmentSensible,
       wallSensible, roofSensible, windowCondSensible, solarSensible,
       ventSensible, ventLatent, infiltrationSensible, infiltrationLatent, 
@@ -406,6 +432,7 @@ export class MechanicalCoolingEngine {
   }
 
   static calculateVrfSystem(input: VrfSystemInput): VrfSystemResult {
+    const auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[] = [];
     let totalConnectedTons = 0;
     let totalConnectedWatts = 0;
     let totalOccupants = 0;
@@ -474,7 +501,39 @@ export class MechanicalCoolingEngine {
       }
     }
 
+    
+    auditTrail.push({
+      symbol: 'CR',
+      name: 'Combination Ratio',
+      formula: '(ΣIDU / ODU) × 100',
+      inputs: { 'ΣIDU': totalConnectedTons, 'ODU': oduCapacityTons },
+      result: combinationRatio,
+      unit: '%',
+      reference: 'AHRI 1230 → 2021 → Section 3.8 → Base'
+    });
+
+    auditTrail.push({
+      symbol: 'm_add',
+      name: 'Additional Refrigerant Charge',
+      formula: 'L × m_rate',
+      inputs: { 'L': input.pipingLength, 'm_rate': chargePerMeter },
+      result: additionalCharge,
+      unit: 'kg',
+      reference: 'ASHRAE 15 → 2022 → Section 7.3.2 → Base'
+    });
+
+    auditTrail.push({
+      symbol: 'RCL',
+      name: 'Refrigerant Concentration Limit',
+      formula: 'm_total / V_smallest',
+      inputs: { 'm_total': totalCharge, 'V_smallest': smallestRoomVol },
+      result: toxicConcentration,
+      unit: 'kg/m³',
+      reference: 'ASHRAE 15 → 2022 → Section 7.3.1 → Base'
+    });
+
     return {
+      auditTrail,
       enrichedRooms,
       totalConnectedTons, totalConnectedWatts, totalOccupants,
       coincidentTons, coincidentWatts, oduHP: selectedHP,
