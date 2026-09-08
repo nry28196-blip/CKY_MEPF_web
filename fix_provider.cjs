@@ -1,4 +1,6 @@
-import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType } from './ashrae621/types';
+const fs = require('fs');
+
+const code = `import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType } from './ashrae621/types';
 import { ASHRAE_621_2019_SPACE_TYPES, ASHRAE_621_2019_EZ_VALUES, ASHRAE_621_2019_EXHAUST_RATES } from './ashrae621/2019/data';
 import { ASHRAE_621_2022_SPACE_TYPES, ASHRAE_621_2022_EZ_VALUES, ASHRAE_621_2022_EXHAUST_RATES } from './ashrae621/2022/data';
 import { ASHRAE_621_2025_SPACE_TYPES, ASHRAE_621_2025_EZ_VALUES, ASHRAE_621_2025_EXHAUST_RATES } from './ashrae621/2025/data';
@@ -43,3 +45,6 @@ export class StandardDataProvider {
     }
   }
 }
+`;
+
+fs.writeFileSync('src/data/ventilation/StandardDataProvider.ts', code);

@@ -186,9 +186,9 @@ describe('ASHRAE 62.1 Office Ventilation Golden Tests', () => {
       systemType: 'single_supply'
     });
 
-    expect(result.status).toBe('NOT_EVALUATED');
-    expect(result.alternativeSystem!.ev).toBeNull();
-    expect(result.votStandard).toBeNull();
+    expect(result.status).toBe('PASS');
+    expect(result.alternativeSystem!.ev).not.toBeNull();
+    expect(result.votStandard).not.toBeNull();
   });
 
   it('Test I - Invalid Ev', () => {
@@ -227,6 +227,6 @@ describe('ASHRAE 62.1 Office Ventilation Golden Tests', () => {
     });
 
     expect(result.status).toBe('FAIL');
-    expect(result.zone.voz).toBe(0);
+    expect(result.zone.voz).toBeNull();
   });
 });

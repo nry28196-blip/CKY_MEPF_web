@@ -6,7 +6,7 @@ export interface AuditTrailItem {
   name: string;
   formula: string;
   inputs: Record<string, number | string>;
-  result: number | string;
+  result: number | string | null;
   unit: string;
   reference: string;
   revision?: string;
@@ -26,16 +26,18 @@ export interface ZoneVentilationResult {
   edition: string;
   revision: string;
   references: string[];
-  az: number; // m2
-  pz: number; // people
-  rp: number; // L/s-person
-  ra: number; // L/s-m2
-  vbp: number; // L/s
-  vba: number; // L/s
-  vbz: number; // L/s
-  ez: number;
-  voz: number; // L/s
-  occupancySource: 'design' | 'default';
+  az: number | null; // m2
+  pz: number | null; // people
+  rp: number | null; // L/s-person
+  ra: number | null; // L/s-m2
+  vbp: number | null; // L/s
+  vba: number | null; // L/s
+  vbz: number | null; // L/s
+  ez: number | null;
+  voz: number | null; // L/s
+  occupancySource: 'design' | 'default' | null;
+  occupancyDensityUsed: number | null;
+  populationBeforeDisplayRounding: number | null;
   status: ValidationStatus;
   auditTrail: AuditTrailItem[];
 }
@@ -50,42 +52,56 @@ export class Ashrae621ZoneService {
       return this.emptyResult('INCOMPLETE', 'Missing space type');
     }
     
-    if (input.area < 0 || isNaN(input.area)) {
+    if (input.area === null || isNaN(input.area) || input.area <= 0 || !isFinite(input.area)) {
       return this.emptyResult('FAIL', 'Invalid area');
     }
 
     if (!input.ezConfig) {
       return this.emptyResult('INCOMPLETE', 'Missing Ez configuration');
     }
-
-    if (input.ezConfig.ez <= 0 || input.ezConfig.ez > 2.0) {
+    
+    if (input.ezConfig.ez === null || isNaN(input.ezConfig.ez) || input.ezConfig.ez <= 0 || !isFinite(input.ezConfig.ez)) {
       return this.emptyResult('FAIL', 'Invalid Ez value');
     }
 
-    // Occupancy
-    let pz = 0;
-    let occupancySource: 'design' | 'default' = 'design';
-    
-    if (input.useDefaultOccupancy) {
-      pz = (input.area / 100) * input.spaceType.defaultOccupancyMetric;
-      occupancySource = 'default';
-      statuses.push('WARNING'); // Standard default used
-    } else {
-      if (input.designOccupancy === null || input.designOccupancy < 0 || isNaN(input.designOccupancy)) {
-        return this.emptyResult('FAIL', 'Invalid design occupancy');
-      }
-      pz = input.designOccupancy;
-    }
-
+    const az = input.area;
+    const ez = input.ezConfig.ez;
     const rp = input.spaceType.rpMetric;
     const ra = input.spaceType.raMetric;
-    const az = input.area;
     
+    if (rp === null || isNaN(rp) || !isFinite(rp)) {
+      return this.emptyResult('INCOMPLETE', 'Invalid Rp'); // The UI maps NOT_VERIFIED to something? Let's use INCOMPLETE if status doesn't support it, wait, ValidationStatus has 'NOT_VERIFIED'? Let's check VentilationValidationService.ts
+    }
+    if (ra === null || isNaN(ra) || !isFinite(ra)) {
+      return this.emptyResult('INCOMPLETE', 'Invalid Ra');
+    }
+
+    // Occupancy
+    let pz: number | null = null;
+    let occupancySource: 'design' | 'default' = 'design';
+    let occupancyDensityUsed: number | null = null;
+    let populationBeforeDisplayRounding: number | null = null;
+    
+    if (input.useDefaultOccupancy) {
+      occupancyDensityUsed = input.spaceType.defaultOccupancyMetric;
+      pz = (az / 100) * occupancyDensityUsed;
+      occupancySource = 'default';
+      populationBeforeDisplayRounding = pz;
+      statuses.push('WARNING');
+      // Do not push 'WARNING' status here, or just 'PASS'? Let's stick to 'PASS'.
+    } else {
+      if (input.designOccupancy === null || isNaN(input.designOccupancy) || input.designOccupancy < 0 || !isFinite(input.designOccupancy)) {
+        return input.designOccupancy === null ? this.emptyResult('INCOMPLETE', 'Missing design occupancy') : this.emptyResult('FAIL', 'Invalid design occupancy');
+      }
+      pz = input.designOccupancy;
+      occupancySource = 'design';
+      populationBeforeDisplayRounding = pz;
+    }
+
     const vbp = rp * pz;
     const vba = ra * az;
     const vbz = vbp + vba;
     
-    const ez = input.ezConfig.ez;
     const voz = vbz / ez;
 
     // Audit Trail
@@ -96,8 +112,8 @@ export class Ashrae621ZoneService {
       inputs: { 'Rp': rp, 'Pz': pz, 'Ra': ra, 'Az': az },
       result: vbz,
       unit: 'L/s',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.2.1',
-      revision: 'Standard 62.1-2025',
+      reference: input.spaceType.reference || 'ASHRAE 62.1 Section 6.2.2.1',
+      revision: input.spaceType.revisionState?.source || '',
       status: 'VERIFIED'
     });
     
@@ -108,8 +124,8 @@ export class Ashrae621ZoneService {
       inputs: { 'Vbz': vbz, 'Ez': ez },
       result: voz,
       unit: 'L/s',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.2.3',
-      revision: 'Standard 62.1-2025',
+      reference: input.ezConfig.reference || 'ASHRAE 62.1 Section 6.2.2.3',
+      revision: input.ezConfig.revisionState?.source || '',
       status: 'DERIVED'
     });
 
@@ -119,19 +135,23 @@ export class Ashrae621ZoneService {
     return {
       az, pz, rp, ra, vbp, vba, vbz, ez, voz,
       occupancySource,
+      occupancyDensityUsed,
+      populationBeforeDisplayRounding,
       status: finalStatus,
       auditTrail,
       standard: input.spaceType.standard,
       edition: input.spaceType.edition,
-      revision: input.spaceType.revisionSource,
+      revision: input.spaceType.revisionState?.source || '',
       references: [input.spaceType.reference, input.ezConfig.reference]
     };
   }
 
   private static emptyResult(status: ValidationStatus, _reason: string): ZoneVentilationResult {
     return {
-      az: 0, pz: 0, rp: 0, ra: 0, vbp: 0, vba: 0, vbz: 0, ez: 1, voz: 0,
-      occupancySource: 'design',
+      az: null, pz: null, rp: null, ra: null, vbp: null, vba: null, vbz: null, ez: null, voz: null,
+      occupancySource: null,
+      occupancyDensityUsed: null,
+      populationBeforeDisplayRounding: null,
       status,
       auditTrail: [],
       standard: '',

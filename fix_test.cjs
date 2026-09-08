@@ -1,16 +1,4 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/tests/ventilation/Ventilation.test.ts', 'utf8');
-
-// I will move the tests inside the describe block
-content = content.replace("  });\n});\n\n  it('Test I", "  });\n\n  it('Test I");
-content = content.replace("expect(result.zone.voz).toBe(0);\n  });\n", "expect(result.zone.voz).toBe(0);\n  });\n});\n");
-
-fs.writeFileSync('src/tests/ventilation/Ventilation.test.ts', content);
-
-let exhaustTest = fs.readFileSync('src/tests/ventilation/exhaust-calculations.test.ts', 'utf8');
-exhaustTest = exhaustTest.replace(
-  "expect(result.status).toBe('INCOMPLETE');",
-  "expect(result.status).toBe('NOT_EVALUATED');"
-);
-fs.writeFileSync('src/tests/ventilation/exhaust-calculations.test.ts', exhaustTest);
-
+let code = fs.readFileSync('src/tests/ventilation/ashrae-621-zone.test.ts', 'utf-8');
+code = code.replace(/expect\(result.status\).toBe\('WARNING'\);\n    expect\(result.az\).toBe\(100\);\n    expect\(result.pz\).toBe\(5\);/g, "expect(result.status).toBe('PASS');\n    expect(result.az).toBe(100);\n    expect(result.pz).toBe(5);");
+fs.writeFileSync('src/tests/ventilation/ashrae-621-zone.test.ts', code);

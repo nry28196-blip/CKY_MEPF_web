@@ -58,7 +58,7 @@ export class VentilationEngine {
     if (status === 'FAIL' || status === 'INCOMPLETE') {
         return {
           zone: zoneResult, density: densityResult, vozStandard: zoneResult.voz, votStandard: zoneResult.voz, 
-          votDensityCorrected: null, finalDesignOutdoorAir: null, auditTrail: [], revisionState: input.zone?.spaceType?.revisionSource || 'Unknown', status
+          votDensityCorrected: null, finalDesignOutdoorAir: null, auditTrail: [], revisionState: input.zone?.spaceType?.revisionState.source || 'Unknown', status
         };
     }
     
@@ -74,7 +74,7 @@ export class VentilationEngine {
       votDensityCorrected,
       finalDesignOutdoorAir: votDensityCorrected,
       auditTrail,
-      revisionState: input.zone?.spaceType?.revisionSource || 'Unknown',
+      revisionState: input.zone?.spaceType?.revisionState.source || 'Unknown',
       status
     };
   }
@@ -221,7 +221,7 @@ export class VentilationEngine {
       votDensityCorrected,
       finalDesignOutdoorAir: votDensityCorrected,
       auditTrail,
-      revisionState: input.zones.length > 0 ? (input.zones[0].spaceType?.revisionSource || 'Unknown') : 'Unknown',
+      revisionState: input.zones.length > 0 ? (input.zones[0].spaceType?.revisionState.source || 'Unknown') : 'Unknown',
       status: finalStatus
     };
   }

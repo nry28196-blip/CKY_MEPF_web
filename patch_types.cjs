@@ -1,4 +1,5 @@
-
+const fs = require('fs');
+const typesCode = `
 export type AshraeEdition = '2019' | '2022' | '2025';
 
 export interface StandardRevision {
@@ -59,3 +60,5 @@ export interface Ashrae621ExhaustType {
   sourceType: string;
   verificationDate?: string;
 }
+`;
+fs.writeFileSync('src/data/ventilation/ashrae621/types.ts', typesCode);

@@ -1,4 +1,6 @@
+const fs = require('fs');
 
+const unitsCode = `
 export function ft2ToM2(sqft: number): number { return sqft * 0.09290304; }
 export function m2ToFt2(m2: number): number { return m2 / 0.09290304; }
 
@@ -47,3 +49,5 @@ export class UnitConversionService {
   static lbFt3ToKgM3(lbft3: number): number { return lbft3 * 16.018463; }
   static kgM3ToLbFt3(kgm3: number): number { return kgm3 / 16.018463; }
 }
+`;
+fs.writeFileSync('src/lib/UnitConversionService.ts', unitsCode);
