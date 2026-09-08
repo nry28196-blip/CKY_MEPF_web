@@ -8,7 +8,7 @@ import { StandardDataProvider } from '../data/ventilation/StandardDataProvider';
 
 
 import { VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
-import { UnitConversionService } from '../lib/UnitConversionService';
+import { UnitConversionService, ft2ToM2 } from "../lib/UnitConversionService";
 
 interface ExhaustRow {
   id: string;
@@ -53,7 +53,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
       
       let qty = r.quantity === '' ? null : r.quantity;
       if (qty !== null && exhaustType?.unitType === 'm2' && !isMetric) {
-        qty = UnitConversionService.ft2ToM2(qty);
+        qty = ft2ToM2(qty);
       }
       
       let dExhaust = r.designExhaust === '' ? null : r.designExhaust;
@@ -114,12 +114,12 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
               
               <div className="col-span-2">
                 <TooltipLabel label={`Quantity (${result.unitType === 'm2' ? (isMetric ? 'm²' : 'ft²') : result.unitType})`} tooltip="Multiplier" />
-                <input type="number" min="0" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.quantity} onChange={(e) => updateRow(row.id, 'quantity', e.target.value ? Number(e.target.value) : '')} />
+                <input type="number" min="0" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.quantity ?? ""} onChange={(e) => updateRow(row.id, 'quantity', e.target.value ? Number(e.target.value) : '')} />
               </div>
               
               <div className="col-span-2">
                 <TooltipLabel label={`Design (${isMetric ? 'L/s' : 'cfm'})`} tooltip="Proposed actual exhaust" />
-                <input type="number" min="0" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.designExhaust} onChange={(e) => updateRow(row.id, 'designExhaust', e.target.value ? Number(e.target.value) : '')} />
+                <input type="number" min="0" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.designExhaust ?? ""} onChange={(e) => updateRow(row.id, 'designExhaust', e.target.value ? Number(e.target.value) : '')} />
               </div>
               
               <div className="col-span-2 flex flex-col justify-center">

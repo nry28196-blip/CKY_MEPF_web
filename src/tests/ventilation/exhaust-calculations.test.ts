@@ -58,7 +58,7 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
       designExhaust: 100
     });
 
-    expect(result.status).toBe('INCOMPLETE');
+    expect(result.status).toBe('NOT_EVALUATED');
     expect(result.requiredExhaust).toBe(0);
   });
 

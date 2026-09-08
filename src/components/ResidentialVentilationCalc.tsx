@@ -3,10 +3,10 @@ import { Home, Wind, CheckCircle2, AlertTriangle, Droplets, ChefHat, Activity, B
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import TooltipLabel from './TooltipLabel';
-import EngineeringAuditTrail from './common/EngineeringAuditTrail';
+import AuditTrailTable from './AuditTrailTable';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { Ashrae622Service } from '../calculations/ventilation/Ashrae622Service';
-import { UnitConversionService } from '../lib/UnitConversionService';
+import { UnitConversionService, ft2ToM2 } from "../lib/UnitConversionService";
 import { StandardDataProvider } from '../data/ventilation/StandardDataProvider';
 
 
@@ -28,7 +28,7 @@ export default function ResidentialVentilationCalc() {
   const [bathInstalled, setBathInstalled] = useState<number>(0);
 
   const engineResult = useMemo(() => {
-    let areaM2 = isMetric ? floorArea : UnitConversionService.ft2ToM2(floorArea);
+    let areaM2 = isMetric ? floorArea : ft2ToM2(floorArea);
     let credit = qInf === '' ? null : qInf;
     if (credit !== null && !isMetric) credit = UnitConversionService.cfmToLs(credit);
     

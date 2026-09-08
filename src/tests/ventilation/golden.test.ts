@@ -1,7 +1,7 @@
 
 import { Ashrae622Service } from '../../calculations/ventilation/Ashrae622Service';
 import { describe, it, expect } from 'vitest';
-import { UnitConversionService } from '../../lib/UnitConversionService';
+import { UnitConversionService, ft2ToM2 } from "../../lib/UnitConversionService";
 import { VentilationEngine } from '../../lib/VentilationEngine';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
@@ -31,7 +31,7 @@ describe('Ventilation Engine Golden Tests', () => {
     expect(metricResult.finalDesignOutdoorAir).toBeCloseTo(42.5, 1);
 
     // Imperial Input: 1076.391 ft2, 5 people
-    const imperialAreaM2 = UnitConversionService.ft2ToM2(1076.39104);
+    const imperialAreaM2 = ft2ToM2(1076.39104);
     
     const imperialResult = VentilationEngine.runSingleZone({
       density: { elevation: 0, temperature: 20 },

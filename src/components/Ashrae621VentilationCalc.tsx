@@ -4,11 +4,11 @@ import { useUnit } from '../lib/UnitContext';
 import ValidatedInput from './ValidatedInput';
 import TooltipLabel from './TooltipLabel';
 import EngineeringWarning from './EngineeringWarning';
-import EngineeringAuditTrail from './common/EngineeringAuditTrail';
+import AuditTrailTable from './AuditTrailTable';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 
 import { VentilationEngine, MultiZoneInput, SingleZoneInput } from '../lib/VentilationEngine';
-import { UnitConversionService } from '../lib/UnitConversionService';
+import { UnitConversionService, ft2ToM2 } from "../lib/UnitConversionService";
 import { StandardDataProvider, AshraeEdition } from '../data/ventilation/StandardDataProvider';
 
 
@@ -99,7 +99,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       const spaceType = spaceTypes.find(s => s.id === z.spaceTypeId) || null;
       const ezConfig = ezValues.find(e => e.id === z.ezId) || null;
       
-      const areaM2 = isMetric ? z.area : UnitConversionService.ft2ToM2(z.area);
+      const areaM2 = isMetric ? z.area : ft2ToM2(z.area);
       
       const input: SingleZoneInput = {
         zone: {
@@ -118,7 +118,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         zones: zones.map(z => {
           const spaceType = spaceTypes.find(s => s.id === z.spaceTypeId) || null;
           const ezConfig = ezValues.find(e => e.id === z.ezId) || null;
-          const areaM2 = isMetric ? z.area : UnitConversionService.ft2ToM2(z.area);
+          const areaM2 = isMetric ? z.area : ft2ToM2(z.area);
           
           let vpz = z.primaryAirflow === '' ? null : z.primaryAirflow;
           if (vpz !== null && !isMetric) vpz = UnitConversionService.cfmToLs(vpz);
@@ -439,7 +439,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         </p>
       </div>
 
-      <EngineeringAuditTrail title="ASHRAE 62.1 Engine Audit Log" trail={allAuditTrails} />
+      <AuditTrailTable title="ASHRAE 62.1 Engine Audit Log" trail={allAuditTrails} />
     </div>
   );
 }

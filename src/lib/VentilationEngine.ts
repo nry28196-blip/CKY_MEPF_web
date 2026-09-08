@@ -1,3 +1,4 @@
+import { UnitConversionService, ft2ToM2 } from "./UnitConversionService";
 import { ValidationStatus, VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
 import { Ashrae621ZoneService, ZoneVentilationInput, ZoneVentilationResult } from '../calculations/ventilation/Ashrae621ZoneService';
 import { Ashrae621SimplifiedSystemService, SimplifiedSystemInput, SimplifiedSystemResult, SimplifiedSystemZoneInput } from '../calculations/ventilation/Ashrae621SimplifiedSystemService';
@@ -57,7 +58,7 @@ export class VentilationEngine {
     if (status === 'FAIL' || status === 'INCOMPLETE') {
         return {
           zone: zoneResult, density: densityResult, vozStandard: zoneResult.voz, votStandard: zoneResult.voz, 
-          votDensityCorrected: null, finalDesignOutdoorAir: null, auditTrail: [], revisionState: 'ASHRAE 62.1-2025 Base + Errata', status
+          votDensityCorrected: null, finalDesignOutdoorAir: null, auditTrail: [], revisionState: input.zone?.spaceType?.revisionSource || 'Unknown', status
         };
     }
     
@@ -73,7 +74,7 @@ export class VentilationEngine {
       votDensityCorrected,
       finalDesignOutdoorAir: votDensityCorrected,
       auditTrail,
-      revisionState: 'ASHRAE 62.1-2025 Base + Errata',
+      revisionState: input.zone?.spaceType?.revisionSource || 'Unknown',
       status
     };
   }
@@ -168,6 +169,7 @@ export class VentilationEngine {
     }
     
     statuses.push(densityResult.status);
+    if (ev !== null && ev <= 0) statuses.push('FAIL');
     
     const status = VentilationValidationService.aggregateStatus(statuses);
     
@@ -214,14 +216,13 @@ export class VentilationEngine {
       votDensityCorrected,
       finalDesignOutdoorAir: votDensityCorrected,
       auditTrail,
-      revisionState: 'ASHRAE 62.1-2025 Base + Errata',
+      revisionState: input.zones.length > 0 ? (input.zones[0].spaceType?.revisionSource || 'Unknown') : 'Unknown',
       status: finalStatus
     };
   }
 }
 
 
-import { UnitConversionService } from './UnitConversionService';
 
 export interface CoolingLoadInput {
   isMetric: boolean;
@@ -323,7 +324,7 @@ export class MechanicalCoolingEngine {
   static calcRoomTonsAndWatts(basis: 'area' | 'volume', size: number, occupants: number, isMetric: boolean) {
     const canonicalSize = isMetric 
       ? size 
-      : (basis === 'area' ? UnitConversionService.ft2ToM2(size) : UnitConversionService.ft3ToM3(size));
+      : (basis === 'area' ? ft2ToM2(size) : UnitConversionService.ft3ToM3(size));
       
     const watts = (basis === 'area' ? canonicalSize * this.baseLoadPerSqm : canonicalSize * this.baseLoadPerCum) + (occupants * this.loadPerPerson);
     const btu = watts * 3.412142;
@@ -353,7 +354,7 @@ export class MechanicalCoolingEngine {
       };
     }
 
-    const canonicalArea = isMetric ? numArea : UnitConversionService.ft2ToM2(numArea);
+    const canonicalArea = isMetric ? numArea : ft2ToM2(numArea);
     const canonicalVolume = estimationBasis === 'volume' 
       ? (isMetric ? (input.volume !== '' ? Number(input.volume) : NaN) : UnitConversionService.ft3ToM3(input.volume !== '' ? Number(input.volume) : NaN))
       : (canonicalArea * numHeight);
@@ -398,13 +399,87 @@ export class MechanicalCoolingEngine {
 
     
     auditTrail.push({
+      symbol: 'Qp',
+      name: 'People Sensible Load',
+      formula: 'P × Qs_per_person',
+      inputs: { 'P': numOccupants, 'Qs': input.sensiblePerPerson },
+      result: peopleSensible,
+      unit: 'W',
+      reference: 'ASHRAE Fundamentals Ch 18 Table 1',
+      revision: 'Fundamentals 2021',
+      status: 'ESTIMATED'
+    });
+    
+    auditTrail.push({
+      symbol: 'Ql',
+      name: 'Lighting Sensible Load',
+      formula: 'A × W/m²',
+      inputs: { 'A': canonicalArea, 'W/m²': input.lightingWpm2 },
+      result: lightingSensible,
+      unit: 'W',
+      reference: 'ASHRAE Fundamentals Ch 18',
+      revision: 'Fundamentals 2021',
+      status: 'ESTIMATED'
+    });
+    
+    auditTrail.push({
+      symbol: 'Qw',
+      name: 'Wall Conduction Load',
+      formula: 'U × A × ΔT',
+      inputs: { 'U': input.wallUValue, 'A': input.wallArea, 'ΔT': dT },
+      result: wallSensible,
+      unit: 'W',
+      reference: 'ASHRAE Fundamentals Ch 18',
+      revision: 'Fundamentals 2021',
+      status: 'DERIVED'
+    });
+    
+    auditTrail.push({
+      symbol: 'Qr',
+      name: 'Roof Conduction Load',
+      formula: 'U × A × ΔT',
+      inputs: { 'U': input.roofUValue, 'A': input.roofArea, 'ΔT': dT },
+      result: roofSensible,
+      unit: 'W',
+      reference: 'ASHRAE Fundamentals Ch 18',
+      revision: 'Fundamentals 2021',
+      status: 'DERIVED'
+    });
+    
+    auditTrail.push({
+      symbol: 'Qs',
+      name: 'Solar Fenestration Load',
+      formula: 'A × SHGC × I',
+      inputs: { 'A': input.windowArea, 'SHGC': input.windowShgc, 'I': solarIrradiance },
+      result: solarSensible,
+      unit: 'W',
+      reference: 'ASHRAE Fundamentals Ch 18',
+      revision: 'Fundamentals 2021',
+      status: 'ESTIMATED'
+    });
+    
+    auditTrail.push({
+      symbol: 'Qv',
+      name: 'Ventilation Sensible Load',
+      formula: '1.026 × ρ × V × ΔT',
+      inputs: { 'ρ': actualAirDensity, 'V': ventM3s, 'ΔT': dT },
+      result: ventSensible,
+      unit: 'W',
+      reference: 'ASHRAE Fundamentals Ch 18',
+      revision: 'Fundamentals 2021',
+      status: 'DERIVED'
+    });
+    
+    auditTrail.push({
       symbol: 'Qt',
       name: 'Total Sensible Cooling Load',
       formula: 'Qp + Ql + Qe + Qw + Qr + Qwc + Qs + Qv + Qi',
       inputs: { 'Qp': peopleSensible, 'Ql': lightingSensible, 'Qv': ventSensible, 'Qs': solarSensible },
       result: totalSensible,
       unit: 'W',
-      reference: 'ASHRAE Fundamentals → 2021 → Chapter 18 → Base'
+      reference: 'ASHRAE Fundamentals Chapter 18',
+      revision: 'Fundamentals 2021',
+      status: 'VERIFIED'
     });
     
     auditTrail.push({
@@ -414,7 +489,9 @@ export class MechanicalCoolingEngine {
       inputs: { 'Qt_sens': totalSensible, 'Qt_lat': totalLatent, 'Safety': safetyFactor },
       result: finalTotal,
       unit: 'W',
-      reference: 'ASHRAE Fundamentals → 2021 → Chapter 18 → Base'
+      reference: 'ASHRAE Fundamentals Chapter 18',
+      revision: 'Fundamentals 2021',
+      status: 'VERIFIED'
     });
     
     return {
@@ -509,7 +586,33 @@ export class MechanicalCoolingEngine {
       inputs: { 'ΣIDU': totalConnectedTons, 'ODU': oduCapacityTons },
       result: combinationRatio,
       unit: '%',
-      reference: 'AHRI 1230 → 2021 → Section 3.8 → Base'
+      reference: 'AHRI 1230 Section 3.8',
+      revision: 'Standard 1230-2021',
+      status: 'VERIFIED'
+    });
+
+    auditTrail.push({
+      symbol: 'D_pipe',
+      name: 'Piping Length Derating Factor',
+      formula: '1.0 - (Max(0, L - 7.5) × %/m)',
+      inputs: { 'L': input.pipingLength, '%/m': deratingPercentPerMeter },
+      result: deratingFactor,
+      unit: 'ratio',
+      reference: 'AHRI 1230 Piping Length Adjustment',
+      revision: 'Standard 1230-2021',
+      status: 'DERIVED'
+    });
+
+    auditTrail.push({
+      symbol: 'Q_derated',
+      name: 'Derated ODU Capacity',
+      formula: 'ODU × D_pipe',
+      inputs: { 'ODU': oduCapacityTons, 'D_pipe': deratingFactor },
+      result: deratedOduCapacityTons,
+      unit: 'TR',
+      reference: 'AHRI 1230 Piping Length Adjustment',
+      revision: 'Standard 1230-2021',
+      status: 'DERIVED'
     });
 
     auditTrail.push({
@@ -519,7 +622,9 @@ export class MechanicalCoolingEngine {
       inputs: { 'L': input.pipingLength, 'm_rate': chargePerMeter },
       result: additionalCharge,
       unit: 'kg',
-      reference: 'ASHRAE 15 → 2022 → Section 7.3.2 → Base'
+      reference: 'ASHRAE 15 Section 7.3.2',
+      revision: 'Standard 15-2022',
+      status: 'VERIFIED'
     });
 
     auditTrail.push({
@@ -529,7 +634,9 @@ export class MechanicalCoolingEngine {
       inputs: { 'm_total': totalCharge, 'V_smallest': smallestRoomVol },
       result: toxicConcentration,
       unit: 'kg/m³',
-      reference: 'ASHRAE 15 → 2022 → Section 7.3.1 → Base'
+      reference: 'ASHRAE 15 Section 7.3.1',
+      revision: 'Standard 15-2022',
+      status: toxicLimitExceeded ? 'FAIL' : 'PASS'
     });
 
     return {

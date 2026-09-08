@@ -31,7 +31,7 @@ export default function ValidatedInput({
         onMouseLeave={() => setShowTooltip(false)}
       >
         <input
-          value={value}
+          value={value ?? ""}
           min={min}
           max={max}
           className={`w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border focus:outline-none transition-colors ${

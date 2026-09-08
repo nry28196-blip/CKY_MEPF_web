@@ -1,3 +1,5 @@
+import { UnitConversionService } from '../../lib/UnitConversionService';
+
 export interface DuctFrictionInput {
   airflow: number; // L/s or CFM
   width?: number; // mm or inches
@@ -26,19 +28,19 @@ export class DuctFrictionService {
     
     // 1. Convert everything to SI for internal calculation
     // Airflow: m3/s
-    const q_m3s = isMetric ? (airflow / 1000) : (airflow * 0.000471947);
+    const q_m3s = isMetric ? (airflow / 1000) : UnitConversionService.cfmToM3s(airflow);
     
     // Dimensions: m
     let dh_m = 0; // Hydraulic diameter
     let area_m2 = 0;
     
     if (diameter) {
-      const d_m = isMetric ? (diameter / 1000) : (diameter * 0.0254);
+      const d_m = isMetric ? (diameter / 1000) : UnitConversionService.inToM(diameter);
       dh_m = d_m;
       area_m2 = Math.PI * Math.pow(d_m, 2) / 4;
     } else if (width && height) {
-      const w_m = isMetric ? (width / 1000) : (width * 0.0254);
-      const h_m = isMetric ? (height / 1000) : (height * 0.0254);
+      const w_m = isMetric ? (width / 1000) : UnitConversionService.inToM(width);
+      const h_m = isMetric ? (height / 1000) : UnitConversionService.inToM(height);
       
       area_m2 = w_m * h_m;
       const perimeter_m = 2 * (w_m + h_m);
@@ -53,13 +55,13 @@ export class DuctFrictionService {
     }
     
     // Length: m
-    const L_m = isMetric ? length : (length * 0.3048);
+    const L_m = isMetric ? length : UnitConversionService.ftToM(length);
     
     // Roughness: m
-    const e_m = isMetric ? (roughness / 1000) : (roughness * 0.3048); // ft to m
+    const e_m = isMetric ? (roughness / 1000) : UnitConversionService.ftToM(roughness); // ft to m
     
     // Density: kg/m3
-    const rho = isMetric ? density : (density * 16.0185);
+    const rho = isMetric ? density : UnitConversionService.lbFt3ToKgM3(density);
     
     // Dynamic Viscosity (mu) of air at approx 20C
     const mu = 1.81e-5; // kg/(m*s)
@@ -99,10 +101,10 @@ export class DuctFrictionService {
     }
     
     // 6. Convert back to requested units
-    const velocity = isMetric ? v_ms : (v_ms * 196.85); // m/s to FPM
-    const hydraulicDiameter = isMetric ? (dh_m * 1000) : (dh_m / 0.0254);
-    const pressureDrop = isMetric ? dp_Pa : (dp_Pa * 0.00401865); // Pa to in.wg
-    const velocityPressure = isMetric ? pv_Pa : (pv_Pa * 0.00401865);
+    const velocity = isMetric ? v_ms : UnitConversionService.msToFpm(v_ms);
+    const hydraulicDiameter = isMetric ? (dh_m * 1000) : UnitConversionService.mToIn(dh_m);
+    const pressureDrop = isMetric ? dp_Pa : UnitConversionService.paToInWg(dp_Pa);
+    const velocityPressure = isMetric ? pv_Pa : UnitConversionService.paToInWg(pv_Pa);
     
     return {
       velocity,

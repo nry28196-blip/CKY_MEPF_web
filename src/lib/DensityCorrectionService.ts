@@ -41,7 +41,7 @@ export class DensityCorrectionService {
     // Check for missing data
     if (!input || input.elevation === null || input.temperature === null || 
         isNaN(input.elevation) || isNaN(input.temperature)) {
-      status = 'WARNING';
+      status = 'INCOMPLETE';
       auditTrail.push({
         symbol: 'Assumed Data',
         name: 'Missing Density Inputs',

@@ -94,7 +94,7 @@ export default function CostCalc({ history = [] }: CostCalcProps) {
                 <input 
                   type="number" 
                   min="0"
-                  value={rates.cooling} 
+                  value={rates.cooling ?? ""} 
                   onChange={(e) => setRates({...rates, cooling: Number(e.target.value)})}
                   className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:outline-none focus:border-sky-500 transition-colors"
                 />
@@ -106,7 +106,7 @@ export default function CostCalc({ history = [] }: CostCalcProps) {
                 <input 
                   type="number" 
                   min="0"
-                  value={rates.airflow} 
+                  value={rates.airflow ?? ""} 
                   onChange={(e) => setRates({...rates, airflow: Number(e.target.value)})}
                   className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:outline-none focus:border-emerald-500 transition-colors"
                 />
@@ -118,7 +118,7 @@ export default function CostCalc({ history = [] }: CostCalcProps) {
                 <input 
                   type="number" 
                   min="0"
-                  value={rates.electrical} 
+                  value={rates.electrical ?? ""} 
                   onChange={(e) => setRates({...rates, electrical: Number(e.target.value)})}
                   className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:outline-none focus:border-amber-500 transition-colors"
                 />
@@ -130,7 +130,7 @@ export default function CostCalc({ history = [] }: CostCalcProps) {
                 <input 
                   type="number" 
                   min="0"
-                  value={rates.fire} 
+                  value={rates.fire ?? ""} 
                   onChange={(e) => setRates({...rates, fire: Number(e.target.value)})}
                   className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:outline-none focus:border-rose-500 transition-colors"
                 />
@@ -143,7 +143,7 @@ export default function CostCalc({ history = [] }: CostCalcProps) {
                   type="number" 
                   min="0"
                   max="100"
-                  value={contingency} 
+                  value={contingency ?? ""} 
                   onChange={(e) => setContingency(Number(e.target.value))}
                   className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800 focus:outline-none focus:border-indigo-500 transition-colors"
                 />

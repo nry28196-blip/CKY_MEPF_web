@@ -2,11 +2,12 @@ import { DensityCorrectionService } from '../lib/DensityCorrectionService';
 import React, { useState } from 'react';
 import { Activity, Fan, Wind, Gauge, Zap } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
+import { UnitConversionService } from '../lib/UnitConversionService';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 import { SystemPerformanceService, SystemPerformanceInput, SystemPerformanceResult } from '../calculations/ventilation/SystemPerformanceService';
 import ValidatedInput from './ValidatedInput';
 import TooltipLabel from './TooltipLabel';
-import EngineeringAuditTrail from './common/EngineeringAuditTrail';
+import AuditTrailTable from './AuditTrailTable';
 
 export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTemp = 20, qOutdoorAirProp }: { globalAltitude?: number, globalAirTemp?: number, qOutdoorAirProp?: number }) {
   const { unitSystem } = useUnit();
@@ -37,8 +38,8 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
   const [motorEfficiency, setMotorEfficiency] = useState<number>(85);
 
   // Density logic
-  const altMeters = isMetric ? globalAltitude : globalAltitude * 0.3048;
-  const tempC = isMetric ? globalAirTemp : (globalAirTemp - 32) * 5/9;
+  const altMeters = isMetric ? globalAltitude : UnitConversionService.ftToM(globalAltitude);
+  const tempC = isMetric ? globalAirTemp : UnitConversionService.fToC(globalAirTemp);
   const densityRatio = DensityCorrectionService.getAirProperties(altMeters, tempC, 50).densityRatio;
 
   const input: SystemPerformanceInput = {

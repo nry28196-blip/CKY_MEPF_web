@@ -9,6 +9,8 @@ export interface AuditTrailItem {
   result: number | string;
   unit: string;
   reference: string;
+  revision?: string;
+  status?: 'PASS' | 'FAIL' | 'VERIFIED' | 'ESTIMATED' | 'DERIVED' | string;
 }
 
 export interface ZoneVentilationInput {
@@ -94,7 +96,9 @@ export class Ashrae621ZoneService {
       inputs: { 'Rp': rp, 'Pz': pz, 'Ra': ra, 'Az': az },
       result: vbz,
       unit: 'L/s',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.2.1'
+      reference: 'ASHRAE 62.1-2025 Section 6.2.2.1',
+      revision: 'Standard 62.1-2025',
+      status: 'VERIFIED'
     });
     
     auditTrail.push({
@@ -104,7 +108,9 @@ export class Ashrae621ZoneService {
       inputs: { 'Vbz': vbz, 'Ez': ez },
       result: voz,
       unit: 'L/s',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.2.3'
+      reference: 'ASHRAE 62.1-2025 Section 6.2.2.3',
+      revision: 'Standard 62.1-2025',
+      status: 'DERIVED'
     });
 
     statuses.push('PASS');

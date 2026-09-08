@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import { useLanguage } from '../lib/translations';
 import PowerEquipmentTable, { PowerEquipment } from './PowerEquipmentTable';
 import TooltipLabel from './TooltipLabel';
-import EngineeringAuditTrail from './common/EngineeringAuditTrail';
+import AuditTrailTable from './AuditTrailTable';
 
 interface UpsSizingCalcProps {
   restoredParams?: any;
@@ -175,7 +175,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
                       type="number"
                     min="0.1"
                     max="10000"
-                      value={loadKw}
+                      value={loadKw ?? ""}
                       onChange={(e) => setLoadKw(Number(e.target.value))}
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                     />
@@ -198,7 +198,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
                 <div className="relative">
                   <input
                     type="number"
-                    value={loadPf}
+                    value={loadPf ?? ""}
                     onChange={(e) => setLoadPf(Number(e.target.value))}
                     step="0.01"
                     min="0.5"
@@ -217,7 +217,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
                 <div className="relative">
                   <input
                     type="number"
-                    value={designMargin}
+                    value={designMargin ?? ""}
                     onChange={(e) => setDesignMargin(Number(e.target.value))}
                     step="0.05"
                     min="1"
@@ -246,7 +246,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
                     type="number"
                     min="1"
                     max="1440"
-                    value={backupTime}
+                    value={backupTime ?? ""}
                     onChange={(e) => setBackupTime(Number(e.target.value))}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                   />
@@ -263,7 +263,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
                       type="number"
                     min="12"
                     max="1000"
-                      value={dcBusVoltage}
+                      value={dcBusVoltage ?? ""}
                       onChange={(e) => setDcBusVoltage(Number(e.target.value))}
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                     />
@@ -279,7 +279,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
                       type="number"
                     min="0.5"
                     max="1"
-                      value={inverterEff}
+                      value={inverterEff ?? ""}
                       onChange={(e) => setInverterEff(Number(e.target.value))}
                       step="0.01"
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
@@ -417,7 +417,7 @@ export default function UpsSizingCalc({ restoredParams, onSaveCalculation, autoC
           
           {/* Audit Trail */}
           <div className="mt-6">
-            <EngineeringAuditTrail
+            <AuditTrailTable
               title="UPS & Battery Sizing Calculation Audit"
               codeReference="IEEE Standard 446 / 1184"
               trail={[

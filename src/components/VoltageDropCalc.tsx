@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Zap, AlertTriangle, Info } from 'lucide-react';
 import TooltipLabel from './TooltipLabel';
 import InputAlert from './InputAlert';
-import EngineeringAuditTrail from './common/EngineeringAuditTrail';
+import AuditTrailTable from './AuditTrailTable';
 
 export default function VoltageDropCalc() {
   const [voltage, setVoltage] = useState(400);
@@ -116,7 +116,7 @@ export default function VoltageDropCalc() {
         
           {/* Audit Trail */}
           <div className="mt-6 w-full">
-            <EngineeringAuditTrail
+            <AuditTrailTable
               title="Voltage Drop Calculation Audit"
               codeReference="NEC / IEC"
               trail={[

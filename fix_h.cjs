@@ -1,0 +1,16 @@
+const fs = require('fs');
+let content = fs.readFileSync('src/tests/ventilation/Ventilation.test.ts', 'utf8');
+
+// The occurrence in Test H should be INCOMPLETE
+content = content.replace(
+  "it('Test H - Missing Vpz-min', () => {\n    const result = VentilationEngine.runMultiZone({\n      zones: [\n        {\n          id: 'zone-1', spaceType: officeSpaceType, area: 100, designOccupancy: 5,\n          useDefaultOccupancy: false, ezConfig, dMode: 'VAV', vpz: 100, vpzMinDesign: null, ep: null, er: null\n        }\n      ],\n      density: { elevation: 0, temperature: 20 },\n      method: 'Simplified',\n      systemPopulation: 5,\n      systemType: 'single_supply'\n    });\n\n    expect(result.status).toBe('FAIL');",
+  "it('Test H - Missing Vpz-min', () => {\n    const result = VentilationEngine.runMultiZone({\n      zones: [\n        {\n          id: 'zone-1', spaceType: officeSpaceType, area: 100, designOccupancy: 5,\n          useDefaultOccupancy: false, ezConfig, dMode: 'VAV', vpz: 100, vpzMinDesign: null, ep: null, er: null\n        }\n      ],\n      density: { elevation: 0, temperature: 20 },\n      method: 'Simplified',\n      systemPopulation: 5,\n      systemType: 'single_supply'\n    });\n\n    expect(result.status).toBe('INCOMPLETE');"
+);
+
+// The occurrence in Test I should be FAIL
+content = content.replace(
+  "it('Test I - Invalid Ev', () => {\n    // We can simulate invalid Ev by providing a scenario where Ev <= 0.\n    // In Simplified, Ev = 0.88 * D + 0.22 (if D < 0.6) or 0.75. D = Ps / SumPz.\n    // Ps cannot be negative, so D >= 0, Ev is at least 0.22. \n    // We can test this by mocking or passing a negative Ps (which gets rejected as INCOMPLETE, but if forced).\n    // Actually, we can just check if Ev=0 causes FAIL in the engine.\n    const result = VentilationEngine.runMultiZone({\n      zones: [\n        {\n          id: 'zone-1', spaceType: officeSpaceType, area: 100, designOccupancy: 5,\n          useDefaultOccupancy: false, ezConfig, dMode: 'CV', vpz: 100, vpzMinDesign: null, ep: null, er: null\n        }\n      ],\n      density: { elevation: 0, temperature: 20 },\n      method: 'Simplified',\n      systemPopulation: -5, // Negative Ps\n      systemType: 'single_supply'\n    });\n\n    expect(result.status).toBe('INCOMPLETE');",
+  "it('Test I - Invalid Ev', () => {\n    // We can simulate invalid Ev by providing a scenario where Ev <= 0.\n    // In Simplified, Ev = 0.88 * D + 0.22 (if D < 0.6) or 0.75. D = Ps / SumPz.\n    // Ps cannot be negative, so D >= 0, Ev is at least 0.22. \n    // We can test this by mocking or passing a negative Ps (which gets rejected as INCOMPLETE, but if forced).\n    // Actually, we can just check if Ev=0 causes FAIL in the engine.\n    const result = VentilationEngine.runMultiZone({\n      zones: [\n        {\n          id: 'zone-1', spaceType: officeSpaceType, area: 100, designOccupancy: 5,\n          useDefaultOccupancy: false, ezConfig, dMode: 'CV', vpz: 100, vpzMinDesign: null, ep: null, er: null\n        }\n      ],\n      density: { elevation: 0, temperature: 20 },\n      method: 'Simplified',\n      systemPopulation: -5, // Negative Ps\n      systemType: 'single_supply'\n    });\n\n    expect(result.status).toBe('FAIL');"
+);
+
+fs.writeFileSync('src/tests/ventilation/Ventilation.test.ts', content);

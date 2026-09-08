@@ -1184,7 +1184,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                         type="number"
                         min="0"
                         max="9999"
-                        value={fix.qty}
+                        value={fix.qty ?? ""}
                         onChange={(e) => handleQtyChange(fix.baseName || fix.id, Number(e.target.value))}
                         className="w-12 bg-slate-950 border border-slate-800 text-white font-mono text-xs text-center rounded py-1 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                       />
@@ -1204,7 +1204,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                 <div>
                   <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Project Type" tooltip="Determines peak usage patterns and diversity factors for water demand calculation (e.g., Hunter's Curve probabilities vary by building use)." />
                   <select
-                    value={projectType}
+                    value={projectType ?? ""}
                     onChange={(e) => setProjectType(e.target.value as any)}
                     className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500"
                   >
@@ -1224,7 +1224,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     type="number"
                     min="1"
                     max="5000"
-                    value={occupants}
+                    value={occupants ?? ""}
                     onChange={(e) => setOccupants(Number(e.target.value) || 0)}
                     className={`w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono focus:outline-none transition-colors border ${
                       occupants !== 0 && (occupants < 1 || occupants > 5000)
@@ -1247,7 +1247,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     min="0.5"
                     max="3.0"
                     step="0.1"
-                    value={designVelocity}
+                    value={designVelocity ?? ""}
                     onChange={(e) => setDesignVelocity(Number(e.target.value) || 0)}
                     className={`w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono focus:outline-none transition-colors border ${
                       designVelocity !== 0 && (designVelocity < 0.5 || designVelocity > 3.0)
@@ -1376,7 +1376,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     </div>
                     <div>
                       <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Avail. Pressure (bar)" tooltip="Static pressure available at the source connection." />
-                      <input type="number" min="0.1" step="0.1" value={availablePressure} onChange={(e) => setAvailablePressure(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                      <input type="number" min="0.1" step="0.1" value={availablePressure ?? ""} onChange={(e) => setAvailablePressure(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                       {availablePressure !== 0 && availablePressure < 2.0 && (
                         <InputAlert type="warning" message="Low municipal pressure (< 2.0 bar). A booster pump is highly likely to be required." />
                       )}
@@ -1386,7 +1386,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     </div>
                     <div>
                       <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Req. Residual (bar)" tooltip="Minimum pressure required at the furthest/highest fixture for proper operation." />
-                      <input type="number" min="0.1" step="0.1" value={requiredResidual} onChange={(e) => setRequiredResidual(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                      <input type="number" min="0.1" step="0.1" value={requiredResidual ?? ""} onChange={(e) => setRequiredResidual(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                       {requiredResidual !== 0 && requiredResidual < 0.5 && (
                         <InputAlert type="warning" message="Very low residual pressure. Standard fixtures typically require at least 0.5 - 1.0 bar (8-15 psi)." />
                       )}
@@ -1400,11 +1400,11 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Main Pipe Length (m)" tooltip="Linear length of the pipe run. Used to calculate friction loss." />
-                        <input type="number" min="1" value={pipeLength} onChange={(e) => setPipeLength(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                        <input type="number" min="1" value={pipeLength ?? ""} onChange={(e) => setPipeLength(Number(e.target.value) || 0)} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                       </div>
                       <div>
                         <TooltipLabel className="block text-[10px] font-extrabold text-slate-400 mb-1.5 uppercase" label="Elevation Change (m)" tooltip="Vertical rise (+ value) or drop (- value). Used to calculate hydrostatic pressure loss/gain (approx 0.098 bar per meter)." />
-                        <input type="number" value={elevationChange} onChange={(e) => setElevationChange(e.target.value === '' ? 0 : Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
+                        <input type="number" value={elevationChange ?? ""} onChange={(e) => setElevationChange(e.target.value === '' ? 0 : Number(e.target.value))} className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-xs font-mono border border-slate-800 focus:border-cyan-500" />
                       </div>
                       <div className="col-span-1 md:col-span-2 space-y-3">
                         <div className="flex items-center justify-between">

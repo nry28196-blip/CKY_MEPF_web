@@ -6,10 +6,6 @@ export const CONVERSIONS = {
   M_TO_FT: 3.28084,
   FT_TO_M: 0.3048,
 
-  // Area
-  M2_TO_FT2: 10.7639,
-  FT2_TO_M2: 0.092903,
-
   // Volume
   L_TO_GAL: 0.264172,
   GAL_TO_L: 3.78541,

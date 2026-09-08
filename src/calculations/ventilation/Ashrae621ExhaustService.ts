@@ -18,7 +18,7 @@ export interface ExhaustResult {
 export class Ashrae621ExhaustService {
   static calculate(input: ExhaustInput): ExhaustResult {
     if (!input.exhaustType) {
-      return { requiredExhaust: 0, designExhaust: 0, unitType: 'unknown', exhaustClass: 1, status: 'INCOMPLETE' };
+      return { requiredExhaust: 0, designExhaust: 0, unitType: 'unknown', exhaustClass: 1, status: 'NOT_EVALUATED' };
     }
 
     if (input.qty === null || isNaN(input.qty)) {

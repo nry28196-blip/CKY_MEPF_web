@@ -161,7 +161,7 @@ export default function ElvUpsSizingCalc({ restoredParams, onSaveCalculation, au
                           min="1"
                           max="5"
                           step="0.05"
-                          value={designMargin}
+                          value={designMargin ?? ""}
                           onChange={(e) => setDesignMargin(Number(e.target.value))}
                           className="w-16 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white font-mono text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-center invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                         />
@@ -175,7 +175,7 @@ export default function ElvUpsSizingCalc({ restoredParams, onSaveCalculation, au
                           min="0.1"
                           max="1"
                           step="0.01"
-                          value={loadPf}
+                          value={loadPf ?? ""}
                           onChange={(e) => setLoadPf(Number(e.target.value))}
                           className="w-16 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white font-mono text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-center invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                         />
@@ -244,7 +244,7 @@ export default function ElvUpsSizingCalc({ restoredParams, onSaveCalculation, au
                   type="number"
                   min="1"
                   max="1440"
-                  value={backupTime}
+                  value={backupTime ?? ""}
                   onChange={(e) => setBackupTime(Number(e.target.value))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                 />

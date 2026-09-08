@@ -1,79 +1,16 @@
 const fs = require('fs');
+let content = fs.readFileSync('src/tests/ventilation/Ventilation.test.ts', 'utf8');
 
-let content = `import { describe, it, expect } from 'vitest';
-import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
-import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/2025/data';
+// I will move the tests inside the describe block
+content = content.replace("  });\n});\n\n  it('Test I", "  });\n\n  it('Test I");
+content = content.replace("expect(result.zone.voz).toBe(0);\n  });\n", "expect(result.zone.voz).toBe(0);\n  });\n});\n");
 
-describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
-  it('Should correctly compute Art Classrooms rate per Unit', () => {
-    const exhaustType: Ashrae621ExhaustType = {
-      id: 'art-class',
-      category: 'Educational',
-      spaceType: 'Art Classrooms',
-      rate: 3.5, // 0.7 cfm/ft2 roughly 3.5 L/s-m2
-      unitType: 'area', // usually area for this
-      exhaustClass: 2
-    };
+fs.writeFileSync('src/tests/ventilation/Ventilation.test.ts', content);
 
-    const result = Ashrae621ExhaustService.calculate({
-      exhaustType,
-      qty: 100, // 100 m2
-      designExhaust: 350
-    });
+let exhaustTest = fs.readFileSync('src/tests/ventilation/exhaust-calculations.test.ts', 'utf8');
+exhaustTest = exhaustTest.replace(
+  "expect(result.status).toBe('INCOMPLETE');",
+  "expect(result.status).toBe('NOT_EVALUATED');"
+);
+fs.writeFileSync('src/tests/ventilation/exhaust-calculations.test.ts', exhaustTest);
 
-    expect(result.status).toBe('PASS');
-    expect(result.requiredExhaust).toBeCloseTo(350, 1);
-  });
-
-  it('Should correctly compute Public Restrooms rate per Unit', () => {
-    const exhaustType: Ashrae621ExhaustType = {
-      id: 'restroom-public',
-      category: 'General',
-      spaceType: 'Restrooms (Public)',
-      rate: 25, 
-      unitType: 'fixture',
-      exhaustClass: 2
-    };
-
-    const result = Ashrae621ExhaustService.calculate({
-      exhaustType,
-      qty: 4, // 4 fixtures
-      designExhaust: 100
-    });
-
-    expect(result.status).toBe('PASS');
-    expect(result.requiredExhaust).toBeCloseTo(100, 1);
-  });
-
-  it('Should return INCOMPLETE when exhaustType is null', () => {
-    const result = Ashrae621ExhaustService.calculate({
-      exhaustType: null,
-      qty: 1,
-      designExhaust: 100
-    });
-
-    expect(result.status).toBe('INCOMPLETE');
-    expect(result.requiredExhaust).toBe(0);
-  });
-
-  it('Should throw FAIL if qty is invalid', () => {
-    const exhaustType: Ashrae621ExhaustType = {
-      id: 'art-class',
-      category: 'Educational',
-      spaceType: 'Art Classrooms',
-      rate: 3.5,
-      unitType: 'area',
-      exhaustClass: 2
-    };
-
-    const result = Ashrae621ExhaustService.calculate({
-      exhaustType,
-      qty: -10, // Invalid
-      designExhaust: 350
-    });
-
-    expect(result.status).toBe('FAIL');
-  });
-});`;
-
-fs.writeFileSync('src/tests/ventilation/exhaust-calculations.test.ts', content);

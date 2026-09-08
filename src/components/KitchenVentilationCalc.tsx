@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Wind, Activity, CheckCircle2, AlertTriangle, ChefHat, BookOpen, Calculator, Info, ThermometerSun, Maximize } from 'lucide-react';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
+import { UnitConversionService } from '../lib/UnitConversionService';
 import TooltipLabel from './TooltipLabel';
 
 export default function KitchenVentilationCalc() {
@@ -84,9 +85,9 @@ export default function KitchenVentilationCalc() {
     }
 
     // Convert back to metric if needed
-    const finalFlow = isMetric ? cfm * 0.471947 : cfm;
+    const finalFlow = isMetric ? UnitConversionService.cfmToLs(cfm) : cfm;
     setExhaustAirflow(finalFlow);
-    setHoodLength(isMetric ? hLenFt / 3.28084 : hLenFt);
+    setHoodLength(isMetric ? UnitConversionService.ftToM(hLenFt) : hLenFt);
 
     // Calculate actual face velocity for unlisted/listed
     const faceAreaSqFt = hLenFt * depthFt;

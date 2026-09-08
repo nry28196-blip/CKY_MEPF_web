@@ -12,6 +12,7 @@ export interface Ashrae621SpaceType {
   reference: string;
   notes: string;
   revisionSource: string;
+  verificationDate?: string;
 }
 
 export interface Ashrae621Ez {
@@ -26,6 +27,7 @@ export interface Ashrae621Ez {
   name: string;
   ez: number;
   reference: string;
+  verificationDate?: string;
 }
 
 export interface Ashrae621ExhaustType {
@@ -39,4 +41,5 @@ export interface Ashrae621ExhaustType {
   reference: string;
   edition: string;
   revision: string;
+  verificationDate?: string;
 }

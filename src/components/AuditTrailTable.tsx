@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, BookOpen, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
+import { Activity, BookOpen, Calculator, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Info, XCircle } from 'lucide-react';
 
 export interface AuditTrailStep {
   inputs?: Record<string, number | string>;
@@ -10,9 +10,11 @@ export interface AuditTrailStep {
   result?: string | number;
   unit?: string;
   reference?: string;
+  revision?: string;
+  status?: 'PASS' | 'FAIL' | 'VERIFIED' | 'ESTIMATED' | 'DERIVED' | string;
 }
 
-export interface EngineeringAuditTrailProps {
+export interface AuditTrailTableProps {
   title?: string;
   codeReference?: string;
   trail: AuditTrailStep[];
@@ -20,14 +22,44 @@ export interface EngineeringAuditTrailProps {
   defaultExpanded?: boolean;
 }
 
-export default function EngineeringAuditTrail({
+export default function AuditTrailTable({
   title = 'Engineering Audit Trail',
   codeReference,
   trail,
   className = '',
   defaultExpanded = true
-}: EngineeringAuditTrailProps) {
+}: AuditTrailTableProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  const getStatusIcon = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'PASS':
+      case 'VERIFIED':
+        return <CheckCircle2 className="w-3 h-3 text-emerald-400" />;
+      case 'FAIL':
+        return <XCircle className="w-3 h-3 text-red-400" />;
+      case 'ESTIMATED':
+      case 'DERIVED':
+        return <Info className="w-3 h-3 text-sky-400" />;
+      default:
+        return <Activity className="w-3 h-3 text-slate-400" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'PASS':
+      case 'VERIFIED':
+        return 'text-emerald-400';
+      case 'FAIL':
+        return 'text-red-400';
+      case 'ESTIMATED':
+      case 'DERIVED':
+        return 'text-sky-400';
+      default:
+        return 'text-slate-400';
+    }
+  };
 
   return (
     <div className={`bg-slate-950/50 rounded-lg border border-slate-800/50 overflow-hidden ${className}`}>
@@ -71,6 +103,12 @@ export default function EngineeringAuditTrail({
                         <span className="text-[11px] font-mono font-bold text-sky-400 mb-0.5">{v.symbol}</span>
                       )}
                       <span className="text-[10px] text-slate-300 leading-tight">{v.name}</span>
+                      {v.status && (
+                        <div className="mt-1.5 flex items-center bg-slate-900/50 px-1.5 py-0.5 rounded w-fit border border-slate-700/50">
+                           {getStatusIcon(v.status)}
+                           <span className={`ml-1.5 text-[9px] font-bold uppercase tracking-wider ${getStatusColor(v.status)}`}>{v.status}</span>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 align-top">
@@ -95,8 +133,15 @@ export default function EngineeringAuditTrail({
                       ) : (
                         <span className="text-[10px] text-slate-600 italic">Given/Empirical</span>
                       )}
-                      {v.reference && (
-                        <span className="text-[9px] text-slate-500 tracking-wider">Ref: {v.reference}</span>
+                      {(v.reference || v.revision) && (
+                        <div className="flex flex-col mt-1 space-y-0.5 pl-5 border-l border-slate-700 ml-1.5">
+                          {v.reference && (
+                            <span className="text-[9px] text-slate-500 tracking-wider">Ref: {v.reference}</span>
+                          )}
+                          {v.revision && (
+                             <span className="text-[9px] text-slate-500 tracking-wider">Rev: {v.revision}</span>
+                          )}
+                        </div>
                       )}
                     </div>
                   </td>

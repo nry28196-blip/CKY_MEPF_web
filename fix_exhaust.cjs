@@ -1,76 +1,12 @@
 const fs = require('fs');
+let content = fs.readFileSync('src/calculations/ventilation/Ashrae621ExhaustService.ts', 'utf8');
 
-let content = `import { describe, it, expect } from 'vitest';
-import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
-import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/2025/data';
+// The only modification is adding an unsupported check, but we already have an INCOMPLETE if exhaustType is null.
+// Let's add a condition where if it's not in the known database (which the UI restricts), but we can just say the UI says "Other / Unsupported" and passes a null type.
 
-describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
-  it('Should correctly compute Art Classrooms rate per Unit', () => {
-    const exhaustType: Ashrae621ExhaustType = {
-      id: 'art-class',
-      category: 'Educational',
-      rate: 3.5, 
-      unitType: 'm2', 
-      exhaustClass: 2
-    };
+content = content.replace(
+  "return { requiredExhaust: 0, designExhaust: 0, unitType: 'unknown', exhaustClass: 1, status: 'INCOMPLETE' };",
+  "return { requiredExhaust: 0, designExhaust: 0, unitType: 'unknown', exhaustClass: 1, status: 'NOT_EVALUATED' };"
+);
 
-    const result = Ashrae621ExhaustService.calculate({
-      exhaustType,
-      qty: 100, 
-      designExhaust: 350
-    });
-
-    expect(result.status).toBe('PASS');
-    expect(result.requiredExhaust).toBeCloseTo(350, 1);
-  });
-
-  it('Should correctly compute Public Restrooms rate per Unit', () => {
-    const exhaustType: Ashrae621ExhaustType = {
-      id: 'restroom-public',
-      category: 'General',
-      rate: 25, 
-      unitType: 'fixture',
-      exhaustClass: 2
-    };
-
-    const result = Ashrae621ExhaustService.calculate({
-      exhaustType,
-      qty: 4, 
-      designExhaust: 100
-    });
-
-    expect(result.status).toBe('PASS');
-    expect(result.requiredExhaust).toBeCloseTo(100, 1);
-  });
-
-  it('Should return INCOMPLETE when exhaustType is null', () => {
-    const result = Ashrae621ExhaustService.calculate({
-      exhaustType: null,
-      qty: 1,
-      designExhaust: 100
-    });
-
-    expect(result.status).toBe('INCOMPLETE');
-    expect(result.requiredExhaust).toBe(0);
-  });
-
-  it('Should throw FAIL if qty is invalid', () => {
-    const exhaustType: Ashrae621ExhaustType = {
-      id: 'art-class',
-      category: 'Educational',
-      rate: 3.5,
-      unitType: 'm2',
-      exhaustClass: 2
-    };
-
-    const result = Ashrae621ExhaustService.calculate({
-      exhaustType,
-      qty: -10, // Invalid
-      designExhaust: 350
-    });
-
-    expect(result.status).toBe('FAIL');
-  });
-});`;
-
-fs.writeFileSync('src/tests/ventilation/exhaust-calculations.test.ts', content);
+fs.writeFileSync('src/calculations/ventilation/Ashrae621ExhaustService.ts', content);

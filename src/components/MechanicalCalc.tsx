@@ -12,7 +12,7 @@ import TrendVisualizer from './TrendVisualizer';
 import VrfTopologyCanvas from './VrfTopologyCanvas';
 import VrfLoadDistributionChart from './VrfLoadDistributionChart';
 import TooltipLabel from './TooltipLabel';
-import EngineeringAuditTrail from './common/EngineeringAuditTrail';
+import AuditTrailTable from './AuditTrailTable';
 import InputAlert from './InputAlert';
 import ValidatedInput from './ValidatedInput';
 import FormulaVisualizer, { FormulaDef } from './FormulaVisualizer';
@@ -68,14 +68,11 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const [windowUValue, setWindowUValue] = useState<number>(3.0);
   const [windowShgc, setWindowShgc] = useState<number>(0.6);
   const [ventilationLps, setVentilationLps] = useState<number>(25);
-  const [ventilationDetails, setVentilationDetails] = useState<any>(null);
   
   const handleVentilationChange = useCallback((flow: number, details?: any) => {
     setVentilationLps(flow);
     if (details) {
-      setVentilationDetails(details);
     } else {
-      setVentilationDetails(null);
     }
   }, []);
   const [infiltrationACH, setInfiltrationACH] = useState<number>(0.5);
@@ -488,7 +485,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       type="number"
                     min="5"
                     max="2000"
-                      value={area}
+                      value={area ?? ""}
                       onChange={(e) => {
                         const val = e.target.value === '' ? '' : Number(e.target.value);
                         setArea(val);
@@ -518,7 +515,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                       type="number"
                     min="15"
                     max="6000"
-                      value={volume}
+                      value={volume ?? ""}
                       onChange={(e) => {
                         const val = e.target.value === '' ? '' : Number(e.target.value);
                         setVolume(val);
@@ -549,7 +546,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     type="number"
                     min="1"
                     max="1000"
-                    value={occupants}
+                    value={occupants ?? ""}
                     onChange={(e) => setOccupants(e.target.value === '' ? '' : Number(e.target.value))}
                     placeholder="e.g., 5"
                     className={`w-full bg-slate-950 text-white rounded-lg px-4 py-2 text-sm font-mono focus:outline-none transition-colors border ${
@@ -861,41 +858,6 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         <div className="text-right font-bold text-amber-400 col-span-2 sm:col-span-1 pt-2 border-t border-slate-800">{results.status === 'INCOMPLETE' ? 'INCOMPLETE' : `${Math.round(results.calculatedTotal)} W`}</div>
                       </div>
                     </div>
-                    {ventilationDetails && (
-                      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-xs lg:col-span-2">
-                        <div className="text-amber-400 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1 flex justify-between">
-                          <span>Ventilation Audit Trail</span>
-                          <span className="text-slate-500">{governingStandard} - {ventilationDetails.systemType === 'single' ? 'Single Zone (VRP)' : 'Multi-Zone (VRP)'}</span>
-                        </div>
-                        
-                        {ventilationDetails.systemType === 'single' && ventilationDetails.zoneResults && ventilationDetails.zoneResults.length > 0 && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-slate-300">
-                            <div className="text-slate-500">Vbz (Breathing Zone Outdoor Air) Formula <span className="text-[8px] text-slate-600">(ASHRAE 62.1 Eq 6.2.2.1)</span>:</div>
-                            <div className="text-right text-slate-400">Rp×Pz + Ra×Az = {ventilationDetails.zoneResults[0].result?.vbz !== undefined ? Math.round(ventilationDetails.zoneResults[0].result.vbz) : '-'}</div>
-                            <div className="text-slate-500">Ez (Zone Air Distribution Effectiveness) <span className="text-[8px] text-slate-600">(Table 6.2.2.2)</span>:</div>
-                            <div className="text-right text-slate-400">{ventilationDetails.zoneResults[0].result?.ez ?? 1.0}</div>
-                            <div className="text-slate-500">Voz (Zone Outdoor Air) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.2.3)</span>:</div>
-                            <div className="text-right text-slate-400">Vbz / Ez = {ventilationDetails.zoneResults[0].result?.voz !== undefined ? Math.round(ventilationDetails.zoneResults[0].result.voz) : '-'}</div>
-                          </div>
-                        )}
-
-                        {ventilationDetails.systemType === 'multi' && ventilationDetails.systemResult && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-slate-300">
-                            <div className="text-slate-500">Vou (Uncorrected Outdoor Air) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.5.3)</span>:</div>
-                            <div className="text-right text-slate-400">D×Σ(Rp×Pz) + Σ(Ra×Az) = {Math.round(ventilationDetails.systemResult.vou || 0)}</div>
-                            
-                            <div className="text-slate-500">Max Zpz (Critical Zone Fraction) <span className="text-[8px] text-slate-600">(Max(Voz/Vpz))</span>:</div>
-                            <div className="text-right text-slate-400">{((ventilationDetails.systemResult.zdMax !== undefined && ventilationDetails.systemResult.zdMax !== null ? ventilationDetails.systemResult.zdMax : 0) || 0).toFixed(3) || "0.000"}</div>
-                            
-                            <div className="text-slate-500">Ev (System Vent. Efficiency) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.5.4.1)</span>:</div>
-                            <div className="text-right text-slate-400">1 + Xs - Zd = {((ventilationDetails.systemResult.ev !== undefined && ventilationDetails.systemResult.ev !== null ? ventilationDetails.systemResult.ev : 0) || 0).toFixed(3) || "0.000"}</div>
-                            
-                            <div className="text-slate-500">Vot (System Outdoor Air) Formula <span className="text-[8px] text-slate-600">(Eq 6.2.5.1)</span>:</div>
-                            <div className="text-right text-slate-400">Vou / Ev = {Math.round(ventilationDetails.systemResult.vot || 0)}</div>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -1007,7 +969,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         min="1.0"
                         max="1.4"
                         step="0.05"
-                        value={diversityFactor}
+                        value={diversityFactor ?? ""}
                         onChange={(e) => setDiversityFactor(parseFloat(e.target.value))}
                         className="w-full accent-cyan-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                       />
@@ -1110,7 +1072,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                             type="number"
                     min="5"
                     max="1000"
-                            value={pipingLength}
+                            value={pipingLength ?? ""}
                             onChange={(e) => setPipingLength(e.target.value === '' ? '' : Number(e.target.value) as any)}
                             placeholder="e.g., 80"
                             className={`w-full bg-slate-950 text-white rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none transition-colors border ${
@@ -1175,7 +1137,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           className="block text-xs font-bold text-slate-400 mb-1.5 uppercase" 
                         />
                         <select
-                          value={customOduHp}
+                          value={customOduHp ?? ""}
                           onChange={(e) => setCustomOduHp(Number(e.target.value))}
                           className="w-full bg-slate-950 text-white rounded-lg px-3 py-1.5 text-xs font-mono border border-slate-800 focus:outline-none focus:border-cyan-500 cursor-pointer"
                         >
@@ -1202,7 +1164,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                           min="100"
                           max="150"
                           step="5"
-                          value={maxAllowedCr}
+                          value={maxAllowedCr ?? ""}
                           onChange={(e) => setMaxAllowedCr(Number(e.target.value))}
                           className="w-full accent-cyan-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                         />
@@ -1228,7 +1190,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                         min="100"
                         max="150"
                         step="5"
-                        value={maxAllowedCr}
+                        value={maxAllowedCr ?? ""}
                         onChange={(e) => setMaxAllowedCr(Number(e.target.value))}
                         className="w-full accent-cyan-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
                       />
@@ -1684,7 +1646,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     min="5"
                     max="2000"
                           placeholder={newRoomBasis === 'area' ? "Area (m²)" : "Volume (m³)"}
-                          value={newRoomSize}
+                          value={newRoomSize ?? ""}
                           onChange={(e) => setNewRoomSize(e.target.value === '' ? '' : Number(e.target.value))}
                           className={`w-full bg-slate-900 text-white rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none transition-colors border ${
                             newRoomSize !== '' && (
@@ -1711,7 +1673,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
                     min="0"
                     max="1000"
                           placeholder="People"
-                          value={newRoomOccupants}
+                          value={newRoomOccupants ?? ""}
                           onChange={(e) => setNewRoomOccupants(e.target.value === '' ? '' : Number(e.target.value))}
                           className={`w-full bg-slate-900 text-white rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none transition-colors border ${
                             newRoomOccupants !== '' && (Number(newRoomOccupants) < 0 || Number(newRoomOccupants) > 1000)
@@ -1791,11 +1753,27 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
               results: results
             }} 
           />
-          {results.auditTrail && results.auditTrail.length > 0 && (
-             <EngineeringAuditTrail title="ASHRAE Fundamentals & 15 Audit Log" trail={results.auditTrail} className="mt-6" />
-          )}
-          {vrfResults.auditTrail && vrfResults.auditTrail.length > 0 && (
-             <EngineeringAuditTrail title="VRF / AHRI 1230 System Audit Log" trail={vrfResults.auditTrail} className="mt-6" />
+
+          {((results.auditTrail && results.auditTrail.length > 0) || (vrfResults.auditTrail && vrfResults.auditTrail.length > 0)) && (
+            <div className="mt-10 border-t border-slate-800/60 pt-8">
+              <div className="flex items-center mb-6">
+                <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center mr-3 border border-slate-700">
+                  <BookOpen className="w-4 h-4 text-sky-400" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">Engineering Compliance & Audit Logs</h2>
+                  <p className="text-xs text-slate-500 mt-1">Detailed thermodynamic traces, standard references, and revision statuses.</p>
+                </div>
+              </div>
+              <div className="space-y-6">
+                {results.auditTrail && results.auditTrail.length > 0 && (
+                  <AuditTrailTable title="ASHRAE Fundamentals & 15 Audit Log" trail={results.auditTrail} />
+                )}
+                {vrfResults.auditTrail && vrfResults.auditTrail.length > 0 && (
+                  <AuditTrailTable title="VRF / AHRI 1230 System Audit Log" trail={vrfResults.auditTrail} />
+                )}
+              </div>
+            </div>
           )}
 
         </div>
