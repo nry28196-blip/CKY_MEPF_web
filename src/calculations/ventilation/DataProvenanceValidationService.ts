@@ -8,18 +8,18 @@ export interface DataProvenanceValidationResult {
 }
 
 export class DataProvenanceValidationService {
-  static isSourceTypeAcceptable(sourceType: SourceType): boolean {
+  static isAshraeSourceTypeAcceptable(sourceType: SourceType): boolean {
     return sourceType === 'ASHRAE_PUBLISHED' || 
            sourceType === 'ASHRAE_PUBLISHED_ADDENDUM' || 
-           sourceType === 'ASHRAE_PUBLISHED_ERRATA' || 
-           sourceType === 'PROJECT_SPECIFICATION' || 
-           sourceType === 'ADOPTED_CODE';
+           sourceType === 'ASHRAE_PUBLISHED_ERRATA'; 
+            
+           
   }
 
   static validateProvenance(provenance: DataProvenance | undefined): boolean {
     if (!provenance) return false;
     if (provenance.verificationStatus !== 'VERIFIED') return false;
-    if (!this.isSourceTypeAcceptable(provenance.sourceType)) return false;
+    if (!this.isAshraeSourceTypeAcceptable(provenance.sourceType)) return false;
     if (!provenance.reference) return false;
     return true;
   }
@@ -51,7 +51,7 @@ export class DataProvenanceValidationService {
       }
       if (spaceType.provenance.reference && !this.validateProvenance(spaceType.provenance.reference)) reasons.push('Missing Reference');
     } else {
-      if (spaceType.verificationStatus !== 'VERIFIED' || !this.isSourceTypeAcceptable(spaceType.sourceType)) {
+      if (spaceType.verificationStatus !== 'VERIFIED' || !this.isAshraeSourceTypeAcceptable(spaceType.sourceType)) {
         reasons.push('Unverified Space Type');
       }
     }
@@ -94,7 +94,7 @@ export class DataProvenanceValidationService {
       if (!this.validateProvenance(ezConfig.provenance.applicability)) reasons.push('Unverified Ez Applicability');
       if (ezConfig.provenance.reference && !this.validateProvenance(ezConfig.provenance.reference)) reasons.push('Missing Ez Reference');
     } else {
-      if (ezConfig.verificationStatus !== 'VERIFIED' || !this.isSourceTypeAcceptable(ezConfig.sourceType)) {
+      if (ezConfig.verificationStatus !== 'VERIFIED' || !this.isAshraeSourceTypeAcceptable(ezConfig.sourceType)) {
         reasons.push('Unverified Ez');
       }
     }

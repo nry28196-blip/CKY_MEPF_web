@@ -14,7 +14,7 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
       operatingCondition: 'continuous',
       reference: 'Table 6.5',
       edition: '2025',
-      revisionState: { standard: 'ASHRAE 62.1', edition: '2025', baseEdition: '2025', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '', source: 'NOT_VERIFIED' }, sourceType: 'UNVERIFIED_DRAFT'
+      revisionState: { standard: 'ASHRAE 62.1', edition: '2025', baseEdition: '2025', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '', source: 'NOT_VERIFIED' }, sourceType: 'PUBLIC_REVIEW_DRAFT'
     };
 
     const result = Ashrae621ExhaustService.calculate({
@@ -38,7 +38,7 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
       operatingCondition: 'continuous',
       reference: 'Table 6.5',
       edition: '2025',
-      revisionState: { standard: 'ASHRAE 62.1', edition: '2025', baseEdition: '2025', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '', source: 'NOT_VERIFIED' }, sourceType: 'UNVERIFIED_DRAFT'
+      revisionState: { standard: 'ASHRAE 62.1', edition: '2025', baseEdition: '2025', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '', source: 'NOT_VERIFIED' }, sourceType: 'PUBLIC_REVIEW_DRAFT'
     };
 
     const result = Ashrae621ExhaustService.calculate({
@@ -73,7 +73,7 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
       operatingCondition: 'continuous',
       reference: 'Table 6.5',
       edition: '2025',
-      revisionState: { standard: 'ASHRAE 62.1', edition: '2025', baseEdition: '2025', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '', source: 'NOT_VERIFIED' }, sourceType: 'UNVERIFIED_DRAFT'
+      revisionState: { standard: 'ASHRAE 62.1', edition: '2025', baseEdition: '2025', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '', source: 'NOT_VERIFIED' }, sourceType: 'PUBLIC_REVIEW_DRAFT'
     };
 
     const result = Ashrae621ExhaustService.calculate({
