@@ -56,8 +56,12 @@ export class DataProvenanceValidationService {
       }
     }
 
+    
     const valid = reasons.length === 0;
     let status: ValidationStatus = 'PASS';
+
+    
+
     
     if (!valid) {
       if (reasons.some(r => r.includes('Missing') || r.includes('Mismatch') || r.includes('Invalid'))) {
@@ -95,8 +99,10 @@ export class DataProvenanceValidationService {
       }
     }
 
+    
     const valid = reasons.length === 0;
     let status: ValidationStatus = 'PASS';
+    
     
     if (!valid) {
       if (reasons.some(r => r.includes('Missing') || r.includes('Mismatch') || r.includes('Invalid'))) {

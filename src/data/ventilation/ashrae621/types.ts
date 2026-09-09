@@ -2,7 +2,7 @@
 export type AshraeEdition = '2019' | '2022' | '2025';
 
 export type VerificationStatus = 'VERIFIED' | 'NOT_VERIFIED' | 'INVALID';
-export type SourceType = 'ASHRAE_PUBLISHED' | 'ASHRAE_PUBLISHED_ADDENDUM' | 'ASHRAE_PUBLISHED_ERRATA' | 'PROJECT_SPECIFICATION' | 'ADOPTED_CODE' | 'PUBLIC_REVIEW_DRAFT' | 'UNKNOWN' | 'UNVERIFIED_DRAFT' | string;
+export type SourceType = 'ASHRAE_PUBLISHED' | 'ASHRAE_PUBLISHED_ADDENDUM' | 'ASHRAE_PUBLISHED_ERRATA' | 'PROJECT_SPECIFICATION' | 'ADOPTED_CODE' | 'PUBLIC_REVIEW_DRAFT' | 'UNKNOWN' | 'UNVERIFIED_DRAFT';
 
 export interface StandardRevision {
     standard: string;
@@ -86,7 +86,7 @@ export interface Ashrae621AirQualityStandards {
 }
 
 export interface DataProvenance {
-  value: number | string;
+  value: number
   unit?: string;
   standard: string;
   edition: string;
