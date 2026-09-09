@@ -27,6 +27,7 @@ export interface Ashrae621SpaceType {
   revisionState: StandardRevision;
   sourceType: string;
   verificationDate?: string;
+  provenance?: SpaceTypeProvenance;
 }
 
 export interface Ashrae621Ez {
@@ -43,6 +44,7 @@ export interface Ashrae621Ez {
   revisionState: StandardRevision;
   sourceType: string;
   verificationDate?: string;
+  provenance?: EzProvenance;
 }
 
 export interface Ashrae621ExhaustType {
@@ -75,4 +77,29 @@ export interface Ashrae621ExhaustClass {
 export interface Ashrae621AirQualityStandards {
   filtrationRequirements: Ashrae621FiltrationRequirements;
   exhaustClasses: Ashrae621ExhaustClass[];
+}
+
+export interface DataProvenance {
+  value: number | string;
+  unit?: string;
+  standard: string;
+  edition: string;
+  reference: string;
+  sourceType: string;
+  revision: string;
+  verificationDate?: string;
+}
+
+export interface SpaceTypeProvenance {
+  rp?: DataProvenance;
+  ra?: DataProvenance;
+  defaultOccupancy?: DataProvenance;
+  airClass?: DataProvenance;
+  reference?: DataProvenance;
+}
+
+export interface EzProvenance {
+  ez?: DataProvenance;
+  applicability?: DataProvenance;
+  reference?: DataProvenance;
 }

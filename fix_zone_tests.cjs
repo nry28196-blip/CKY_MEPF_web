@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest';
+const fs = require('fs');
+
+const content = `import { describe, it, expect } from 'vitest';
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 
 describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
   const officeSpace = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
-  const ezCeiling = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+  const ezCeiling = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ceiling_cool')!;
 
   const makeVerified = (item: any) => {
     if (!item) return item;
@@ -142,7 +144,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
 
   it('6. TEST FOR REAL ACTIVE DATABASE', () => {
     const productionOffice = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office');
-    const productionEz = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1');
+    const productionEz = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ceiling_cool');
 
     expect(productionOffice).toBeDefined();
     expect(productionEz).toBeDefined();
@@ -201,3 +203,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
     });
   });
 });
+`;
+
+fs.writeFileSync('src/tests/ventilation/ashrae-621-zone.test.ts', content);
+

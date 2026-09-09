@@ -1,5 +1,5 @@
 import { Ashrae622Coefficients } from "../types";
-import { Ashrae622Coefficients } from '../2025/data';
+
 
 export const ASHRAE_622_2019_COEFFICIENTS: Ashrae622Coefficients = {
   areaCoefficientSI: 0.15,

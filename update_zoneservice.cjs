@@ -1,52 +1,9 @@
-import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
-import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/types';
+const fs = require('fs');
+const file = 'src/calculations/ventilation/Ashrae621ZoneService.ts';
+let content = fs.readFileSync(file, 'utf8');
 
-export interface AuditTrailItem {
-  symbol: string;
-  name: string;
-  formula: string;
-  inputs: Record<string, number | string>;
-  result: number | string | null;
-  unit: string;
-  reference: string;
-  revision?: string;
-  status?: 'PASS' | 'FAIL' | 'VERIFIED' | 'NOT_VERIFIED' | 'ESTIMATED' | 'DERIVED' | string;
-}
-
-export interface ZoneVentilationInput {
-  expectedStandard: string;
-  expectedEdition: string;
-  spaceType: Ashrae621SpaceType | null;
-  area: number; // m2
-  designOccupancy: number | null;
-  useDefaultOccupancy: boolean;
-  ezConfig: Ashrae621Ez | null;
-}
-
-export interface ZoneVentilationResult {
-  reason?: string;
-  standard: string;
-  edition: string;
-  revision: string;
-  references: string[];
-  az: number | null; // m2
-  pz: number | null; // people
-  rp: number | null; // L/s-person
-  ra: number | null; // L/s-m2
-  vbp: number | null; // L/s
-  vba: number | null; // L/s
-  vbz: number | null; // L/s
-  ez: number | null;
-  voz: number | null; // L/s
-  occupancySource: 'design' | 'default' | null;
-  occupancyDensityUsed: number | null;
-  populationBeforeDisplayRounding: number | null;
-  status: ValidationStatus;
-  auditTrail: AuditTrailItem[];
-}
-
-export class Ashrae621ZoneService {
-  static calculateZone(input: ZoneVentilationInput): ZoneVentilationResult {
+// I will rewrite calculateZone completely
+const replacement = `  static calculateZone(input: ZoneVentilationInput): ZoneVentilationResult {
     const auditTrail: AuditTrailItem[] = [];
     const statuses: ValidationStatus[] = [];
 
@@ -171,21 +128,7 @@ export class Ashrae621ZoneService {
       revision: input.spaceType.revisionState?.source || '',
       references: [input.spaceType.reference, input.ezConfig.reference]
     };
-  }
+  }`;
 
-  private static emptyResult(status: ValidationStatus, reason: string): ZoneVentilationResult {
-    return {
-      reason,
-      az: null, pz: null, rp: null, ra: null, vbp: null, vba: null, vbz: null, ez: null, voz: null,
-      occupancySource: null,
-      occupancyDensityUsed: null,
-      populationBeforeDisplayRounding: null,
-      status,
-      auditTrail: [],
-      standard: '',
-      edition: '',
-      revision: '',
-      references: []
-    };
-  }
-}
+content = content.replace(/  static calculateZone\([\s\S]*?  private static emptyResult/m, replacement + "\n\n  private static emptyResult");
+fs.writeFileSync(file, content);

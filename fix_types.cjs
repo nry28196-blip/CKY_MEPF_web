@@ -1,49 +1,44 @@
 const fs = require('fs');
+let content = fs.readFileSync('src/data/ventilation/ashrae621/types.ts', 'utf8');
 
-const content = `export interface Ashrae621SpaceType {
-  id: string;
-  name: string;
+const newTypes = `
+export interface DataProvenance {
+  value: number | string;
+  unit?: string;
   standard: string;
   edition: string;
-  category: string;
-  rpMetric: number; // L/s-person
-  raMetric: number; // L/s-m2
-  defaultOccupancyMetric: number; // persons/100m2
-  units: string;
-  exhaustRequired: boolean;
   reference: string;
-  notes: string;
-  revisionSource: string;
+  sourceType: string;
+  revision: string;
   verificationDate?: string;
 }
 
-export interface Ashrae621Ez {
-  standard: string;
-  edition: string;
-  configuration: string;
-  applicableCondition: string;
-  supplyArrangement: string;
-  returnArrangement: string;
-  revision: string;
-  id: string;
-  name: string;
-  ez: number;
-  reference: string;
-  verificationDate?: string;
+export interface SpaceTypeProvenance {
+  rp?: DataProvenance;
+  ra?: DataProvenance;
+  defaultOccupancy?: DataProvenance;
+  airClass?: DataProvenance;
+  reference?: DataProvenance;
 }
 
-export interface Ashrae621ExhaustType {
-  id: string;
-  name: string;
-  category: string;
-  rate: number;
-  unitType: 'fixture' | 'm2' | 'room' | 'equipment';
-  operatingCondition: string;
-  exhaustClass: number;
-  reference: string;
-  edition: string;
-  revision: string;
-  verificationDate?: string;
-}`;
+export interface EzProvenance {
+  ez?: DataProvenance;
+  applicability?: DataProvenance;
+}
+`;
+
+if (!content.includes('DataProvenance')) {
+  content = content + newTypes;
+}
+
+content = content.replace(
+  "sourceType: string;\n  verificationDate?: string;",
+  "sourceType: string;\n  verificationDate?: string;\n  provenance?: SpaceTypeProvenance;"
+);
+
+content = content.replace(
+  "sourceType: string;\n  verificationDate?: string;\n}",
+  "sourceType: string;\n  verificationDate?: string;\n  provenance?: EzProvenance;\n}"
+);
 
 fs.writeFileSync('src/data/ventilation/ashrae621/types.ts', content);
