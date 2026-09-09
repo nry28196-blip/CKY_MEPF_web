@@ -182,7 +182,13 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
     <div className="space-y-6">
       <EngineeringStatusHeader 
         status={engineResult.status} 
-        message={`ASHRAE 62.1-${edition} Ventilation - ${engineResult.status === 'PASS' ? 'Calculation validated' : 'Check required inputs'}`} 
+        message={
+          engineResult.status === 'PASS' 
+            ? `ASHRAE 62.1-${edition} Ventilation - Calculation validated` 
+            : engineResult.status === 'NOT_VERIFIED' 
+              ? `ASHRAE 62.1-${edition} Ventilation - Data not verified against current published source.`
+              : `ASHRAE 62.1-${edition} Ventilation - Check required inputs`
+        } 
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -1,6 +1,9 @@
 
 export type AshraeEdition = '2019' | '2022' | '2025';
 
+export type VerificationStatus = 'VERIFIED' | 'NOT_VERIFIED' | 'INVALID';
+export type SourceType = 'ASHRAE_PUBLISHED' | 'ASHRAE_PUBLISHED_ADDENDUM' | 'ASHRAE_PUBLISHED_ERRATA' | 'PROJECT_SPECIFICATION' | 'ADOPTED_CODE' | 'PUBLIC_REVIEW_DRAFT' | 'UNKNOWN' | 'UNVERIFIED_DRAFT' | string;
+
 export interface StandardRevision {
     standard: string;
     edition: string;
@@ -25,7 +28,8 @@ export interface Ashrae621SpaceType {
   reference: string;
   notes: string;
   revisionState: StandardRevision;
-  sourceType: string;
+  sourceType: SourceType;
+  verificationStatus: VerificationStatus;
   verificationDate?: string;
   provenance?: SpaceTypeProvenance;
 }
@@ -42,7 +46,8 @@ export interface Ashrae621Ez {
   ez: number;
   reference: string;
   revisionState: StandardRevision;
-  sourceType: string;
+  sourceType: SourceType;
+  verificationStatus: VerificationStatus;
   verificationDate?: string;
   provenance?: EzProvenance;
 }
@@ -58,7 +63,8 @@ export interface Ashrae621ExhaustType {
   reference: string;
   edition: string;
   revisionState: StandardRevision;
-  sourceType: string;
+  sourceType: SourceType;
+  verificationStatus: VerificationStatus;
   verificationDate?: string;
 }
 
@@ -85,7 +91,8 @@ export interface DataProvenance {
   standard: string;
   edition: string;
   reference: string;
-  sourceType: string;
+  sourceType: SourceType;
+  verificationStatus: VerificationStatus;
   revision: string;
   verificationDate?: string;
 }

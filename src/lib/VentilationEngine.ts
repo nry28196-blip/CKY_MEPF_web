@@ -13,8 +13,8 @@ export interface SingleZoneInput {
 export interface SingleZoneResult {
   zone: ZoneVentilationResult;
   density: DensityResult;
-  vozStandard: number; // L/s
-  votStandard: number; // L/s (for single zone, Vot = Voz)
+  vozStandard: number | null; // L/s
+  votStandard: number | null; // L/s (for single zone, Vot = Voz)
   votDensityCorrected: number | null; // L/s
   finalDesignOutdoorAir: number | null; // The authoritative final value
   auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[];
@@ -55,9 +55,9 @@ export class VentilationEngine {
     const statuses = [zoneResult.status, densityResult.status];
     const status = VentilationValidationService.aggregateStatus(statuses);
     
-    if (status === 'FAIL' || status === 'INCOMPLETE') {
+    if (status === 'FAIL' || status === 'INCOMPLETE' || status === 'NOT_VERIFIED') {
         return {
-          zone: zoneResult, density: densityResult, vozStandard: zoneResult.voz, votStandard: zoneResult.voz, 
+          zone: zoneResult, density: densityResult, vozStandard: null, votStandard: null, 
           votDensityCorrected: null, finalDesignOutdoorAir: null, auditTrail: [], revisionState: input.zone?.spaceType?.revisionState.source || 'Unknown', status
         };
     }
@@ -181,7 +181,7 @@ export class VentilationEngine {
     let votStandard: number | null = null;
     let votDensityCorrected: number | null = null;
     
-    if (status !== 'FAIL' && status !== 'INCOMPLETE' && status !== 'NOT_EVALUATED' && ev !== null && ev > 0 && vou !== null) {
+    if (status !== 'FAIL' && status !== 'INCOMPLETE' && status !== 'NOT_VERIFIED' && status !== 'NOT_EVALUATED' && ev !== null && ev > 0 && vou !== null) {
       votStandard = vou / ev;
       votDensityCorrected = votStandard * densityResult.eRho;
       

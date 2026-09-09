@@ -9,7 +9,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'conference', name: 'Conference/meeting', standard: 'ASHRAE 62.1', edition: '2022', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 50, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -18,7 +18,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'retail', name: 'Retail sales', standard: 'ASHRAE 62.1', edition: '2022', category: 'Retail', rpMetric: 3.8, raMetric: 0.6, defaultOccupancyMetric: 15, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -27,7 +27,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'classroom', name: 'Classroom (ages 9+)', standard: 'ASHRAE 62.1', edition: '2022', category: 'Education', rpMetric: 5.0, raMetric: 0.6, defaultOccupancyMetric: 35, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -36,7 +36,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'corridor', name: 'Corridor', standard: 'ASHRAE 62.1', edition: '2022', category: 'General', rpMetric: 0, raMetric: 0.3, defaultOccupancyMetric: 0, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -45,7 +45,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' }
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' }
 ];
 
 export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
@@ -57,7 +57,7 @@ export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'ez-2', name: 'Ceiling Supply / Ceiling Return (Heating, >= 8C diff)', ez: 0.8, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Ceiling Supply / Ceiling Return', applicableCondition: 'Heating >= 8C diff', supplyArrangement: 'Ceiling', returnArrangement: 'Ceiling', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -66,7 +66,7 @@ export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'ez-3', name: 'Floor Supply / Ceiling Return (Low Velocity)', ez: 1.2, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Floor Supply / Ceiling Return', applicableCondition: 'Low Velocity', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -75,7 +75,7 @@ export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'ez-4', name: 'Floor Supply / Ceiling Return (High Velocity)', ez: 1.0, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Floor Supply / Ceiling Return', applicableCondition: 'High Velocity', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -84,7 +84,7 @@ export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' }
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' }
 ];
 
 export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
@@ -96,7 +96,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'toilet_private', name: 'Toilet rooms - Private', category: 'Private', rate: 12.5, unitType: 'fixture', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2022', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -105,7 +105,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'kitchen_commercial', name: 'Commercial kitchen', category: 'Commercial', rate: 3.5, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 3, reference: 'Table 6.5.1', edition: '2022', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -114,7 +114,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'parking_garage', name: 'Enclosed parking garage', category: 'Parking', rate: 3.7, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2022', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -123,7 +123,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'janitor', name: 'Janitor closet', category: 'Service', rate: 5.0, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2022', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -132,7 +132,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' },
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' },
   { id: 'copy_room', name: 'Copy, printing room', category: 'Office', rate: 2.5, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2022', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2022',
@@ -141,7 +141,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: 'NOT_VERIFIED'
-  }, sourceType: 'UNVERIFIED_DRAFT' }
+  }, sourceType: 'UNVERIFIED_DRAFT', verificationStatus: 'NOT_VERIFIED' }
 ];
 
 export * from '../types';

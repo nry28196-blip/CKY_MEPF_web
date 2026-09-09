@@ -1,5 +1,6 @@
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
 import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/types';
+import { DataProvenanceValidationService } from './DataProvenanceValidationService';
 
 export interface AuditTrailItem {
   symbol: string;
@@ -56,6 +57,7 @@ export class Ashrae621ZoneService {
     if (!input.ezConfig) {
       return this.emptyResult('INCOMPLETE', 'Missing Ez configuration');
     }
+
     if (input.area === null || isNaN(input.area) || input.area <= 0 || !isFinite(input.area)) {
       return this.emptyResult('FAIL', 'Invalid Area');
     }
@@ -63,41 +65,18 @@ export class Ashrae621ZoneService {
       return this.emptyResult('FAIL', 'Invalid Ez');
     }
 
-    if (input.spaceType.standard !== input.expectedStandard || input.ezConfig.standard !== input.expectedStandard) {
-      return this.emptyResult('INCOMPLETE', 'Invalid Standard Configuration');
-    }
-    if (input.spaceType.edition !== input.expectedEdition || input.ezConfig.edition !== input.expectedEdition) {
-      return this.emptyResult('INCOMPLETE', 'Edition Mismatch');
-    }
-    if (input.spaceType.revisionState?.standard !== input.expectedStandard || input.spaceType.revisionState?.edition !== input.expectedEdition) {
-      return this.emptyResult('INCOMPLETE', 'Revision Mismatch');
+    const spaceTypeValidation = DataProvenanceValidationService.validateSpaceTypeData(
+      input.spaceType, input.expectedStandard, input.expectedEdition, input.useDefaultOccupancy
+    );
+    if (!spaceTypeValidation.valid) {
+      return this.emptyResult(spaceTypeValidation.status, spaceTypeValidation.reasons[0]);
     }
 
-    // Check specific provenances if available, otherwise fallback to record level
-    if (input.spaceType.provenance?.reference?.sourceType === 'NOT_VERIFIED' || input.spaceType.provenance?.reference?.sourceType === 'UNVERIFIED_DRAFT' || !input.spaceType.reference) {
-      return this.emptyResult('NOT_VERIFIED', 'Missing Reference');
-    }
-    if (input.ezConfig.provenance?.reference?.sourceType === 'NOT_VERIFIED' || input.ezConfig.provenance?.reference?.sourceType === 'UNVERIFIED_DRAFT' || !input.ezConfig.reference) {
-      return this.emptyResult('NOT_VERIFIED', 'Missing Ez Reference');
-    }
-
-    if (input.spaceType.provenance) {
-      if (input.spaceType.provenance.rp?.sourceType !== 'VERIFIED') return this.emptyResult('NOT_VERIFIED', 'Unverified Rp');
-      if (input.spaceType.provenance.ra?.sourceType !== 'VERIFIED') return this.emptyResult('NOT_VERIFIED', 'Unverified Ra');
-      if (input.useDefaultOccupancy && input.spaceType.provenance.defaultOccupancy?.sourceType !== 'VERIFIED') return this.emptyResult('NOT_VERIFIED', 'Unverified Occupancy Density');
-    } else {
-      if (input.spaceType.sourceType === 'UNVERIFIED_DRAFT' || input.spaceType.sourceType === 'UNKNOWN' || input.spaceType.revisionState?.source === 'NOT_VERIFIED') {
-        return this.emptyResult('NOT_VERIFIED', 'Unverified Space Type');
-      }
-    }
-
-    if (input.ezConfig.provenance) {
-      if (input.ezConfig.provenance.ez?.sourceType !== 'VERIFIED') return this.emptyResult('NOT_VERIFIED', 'Unverified Ez');
-      if (input.ezConfig.provenance.applicability?.sourceType !== 'VERIFIED') return this.emptyResult('NOT_VERIFIED', 'Unverified Ez Applicability');
-    } else {
-      if (input.ezConfig.sourceType === 'UNVERIFIED_DRAFT' || input.ezConfig.sourceType === 'UNKNOWN' || input.ezConfig.revisionState?.source === 'NOT_VERIFIED') {
-        return this.emptyResult('NOT_VERIFIED', 'Unverified Ez');
-      }
+    const ezValidation = DataProvenanceValidationService.validateEzData(
+      input.ezConfig, input.expectedStandard, input.expectedEdition
+    );
+    if (!ezValidation.valid) {
+      return this.emptyResult(ezValidation.status, ezValidation.reasons[0]);
     }
 
     const az = input.area;
