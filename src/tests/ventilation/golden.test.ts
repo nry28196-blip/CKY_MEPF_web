@@ -18,6 +18,7 @@ const makeVerified = (item: any) => {
         reference: ref,
         sourceType: 'ASHRAE_PUBLISHED',
         verificationStatus: 'VERIFIED',
+        verificationDate: '2025-01-01',
         revision: '2025'
     };
 
@@ -25,13 +26,14 @@ const makeVerified = (item: any) => {
       ...item,
       sourceType: 'ASHRAE_PUBLISHED',
       verificationStatus: 'VERIFIED',
+        verificationDate: '2025-01-01',
       reference: ref,
       revisionState: {
         ...item.revisionState,
         standard: 'ASHRAE 62.1',
         edition: '2025',
         baseEdition: '2025',
-        source: 'VERIFIED'
+        source: 'ASHRAE_PUBLISHED'
       },
       provenance: item.category ? {
           rp: { ...fakeProvenanceItem, value: item.rpMetric },

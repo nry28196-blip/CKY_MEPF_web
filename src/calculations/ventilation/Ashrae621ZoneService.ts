@@ -1,3 +1,4 @@
+import { AuditStatus } from '../../types';
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
 import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/types';
 import { DataProvenanceValidationService } from './DataProvenanceValidationService';
@@ -11,7 +12,7 @@ export interface AuditTrailItem {
   unit: string;
   reference: string;
   revision?: string;
-  status?: 'PASS' | 'FAIL' | 'VERIFIED' | 'NOT_VERIFIED' | 'ESTIMATED' | 'DERIVED' | string;
+  status?: AuditStatus;
 }
 
 export interface ZoneVentilationInput {
@@ -69,14 +70,22 @@ export class Ashrae621ZoneService {
       input.spaceType, input.expectedStandard, input.expectedEdition, input.useDefaultOccupancy
     );
     if (!spaceTypeValidation.valid) {
-      return this.emptyResult(spaceTypeValidation.status, spaceTypeValidation.reasons[0]);
+      let reason = spaceTypeValidation.reasons[0];
+      if (spaceTypeValidation.status === 'BLOCKED') {
+        reason = `Calculation blocked: ${input.expectedStandard}-${input.expectedEdition} ${reason}`;
+      }
+      return this.emptyResult(spaceTypeValidation.status, reason);
     }
 
     const ezValidation = DataProvenanceValidationService.validateEzData(
       input.ezConfig, input.expectedStandard, input.expectedEdition
     );
     if (!ezValidation.valid) {
-      return this.emptyResult(ezValidation.status, ezValidation.reasons[0]);
+      let reason = ezValidation.reasons[0];
+      if (ezValidation.status === 'BLOCKED') {
+        reason = `Calculation blocked: ${input.expectedStandard}-${input.expectedEdition} ${reason}`;
+      }
+      return this.emptyResult(ezValidation.status, reason);
     }
 
     const az = input.area;
@@ -120,7 +129,7 @@ export class Ashrae621ZoneService {
       unit: 'L/s',
       reference: input.spaceType.reference,
       revision: input.spaceType.revisionState?.source || '',
-      status: 'VERIFIED'
+      status: AuditStatus.DERIVED
     });
 
     auditTrail.push({
@@ -132,7 +141,7 @@ export class Ashrae621ZoneService {
       unit: 'L/s',
       reference: input.ezConfig.reference,
       revision: input.ezConfig.revisionState?.source || '',
-      status: 'DERIVED'
+      status: AuditStatus.DERIVED
     });
 
     statuses.push('PASS');

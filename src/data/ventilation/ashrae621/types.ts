@@ -6,12 +6,12 @@ export type SourceType = 'ASHRAE_PUBLISHED' | 'ASHRAE_PUBLISHED_ADDENDUM' | 'ASH
 
 export interface StandardRevision {
     standard: string;
-    edition: string;
-    baseEdition: string;
+    edition: AshraeEdition;
+    baseEdition: AshraeEdition;
     publishedAddendaApplied: string[];
     publishedErrataApplied: string[];
     verificationDate: string;
-    source: string;
+    source: SourceType;
 }
 
 export interface Ashrae621SpaceType {

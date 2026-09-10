@@ -1,5 +1,6 @@
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
 import { AuditTrailItem } from './Ashrae621ZoneService';
+import { AuditStatus } from '../../types';
 
 export interface SimplifiedSystemZoneInput {
   id: string;
@@ -62,7 +63,8 @@ export class Ashrae621SimplifiedSystemService {
       inputs: { 'Ps': ps, 'ΣPz': sumPz },
       result: d,
       unit: '',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3'
+      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3',
+      status: AuditStatus.DERIVED
     });
     
     auditTrail.push({
@@ -72,7 +74,8 @@ export class Ashrae621SimplifiedSystemService {
       inputs: { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz },
       result: vou,
       unit: 'L/s',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3'
+      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3',
+      status: AuditStatus.DERIVED
     });
 
     auditTrail.push({
@@ -82,7 +85,8 @@ export class Ashrae621SimplifiedSystemService {
       inputs: { 'D': d },
       result: ev,
       unit: '',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3'
+      reference: 'ASHRAE 62.1-2025 Section 6.2.5.3',
+      status: AuditStatus.DERIVED
     });
 
     statuses.push('PASS');

@@ -17,6 +17,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         reference: ref,
         sourceType: 'ASHRAE_PUBLISHED',
         verificationStatus: 'VERIFIED',
+        verificationDate: '2025-01-01',
         revision: '2025'
     };
 
@@ -24,13 +25,14 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
       ...item,
       sourceType: 'ASHRAE_PUBLISHED',
       verificationStatus: 'VERIFIED',
+        verificationDate: '2025-01-01',
       reference: ref,
       revisionState: {
         ...item.revisionState,
         standard: 'ASHRAE 62.1',
         edition: '2025',
         baseEdition: '2025',
-        source: 'VERIFIED'
+        source: 'ASHRAE_PUBLISHED'
       },
       provenance: item.category ? {
           rp: { ...fakeProvenanceItem, value: item.rpMetric },
@@ -122,8 +124,8 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
       ezConfig: ezCeiling
     });
 
-    expect(result.status).toBe('NOT_VERIFIED');
-    expect(result.reason).toBe('Unverified Space Type');
+    expect(result.status).toBe('BLOCKED');
+    expect(result.reason).toBe('Calculation blocked: ASHRAE 62.1-2025 Unverified Space Type');
     expect(result.vbz).toBeNull();
     expect(result.voz).toBeNull();
   });
@@ -159,13 +161,13 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
       ezConfig: verifiedEz
     });
 
-    expect(result.status).toBe('NOT_VERIFIED');
-    expect(result.reason).toBe('Missing Reference');
+    expect(result.status).toBe('BLOCKED');
+    expect(result.reason).toBe('Calculation blocked: ASHRAE 62.1-2025 Missing Reference');
     expect(result.vbz).toBeNull();
   });
 
   it('5.1 GOLDEN TEST — UNVERIFIED EZ PROVENANCE', () => {
-    const unverifiedEz = { ...verifiedEz, sourceType: 'PUBLIC_REVIEW_DRAFT', revisionState: { ...verifiedEz.revisionState, source: 'NOT_VERIFIED' } };
+    const unverifiedEz = { ...verifiedEz, sourceType: 'PUBLIC_REVIEW_DRAFT', revisionState: { ...verifiedEz.revisionState, source: 'UNKNOWN' } };
     delete unverifiedEz.provenance;
 
     const result = Ashrae621ZoneService.calculateZone({
@@ -178,8 +180,8 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
       ezConfig: unverifiedEz
     });
 
-    expect(result.status).toBe('NOT_VERIFIED');
-    expect(result.reason).toBe('Unverified Ez');
+    expect(result.status).toBe('BLOCKED');
+    expect(result.reason).toBe('Calculation blocked: ASHRAE 62.1-2025 Unverified Ez');
     expect(result.voz).toBeNull();
   });
 
@@ -192,10 +194,10 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
 
     // Verify it is NOT VERIFIED in the real active database (safety check)
     expect(productionOffice!.sourceType).toBe('PUBLIC_REVIEW_DRAFT');
-    expect(productionOffice!.revisionState.source).toBe('NOT_VERIFIED');
+    expect(productionOffice!.revisionState.source).toBe('UNKNOWN');
     
     // Explicitly report as requested
-    if (productionOffice!.sourceType !== 'VERIFIED') {
+    if (productionOffice!.verificationStatus !== 'VERIFIED') {
       console.warn("Production Office data is not verified.");
     }
   });
@@ -300,7 +302,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
     it('25. TEST — ADOPTED CODE', () => {
       const office = makeWithProvenance('ADOPTED_CODE', 'VERIFIED');
@@ -308,7 +310,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
     it('26. TEST — PUBLIC REVIEW', () => {
       const office = makeWithProvenance('PUBLIC_REVIEW_DRAFT', 'VERIFIED');
@@ -316,7 +318,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
     it('27. TEST — UNKNOWN', () => {
       const office = makeWithProvenance('UNKNOWN', 'VERIFIED');
@@ -324,7 +326,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
     it('28. TEST — CURRENT OFFICE 2025 DATA', () => {
       const result = Ashrae621ZoneService.calculateZone({
@@ -334,7 +336,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         ezConfig: ASHRAE_621_2025_EZ_VALUES.find(e => e.id === 'ez-1')!
       });
       console.log('REASON FOR TEST 28:', result.reason);
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
     it('29. TEST — FIELD-LEVEL VERIFICATION', () => {
       const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
@@ -349,7 +351,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
     it('30. TEST — EZ APPLICABILITY', () => {
       const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
@@ -361,7 +363,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
     it('31. TEST — EDITION MISMATCH', () => {
       const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
@@ -380,7 +382,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: projectReq, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
       it('B-22. TEST — PROVENANCE EDITION MISMATCH', () => {
       const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
@@ -427,7 +429,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
 
     it('B-30. TEST — CONTRADICTORY STATUS', () => {
@@ -437,7 +439,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
 
     it('B-31. TEST — PARTIALLY VERIFIED OFFICE', () => {
@@ -449,7 +451,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
 
     it('B-32. TEST — PARTIALLY VERIFIED EZ', () => {
@@ -462,7 +464,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
       });
-      expect(result.status).toBe('NOT_VERIFIED');
+      expect(result.status).toBe('BLOCKED');
     });
 
     it('B-33. TEST — COMPLETE VERIFIED FIXTURE', () => {
@@ -487,6 +489,144 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
           }
       }
       expect(passedCount).toBe(0);
+    });
+      it('C-A. TEST — VERIFIED + ASHRAE_PUBLISHED + matching standard/edition/revision', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('C-B. TEST — VERIFIED + PUBLIC_REVIEW_DRAFT', () => {
+      const office = makeWithProvenance('PUBLIC_REVIEW_DRAFT', 'VERIFIED');
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-C. TEST — VERIFIED + UNKNOWN', () => {
+      const office = makeWithProvenance('UNKNOWN', 'VERIFIED');
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-D. TEST — NOT_VERIFIED + ASHRAE_PUBLISHED', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'NOT_VERIFIED');
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-E. TEST — edition mismatch', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      if (office.provenance && office.provenance.rp) office.provenance.rp.edition = '2022';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-F. TEST — standard mismatch', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      if (office.provenance && office.provenance.rp) office.provenance.rp.standard = 'ASHRAE 62.2';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-G. TEST — revision mismatch', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      if (office.provenance && office.provenance.rp) office.provenance.rp.revision = '2022';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-H. TEST — missing reference', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      if (office.provenance && office.provenance.rp) delete (office.provenance.rp as any).reference;
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-I. TEST — missing verificationDate for VERIFIED data', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      if (office.provenance && office.provenance.rp) delete (office.provenance.rp as any).verificationDate;
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-J. TEST — default occupancy enabled + unverified occupancy data', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      if (office.provenance && office.provenance.defaultOccupancy) office.provenance.defaultOccupancy.verificationStatus = 'NOT_VERIFIED';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: null, useDefaultOccupancy: true, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-K. TEST — default occupancy disabled + valid user design occupancy', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      if (office.provenance && office.provenance.defaultOccupancy) office.provenance.defaultOccupancy.verificationStatus = 'NOT_VERIFIED';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('C-L. TEST — contradictory parent and field provenance', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      office.verificationStatus = 'NOT_VERIFIED';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-M. TEST — source field containing "NOT_VERIFIED"', () => {
+      const office = makeWithProvenance('ASHRAE_PUBLISHED', 'VERIFIED');
+      (office.revisionState.source as any) = 'NOT_VERIFIED';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+  expect(result.status).toBe('BLOCKED');
+    });
+
+    it('C-O. TEST — blocked calculation returns null engineering outputs', () => {
+      const office = makeWithProvenance('UNKNOWN', 'VERIFIED'); // This will block
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
+        spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: verifiedEz
+      });
+      expect(result.status).toBe('BLOCKED');
+      expect(result.vbz).toBeNull();
+      expect(result.voz).toBeNull();
+      expect(result.vbp).toBeNull();
+      expect(result.vba).toBeNull();
     });
   });
 });

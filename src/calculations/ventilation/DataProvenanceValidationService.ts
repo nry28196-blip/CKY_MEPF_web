@@ -34,8 +34,25 @@ export class DataProvenanceValidationService {
     
     // 5. SOURCE TYPE MUST MATCH THE STANDARD
     if (!this.isAshraeSourceTypeAcceptable(provenance.sourceType)) return false;
+
+    // 8. verificationDate exists and is a valid date
+    if (!provenance.verificationDate) return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(provenance.verificationDate)) return false;
+    const d = new Date(provenance.verificationDate);
+    if (isNaN(d.getTime())) return false;
     
     return true;
+  }
+  
+  static checkParentConsistency(parent: any, prov: DataProvenance | undefined): boolean {
+      if (parent.revisionState?.source === 'VERIFIED' || parent.revisionState?.source === 'NOT_VERIFIED' || parent.revisionState?.source === 'INVALID') return false;
+      if (!prov) return true;
+      if (prov.verificationStatus === 'VERIFIED' && parent.verificationStatus === 'NOT_VERIFIED') return false;
+      if (parent.standard !== prov.standard) return false;
+      if (parent.edition !== prov.edition) return false;
+      if (parent.revisionState?.standard !== prov.standard) return false;
+      if (parent.revisionState?.edition !== prov.edition) return false;
+      return true;
   }
 
   static validateSpaceTypeData(
@@ -66,6 +83,13 @@ export class DataProvenanceValidationService {
       if (spaceType.provenance.reference && !this.validateProvenance(spaceType.provenance.reference, expectedStandard, expectedEdition)) {
         reasons.push('Missing Reference');
       }
+      
+      if (!this.checkParentConsistency(spaceType, spaceType.provenance.rp) ||
+          !this.checkParentConsistency(spaceType, spaceType.provenance.ra) ||
+          (useDefaultOccupancy && !this.checkParentConsistency(spaceType, spaceType.provenance.defaultOccupancy)) ||
+          !this.checkParentConsistency(spaceType, spaceType.provenance.reference)) {
+          reasons.push('Contradictory Parent Provenance');
+      }
     } else {
       if (spaceType.verificationStatus !== 'VERIFIED' || !this.isAshraeSourceTypeAcceptable(spaceType.sourceType)) {
         reasons.push('Unverified Space Type');
@@ -84,10 +108,10 @@ export class DataProvenanceValidationService {
     
     if (!valid) {
       if (reasons.some(r => r.includes('Missing') || r.includes('Mismatch') || r.includes('Invalid'))) {
-        status = reasons.includes('Missing Reference') ? 'NOT_VERIFIED' : 'INCOMPLETE';
+        status = reasons.includes('Missing Reference') ? 'BLOCKED' : 'INCOMPLETE';
       }
       if (reasons.some(r => r.includes('Unverified') || r.includes('Contradictory'))) {
-        status = 'NOT_VERIFIED';
+        status = 'BLOCKED';
       }
     }
 
@@ -114,6 +138,12 @@ export class DataProvenanceValidationService {
       if (ezConfig.provenance.reference && !this.validateProvenance(ezConfig.provenance.reference, expectedStandard, expectedEdition)) {
         reasons.push('Missing Ez Reference');
       }
+      
+      if (!this.checkParentConsistency(ezConfig, ezConfig.provenance.ez) ||
+          !this.checkParentConsistency(ezConfig, ezConfig.provenance.applicability) ||
+          !this.checkParentConsistency(ezConfig, ezConfig.provenance.reference)) {
+          reasons.push('Contradictory Parent Provenance');
+      }
     } else {
       if (ezConfig.verificationStatus !== 'VERIFIED' || !this.isAshraeSourceTypeAcceptable(ezConfig.sourceType)) {
         reasons.push('Unverified Ez');
@@ -125,10 +155,10 @@ export class DataProvenanceValidationService {
     
     if (!valid) {
       if (reasons.some(r => r.includes('Missing') || r.includes('Mismatch') || r.includes('Invalid'))) {
-        status = reasons.includes('Missing Ez Reference') ? 'NOT_VERIFIED' : 'INCOMPLETE';
+        status = reasons.includes('Missing Ez Reference') ? 'BLOCKED' : 'INCOMPLETE';
       }
       if (reasons.some(r => r.includes('Unverified'))) {
-        status = 'NOT_VERIFIED';
+        status = 'BLOCKED';
       }
     }
 

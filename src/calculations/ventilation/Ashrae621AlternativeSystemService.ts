@@ -1,5 +1,6 @@
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
 import { AuditTrailItem } from './Ashrae621ZoneService';
+import { AuditStatus } from '../../types';
 
 export interface AlternativeZoneInput {
   id: string;
@@ -73,7 +74,8 @@ export class Ashrae621AlternativeSystemService {
       inputs: { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz },
       result: vou,
       unit: 'L/s',
-      reference: 'ASHRAE 62.1 Alternative Procedure'
+      reference: 'ASHRAE 62.1 Alternative Procedure',
+      status: AuditStatus.DERIVED
     });
 
     let vps = 0;
@@ -98,7 +100,8 @@ export class Ashrae621AlternativeSystemService {
       inputs: {},
       result: vps,
       unit: 'L/s',
-      reference: 'ASHRAE 62.1 Alternative Procedure'
+      reference: 'ASHRAE 62.1 Alternative Procedure',
+      status: AuditStatus.DERIVED
     });
 
     // Iterative solver for Ev and Xs
@@ -117,6 +120,7 @@ export class Ashrae621AlternativeSystemService {
       let fb = ep;
       let fc = 1 - (1 - z.ez) * (1 - er) * (1 - ep);
       return { id: z.id, vpzMin, zd, ep, er, fa, fb, fc, evz: 1.0 };
+      status: AuditStatus.DERIVED
     });
 
     while (iterations < maxIterations && !converged) {
@@ -151,7 +155,8 @@ export class Ashrae621AlternativeSystemService {
       inputs: { 'Xs': xs, 'Iterations': iterations },
       result: ev,
       unit: '',
-      reference: 'ASHRAE 62.1 Alternative Procedure'
+      reference: 'ASHRAE 62.1 Alternative Procedure',
+      status: AuditStatus.DERIVED
     });
 
     const finalStatus = VentilationValidationService.aggregateStatus(statuses);
@@ -173,6 +178,7 @@ export class Ashrae621AlternativeSystemService {
         status: finalStatus,
         auditTrail: []
       };
+      status: AuditStatus.DERIVED
     });
 
     const criticalZone = zoneResults.find(zr => zr.isCritical);

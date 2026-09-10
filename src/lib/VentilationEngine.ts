@@ -1,3 +1,4 @@
+import { AuditStatus } from '../types';
 import { UnitConversionService, ft2ToM2 } from "./UnitConversionService";
 import { ValidationStatus, VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
 import { Ashrae621ZoneService, ZoneVentilationInput, ZoneVentilationResult } from '../calculations/ventilation/Ashrae621ZoneService';
@@ -412,7 +413,7 @@ export class MechanicalCoolingEngine {
       unit: 'W',
       reference: 'ASHRAE Fundamentals Ch 18 Table 1',
       revision: 'Fundamentals 2021',
-      status: 'ESTIMATED'
+      status: AuditStatus.ESTIMATED
     });
     
     auditTrail.push({
@@ -424,7 +425,7 @@ export class MechanicalCoolingEngine {
       unit: 'W',
       reference: 'ASHRAE Fundamentals Ch 18',
       revision: 'Fundamentals 2021',
-      status: 'ESTIMATED'
+      status: AuditStatus.ESTIMATED
     });
     
     auditTrail.push({
@@ -436,7 +437,7 @@ export class MechanicalCoolingEngine {
       unit: 'W',
       reference: 'ASHRAE Fundamentals Ch 18',
       revision: 'Fundamentals 2021',
-      status: 'DERIVED'
+      status: AuditStatus.DERIVED
     });
     
     auditTrail.push({
@@ -448,7 +449,7 @@ export class MechanicalCoolingEngine {
       unit: 'W',
       reference: 'ASHRAE Fundamentals Ch 18',
       revision: 'Fundamentals 2021',
-      status: 'DERIVED'
+      status: AuditStatus.DERIVED
     });
     
     auditTrail.push({
@@ -460,7 +461,7 @@ export class MechanicalCoolingEngine {
       unit: 'W',
       reference: 'ASHRAE Fundamentals Ch 18',
       revision: 'Fundamentals 2021',
-      status: 'ESTIMATED'
+      status: AuditStatus.ESTIMATED
     });
     
     auditTrail.push({
@@ -472,7 +473,7 @@ export class MechanicalCoolingEngine {
       unit: 'W',
       reference: 'ASHRAE Fundamentals Ch 18',
       revision: 'Fundamentals 2021',
-      status: 'DERIVED'
+      status: AuditStatus.DERIVED
     });
     
     auditTrail.push({
@@ -484,7 +485,7 @@ export class MechanicalCoolingEngine {
       unit: 'W',
       reference: 'ASHRAE Fundamentals Chapter 18',
       revision: 'Fundamentals 2021',
-      status: 'VERIFIED'
+      status: AuditStatus.DERIVED
     });
     
     auditTrail.push({
@@ -496,7 +497,7 @@ export class MechanicalCoolingEngine {
       unit: 'W',
       reference: 'ASHRAE Fundamentals Chapter 18',
       revision: 'Fundamentals 2021',
-      status: 'VERIFIED'
+      status: AuditStatus.DERIVED
     });
     
     return {
@@ -593,7 +594,7 @@ export class MechanicalCoolingEngine {
       unit: '%',
       reference: 'AHRI 1230 Section 3.8',
       revision: 'Standard 1230-2021',
-      status: 'VERIFIED'
+      status: AuditStatus.DERIVED
     });
 
     auditTrail.push({
@@ -605,7 +606,7 @@ export class MechanicalCoolingEngine {
       unit: 'ratio',
       reference: 'AHRI 1230 Piping Length Adjustment',
       revision: 'Standard 1230-2021',
-      status: 'DERIVED'
+      status: AuditStatus.DERIVED
     });
 
     auditTrail.push({
@@ -617,7 +618,7 @@ export class MechanicalCoolingEngine {
       unit: 'TR',
       reference: 'AHRI 1230 Piping Length Adjustment',
       revision: 'Standard 1230-2021',
-      status: 'DERIVED'
+      status: AuditStatus.DERIVED
     });
 
     auditTrail.push({
@@ -629,7 +630,7 @@ export class MechanicalCoolingEngine {
       unit: 'kg',
       reference: 'ASHRAE 15 Section 7.3.2',
       revision: 'Standard 15-2022',
-      status: 'VERIFIED'
+      status: AuditStatus.DERIVED
     });
 
     auditTrail.push({
@@ -641,7 +642,7 @@ export class MechanicalCoolingEngine {
       unit: 'kg/m³',
       reference: 'ASHRAE 15 Section 7.3.1',
       revision: 'Standard 15-2022',
-      status: toxicLimitExceeded ? 'FAIL' : 'PASS'
+      status: toxicLimitExceeded ? AuditStatus.FAIL : AuditStatus.PASS
     });
 
     return {

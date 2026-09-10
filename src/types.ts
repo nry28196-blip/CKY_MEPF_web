@@ -10,3 +10,13 @@ export interface HistoryItem {
   parameters: any;
   notes?: string;
 }
+
+export enum AuditStatus {
+  INPUT_VERIFIED = 'INPUT_VERIFIED',
+  INPUT_NOT_VERIFIED = 'INPUT_NOT_VERIFIED',
+  DERIVED = 'DERIVED',
+  PASS = 'PASS',
+  FAIL = 'FAIL',
+  BLOCKED = 'BLOCKED',
+  ESTIMATED = 'ESTIMATED'
+}

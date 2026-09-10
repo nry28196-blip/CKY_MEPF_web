@@ -8,7 +8,7 @@ describe('DATA QUALITY TEST - 62.1 2025', () => {
 
   it('1. No contradictory Verified notes in Space Types', () => {
     spaceTypes.forEach(spaceType => {
-      const isVerifiedStatus = spaceType.verificationStatus === 'VERIFIED' && spaceType.revisionState.source === 'VERIFIED';
+      const isVerifiedStatus = spaceType.verificationStatus === 'VERIFIED';
       if (!isVerifiedStatus) {
         expect(spaceType.notes).not.toContain('Verified');
       }
@@ -33,7 +33,7 @@ describe('DATA QUALITY TEST - 62.1 2025', () => {
 
   it('4. No contradictory Verified notes in Exhaust Rates', () => {
     exhaustRates.forEach(exhaust => {
-      const isVerifiedStatus = exhaust.verificationStatus === 'VERIFIED' && exhaust.revisionState.source === 'VERIFIED';
+      const isVerifiedStatus = exhaust.verificationStatus === 'VERIFIED';
       if (!isVerifiedStatus) {
         // exhaust types do not have notes field but if they did, check it.
         // Assuming no notes field for now based on types.ts

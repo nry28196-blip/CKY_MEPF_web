@@ -1,10 +1,11 @@
-export type ValidationStatus = 'PASS' | 'WARNING' | 'INCOMPLETE' | 'FAIL' | 'NOT_EVALUATED' | 'NOT_VERIFIED';
+export type ValidationStatus = 'PASS' | 'WARNING' | 'INCOMPLETE' | 'FAIL' | 'NOT_EVALUATED' | 'NOT_VERIFIED' | 'BLOCKED';
 
 export class VentilationValidationService {
   static aggregateStatus(statuses: ValidationStatus[]): ValidationStatus {
     if (statuses.length === 0) return 'NOT_EVALUATED';
     
     if (statuses.includes('FAIL')) return 'FAIL';
+    if (statuses.includes('BLOCKED')) return 'BLOCKED';
     if (statuses.includes('NOT_VERIFIED')) return 'NOT_VERIFIED';
     if (statuses.includes('INCOMPLETE')) return 'INCOMPLETE';
     if (statuses.includes('WARNING')) return 'WARNING';

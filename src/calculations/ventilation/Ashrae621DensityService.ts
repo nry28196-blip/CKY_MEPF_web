@@ -1,4 +1,5 @@
 import { AuditTrailItem } from './Ashrae621ZoneService';
+import { AuditStatus } from '../../types';
 import { ValidationStatus } from './VentilationValidationService';
 
 export interface DensityInput {
@@ -60,7 +61,8 @@ export class Ashrae621DensityService {
       },
       result: eRho,
       unit: '',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.4.4 (Errata)'
+      reference: 'ASHRAE 62.1-2025 Section 6.2.4.4 (Errata)',
+      status: AuditStatus.DERIVED
     });
 
     return {
