@@ -1,3 +1,9 @@
+import fs from 'fs';
+
+const path = 'src/calculations/ventilation/Ashrae621ExhaustService.ts';
+let content = fs.readFileSync(path, 'utf8');
+
+const replacement = `
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
 import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
 import { DataProvenanceValidationService } from './DataProvenanceValidationService';
@@ -68,3 +74,7 @@ export class Ashrae621ExhaustService {
     };
   }
 }
+`;
+
+fs.writeFileSync(path, replacement.trim());
+console.log("Updated Ashrae621ExhaustService.ts");

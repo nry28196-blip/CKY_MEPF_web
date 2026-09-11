@@ -26,14 +26,14 @@ export class VentilationValidationService {
     isInvalidEngineeringInput: boolean,
     isDerivedResult: boolean
   ): { validationStatus: ValidationStatus; auditStatus: AuditStatus } {
-    if (isMissingUserInput) {
-      return { validationStatus: 'INCOMPLETE', auditStatus: AuditStatus.BLOCKED };
-    }
     if (isInvalidEngineeringInput) {
       return { validationStatus: 'FAIL', auditStatus: AuditStatus.FAIL };
     }
-    if (!isVerifiedAshraeInput && !isDerivedResult) {
-      return { validationStatus: 'BLOCKED', auditStatus: AuditStatus.INPUT_NOT_VERIFIED };
+    if (isMissingUserInput) {
+      return { validationStatus: 'INCOMPLETE', auditStatus: AuditStatus.BLOCKED };
+    }
+    if (!isVerifiedAshraeInput) {
+      return { validationStatus: 'BLOCKED', auditStatus: isDerivedResult ? AuditStatus.BLOCKED : AuditStatus.INPUT_NOT_VERIFIED };
     }
     if (isDerivedResult) {
       // If we got this far as a derived result, we assume inputs were verified (or we wouldn't be calculating)

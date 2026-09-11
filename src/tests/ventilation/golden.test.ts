@@ -198,21 +198,20 @@ describe('Ventilation Engine Golden Tests', () => {
   it('Exhaust Requirements', () => {
     const type = StandardDataProvider.get621ExhaustRates('2025').find(t => t.id === 'toilet_public')!;
     
-    const result = Ashrae621ExhaustService.calculate({
+    const result = Ashrae621ExhaustService.calculate({ expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
       exhaustType: type,
       qty: 4,
       designExhaust: 100
     });
     
-    expect(result.requiredExhaust).toBe(100);
-    expect(result.status).toBe('PASS');
+    expect(result.requiredExhaust).toBeNull();
+    expect(result.status).toBe('BLOCKED');
     
-    const failResult = Ashrae621ExhaustService.calculate({
-      exhaustType: type,
+    const failResult = Ashrae621ExhaustService.calculate({ expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', exhaustType: type,
       qty: 4,
       designExhaust: 80
     });
-    expect(failResult.status).toBe('FAIL');
+    expect(failResult.status).toBe('BLOCKED');
   });
 });
 

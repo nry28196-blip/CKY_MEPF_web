@@ -61,7 +61,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
         dExhaust = UnitConversionService.cfmToLs(dExhaust);
       }
       
-      const res = Ashrae621ExhaustService.calculate({ exhaustType, qty, designExhaust: dExhaust });
+      const res = Ashrae621ExhaustService.calculate({ expectedStandard: 'ASHRAE 62.1', expectedEdition: edition, exhaustType, qty, designExhaust: dExhaust });
       
       return { row: r, result: res };
     });
@@ -123,9 +123,9 @@ export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: s
               </div>
               
               <div className="col-span-2 flex flex-col justify-center">
-                <div className="text-[10px] text-slate-400 mb-1">Required: {isMetric ? result.requiredExhaust.toFixed(1) : UnitConversionService.lsToCfm(result.requiredExhaust).toFixed(1)} {isMetric ? 'L/s' : 'cfm'}</div>
-                <div className={`px-2 py-1 rounded text-xs font-bold text-center ${result.status === 'PASS' ? 'bg-emerald-500/20 text-emerald-400' : result.status === 'FAIL' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                  {result.status} (Class {result.exhaustClass})
+                <div className="text-[10px] text-slate-400 mb-1">Required: {result.requiredExhaust === null ? 'N/A' : (isMetric ? result.requiredExhaust.toFixed(1) : UnitConversionService.lsToCfm(result.requiredExhaust).toFixed(1))} {isMetric ? 'L/s' : 'cfm'}</div>
+                <div className={`px-2 py-1 rounded text-xs font-bold text-center ${result.status === 'PASS' ? 'bg-emerald-500/20 text-emerald-400' : result.status === 'FAIL' ? 'bg-red-500/20 text-red-400' : result.status === 'BLOCKED' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                  {result.status === 'BLOCKED' ? 'NOT VERIFIED' : result.status} {result.exhaustClass !== null ? `(Class ${result.exhaustClass})` : ''}
                 </div>
               </div>
             </div>
