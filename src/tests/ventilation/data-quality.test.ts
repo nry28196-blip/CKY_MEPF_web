@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
+import { DataSourceScannerService } from '../../calculations/ventilation/DataSourceScannerService';
 
 describe('DATA QUALITY TEST - 62.1 2025', () => {
   const spaceTypes = StandardDataProvider.get621SpaceTypes('2025');
@@ -36,8 +37,22 @@ describe('DATA QUALITY TEST - 62.1 2025', () => {
       const isVerifiedStatus = exhaust.verificationStatus === 'VERIFIED';
       if (!isVerifiedStatus) {
         // exhaust types do not have notes field but if they did, check it.
-        // Assuming no notes field for now based on types.ts
       }
+    });
+  });
+
+  describe('DATA-SOURCE SAFETY SCAN (ALL EDITIONS)', () => {
+    it('Validates metadata integrity via DataSourceScannerService', () => {
+      // Use the newly created service to run the full verification scan
+      const report = DataSourceScannerService.scanAllDatasets();
+      
+      if (!report.isValid) {
+        console.error('Data Source Scan Violations:', report.violations.slice(0, 5)); // Log first 5 for brevity in failure
+      }
+      
+      expect(report.isValid).toBe(true);
+      expect(report.violations.length).toBe(0);
+      expect(report.scannedCount).toBeGreaterThan(0);
     });
   });
 });

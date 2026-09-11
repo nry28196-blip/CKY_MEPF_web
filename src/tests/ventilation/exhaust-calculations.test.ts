@@ -7,6 +7,7 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
     const exhaustType: Ashrae621ExhaustType = {
       id: 'art-class',
       category: 'Educational',
+      standard: 'ASHRAE 62.1',
       rate: 3.5, 
       unitType: 'm2', 
       exhaustClass: 2,
@@ -32,6 +33,7 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
     const exhaustType: Ashrae621ExhaustType = {
       id: 'restroom-public',
       category: 'General',
+      standard: 'ASHRAE 62.1',
       rate: 25, 
       unitType: 'fixture',
       exhaustClass: 2,
@@ -68,6 +70,7 @@ describe('ASHRAE 62.1-2025 Exhaust Space Calculations', () => {
     const exhaustType: Ashrae621ExhaustType = {
       id: 'art-class',
       category: 'Educational',
+      standard: 'ASHRAE 62.1',
       rate: 3.5,
       unitType: 'm2',
       exhaustClass: 2,

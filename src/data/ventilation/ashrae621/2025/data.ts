@@ -88,7 +88,8 @@ export const ASHRAE_621_2025_EZ_VALUES: Ashrae621Ez[] = [
 ];
 
 export const ASHRAE_621_2025_EXHAUST_RATES: Ashrae621ExhaustType[] = [
-  { id: 'toilet_public', name: 'Toilet rooms - Public', category: 'Public', rate: 25, unitType: 'fixture', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
+  { id: 'toilet_public', name: 'Toilet rooms - Public', category: 'Public', standard: 'ASHRAE 62.1',
+    rate: 25, unitType: 'fixture', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2025',
     baseEdition: '2025',
@@ -97,7 +98,8 @@ export const ASHRAE_621_2025_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     verificationDate: '2026-09-08',
     source: 'UNKNOWN'
   }, sourceType: 'PUBLIC_REVIEW_DRAFT', verificationStatus: 'NOT_VERIFIED', verificationDate: '2026-09-07' },
-  { id: 'toilet_private', name: 'Toilet rooms - Private', category: 'Private', rate: 12.5, unitType: 'fixture', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
+  { id: 'toilet_private', name: 'Toilet rooms - Private', category: 'Private', standard: 'ASHRAE 62.1',
+    rate: 12.5, unitType: 'fixture', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2025',
     baseEdition: '2025',
@@ -106,7 +108,8 @@ export const ASHRAE_621_2025_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     verificationDate: '2026-09-08',
     source: 'UNKNOWN'
   }, sourceType: 'PUBLIC_REVIEW_DRAFT', verificationStatus: 'NOT_VERIFIED', verificationDate: '2026-09-07' },
-  { id: 'kitchen_commercial', name: 'Commercial kitchen', category: 'Commercial', rate: 3.5, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 3, reference: 'Table 6.5.1', edition: '2025', revisionState: {
+  { id: 'kitchen_commercial', name: 'Commercial kitchen', category: 'Commercial', standard: 'ASHRAE 62.1',
+    rate: 3.5, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 3, reference: 'Table 6.5.1', edition: '2025', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2025',
     baseEdition: '2025',
@@ -115,7 +118,8 @@ export const ASHRAE_621_2025_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     verificationDate: '2026-09-08',
     source: 'UNKNOWN'
   }, sourceType: 'PUBLIC_REVIEW_DRAFT', verificationStatus: 'NOT_VERIFIED', verificationDate: '2026-09-07' },
-  { id: 'parking_garage', name: 'Enclosed parking garage', category: 'Parking', rate: 3.7, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
+  { id: 'parking_garage', name: 'Enclosed parking garage', category: 'Parking', standard: 'ASHRAE 62.1',
+    rate: 3.7, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2025',
     baseEdition: '2025',
@@ -124,7 +128,8 @@ export const ASHRAE_621_2025_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     verificationDate: '2026-09-08',
     source: 'UNKNOWN'
   }, sourceType: 'PUBLIC_REVIEW_DRAFT', verificationStatus: 'NOT_VERIFIED', verificationDate: '2026-09-07' },
-  { id: 'janitor', name: 'Janitor closet', category: 'Service', rate: 5.0, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
+  { id: 'janitor', name: 'Janitor closet', category: 'Service', standard: 'ASHRAE 62.1',
+    rate: 5.0, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2025',
     baseEdition: '2025',
@@ -133,7 +138,8 @@ export const ASHRAE_621_2025_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     verificationDate: '2026-09-08',
     source: 'UNKNOWN'
   }, sourceType: 'PUBLIC_REVIEW_DRAFT', verificationStatus: 'NOT_VERIFIED', verificationDate: '2026-09-07' },
-  { id: 'copy_room', name: 'Copy, printing room', category: 'Office', rate: 2.5, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
+  { id: 'copy_room', name: 'Copy, printing room', category: 'Office', standard: 'ASHRAE 62.1',
+    rate: 2.5, unitType: 'm2', operatingCondition: 'Continuous', exhaustClass: 2, reference: 'Table 6.5.1', edition: '2025', revisionState: {
     standard: 'ASHRAE 62.1',
     edition: '2025',
     baseEdition: '2025',

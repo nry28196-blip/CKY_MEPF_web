@@ -53,6 +53,7 @@ export interface Ashrae621Ez {
 }
 
 export interface Ashrae621ExhaustType {
+  standard: string;
   id: string;
   name: string;
   category: string;

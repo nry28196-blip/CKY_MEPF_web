@@ -44,14 +44,38 @@ export class DataProvenanceValidationService {
     return true;
   }
   
+    static isValidSourceType(source: any): source is SourceType {
+    const validSourceTypes: SourceType[] = [
+      'ASHRAE_PUBLISHED', 'ASHRAE_PUBLISHED_ADDENDUM', 'ASHRAE_PUBLISHED_ERRATA',
+      'PROJECT_SPECIFICATION', 'ADOPTED_CODE', 'PUBLIC_REVIEW_DRAFT', 'UNKNOWN'
+    ];
+    return validSourceTypes.includes(source);
+  }
+
   static checkParentConsistency(parent: any, prov: DataProvenance | undefined): boolean {
-      if (parent.revisionState?.source === 'VERIFIED' || parent.revisionState?.source === 'NOT_VERIFIED' || parent.revisionState?.source === 'INVALID') return false;
       if (!prov) return true;
-      if (prov.verificationStatus === 'VERIFIED' && parent.verificationStatus === 'NOT_VERIFIED') return false;
+      
+      // Ensure revision source is actually a valid SourceType
+      const source = parent.revisionState?.source;
+      if (!this.isValidSourceType(source)) {
+        return false;
+      }
+      if (!this.isValidSourceType(parent.sourceType)) {
+        return false;
+      }
+
+      // Verification consistency
+      if (prov.verificationStatus === 'VERIFIED' && parent.verificationStatus !== 'VERIFIED') return false;
+      
+      
+      // "If provenance says VERIFIED: parent.verificationStatus must also be VERIFIED."
+      // "If parent verificationStatus is NOT_VERIFIED: a child provenance record must not claim VERIFIED."
+
       if (parent.standard !== prov.standard) return false;
       if (parent.edition !== prov.edition) return false;
       if (parent.revisionState?.standard !== prov.standard) return false;
       if (parent.revisionState?.edition !== prov.edition) return false;
+      
       return true;
   }
 
