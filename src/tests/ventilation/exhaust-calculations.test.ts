@@ -1,3 +1,4 @@
+import { SourceType } from '../../data/ventilation/ashrae621/types';
 import { describe, it, expect } from 'vitest';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
 import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
@@ -12,10 +13,10 @@ const createFixture = (overrides: Partial<Ashrae621ExhaustType> = {}): Ashrae621
   standard: 'ASHRAE 62.1',
   edition: '2025',
   operatingCondition: 'continuous',
-  sourceType: 'ASHRAE_PUBLISHED',
+  sourceType: SourceType.ASHRAE_PUBLISHED,
   verificationStatus: 'VERIFIED',
   revisionState: {
-    source: 'ASHRAE_PUBLISHED',
+    source: SourceType.ASHRAE_PUBLISHED,
     standard: 'ASHRAE 62.1',
     edition: '2025',
     baseEdition: '2025',

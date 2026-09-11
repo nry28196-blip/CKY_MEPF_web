@@ -1,3 +1,4 @@
+import { SourceType } from '../../data/ventilation/ashrae621/types';
 import { describe, it, expect } from 'vitest';
 import { VentilationEngine } from '../../lib/VentilationEngine';
 import { UnitConversionService, ft2ToM2 } from "../../lib/UnitConversionService";
@@ -13,7 +14,7 @@ const makeVerified = (item: any) => {
         standard: 'ASHRAE 62.1',
         edition: '2025',
         reference: ref,
-        sourceType: 'ASHRAE_PUBLISHED',
+        sourceType: SourceType.ASHRAE_PUBLISHED,
         verificationStatus: 'VERIFIED',
         verificationDate: '2025-01-01',
         revision: '2025'
@@ -21,7 +22,7 @@ const makeVerified = (item: any) => {
 
     return {
       ...item,
-      sourceType: 'ASHRAE_PUBLISHED',
+      sourceType: SourceType.ASHRAE_PUBLISHED,
       verificationStatus: 'VERIFIED',
         verificationDate: '2025-01-01',
       reference: ref,
@@ -30,7 +31,7 @@ const makeVerified = (item: any) => {
         standard: 'ASHRAE 62.1',
         edition: '2025',
         baseEdition: '2025',
-        source: 'ASHRAE_PUBLISHED'
+        source: SourceType.ASHRAE_PUBLISHED
       },
       provenance: item.category ? {
           rp: { ...fakeProvenanceItem, value: item.rpMetric },

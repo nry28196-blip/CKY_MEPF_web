@@ -64,7 +64,7 @@ export interface LocalExhaustRequirements {
   /** Type of unit driving the calculation */
   unitType: 'per_unit' | 'per_area' | 'custom' | 'none';
   /** Total required exhaust airflow for the space */
-  requiredExhaust: number;
+  requiredExhaust: number | null;
   /** Operational requirement (e.g., Continuous, Intermittent) */
   operatingMode: string;
 }

@@ -1,3 +1,4 @@
+import { SourceType } from '../../data/ventilation/ashrae621/types';
 import { describe, it, expect } from 'vitest';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
 import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
@@ -13,10 +14,10 @@ const createFixture = (overrides: Partial<Ashrae621ExhaustType> = {}): Ashrae621
   exhaustClass: 1,
   standard: 'ASHRAE 62.1',
   edition: '2025',
-  sourceType: 'ASHRAE_PUBLISHED',
+  sourceType: SourceType.ASHRAE_PUBLISHED,
   verificationStatus: 'VERIFIED',
   revisionState: {
-    source: 'ASHRAE_PUBLISHED',
+    source: SourceType.ASHRAE_PUBLISHED,
     standard: 'ASHRAE 62.1',
     edition: '2025',
     baseEdition: '2025',
@@ -68,7 +69,7 @@ describe('Exhaust Provenance Validation', () => {
   it('E. PUBLIC_REVIEW_DRAFT exhaust source => BLOCKED', () => {
     const res = Ashrae621ExhaustService.calculate({
       expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
-      exhaustType: createFixture({ sourceType: 'PUBLIC_REVIEW_DRAFT' }), qty: 2, designExhaust: 60
+      exhaustType: createFixture({ sourceType: SourceType.PUBLIC_REVIEW_DRAFT }), qty: 2, designExhaust: 60
     });
     expect(res.status).toBe('BLOCKED');
   });
@@ -76,7 +77,7 @@ describe('Exhaust Provenance Validation', () => {
   it('F. UNKNOWN exhaust source => BLOCKED', () => {
     const res = Ashrae621ExhaustService.calculate({
       expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
-      exhaustType: createFixture({ sourceType: 'UNKNOWN' }), qty: 2, designExhaust: 60
+      exhaustType: createFixture({ sourceType: SourceType.UNKNOWN }), qty: 2, designExhaust: 60
     });
     expect(res.status).toBe('BLOCKED');
   });
@@ -84,7 +85,7 @@ describe('Exhaust Provenance Validation', () => {
   it('G. PROJECT_SPECIFICATION => BLOCKED', () => {
     const res = Ashrae621ExhaustService.calculate({
       expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
-      exhaustType: createFixture({ sourceType: 'PROJECT_SPECIFICATION' }), qty: 2, designExhaust: 60
+      exhaustType: createFixture({ sourceType: SourceType.PROJECT_SPECIFICATION }), qty: 2, designExhaust: 60
     });
     expect(res.status).toBe('BLOCKED');
   });
@@ -92,7 +93,7 @@ describe('Exhaust Provenance Validation', () => {
   it('H. ADOPTED_CODE => BLOCKED', () => {
     const res = Ashrae621ExhaustService.calculate({
       expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
-      exhaustType: createFixture({ sourceType: 'ADOPTED_CODE' }), qty: 2, designExhaust: 60
+      exhaustType: createFixture({ sourceType: SourceType.ADOPTED_CODE }), qty: 2, designExhaust: 60
     });
     expect(res.status).toBe('BLOCKED');
   });
@@ -116,7 +117,7 @@ describe('Exhaust Provenance Validation', () => {
   it('K. revision mismatch => BLOCKED', () => {
     const res = Ashrae621ExhaustService.calculate({
       expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
-      exhaustType: createFixture({ revisionState: { source: 'ASHRAE_PUBLISHED', standard: 'ASHRAE 62.1', edition: '2019', baseEdition: '2019', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '' } }), qty: 2, designExhaust: 60
+      exhaustType: createFixture({ revisionState: { source: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: '2019', baseEdition: '2019', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '' } }), qty: 2, designExhaust: 60
     });
     expect(res.status).toBe('BLOCKED');
   });

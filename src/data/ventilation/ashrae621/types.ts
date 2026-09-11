@@ -2,7 +2,15 @@
 export type AshraeEdition = '2019' | '2022' | '2025';
 
 export type VerificationStatus = 'VERIFIED' | 'NOT_VERIFIED' | 'INVALID';
-export type SourceType = 'ASHRAE_PUBLISHED' | 'ASHRAE_PUBLISHED_ADDENDUM' | 'ASHRAE_PUBLISHED_ERRATA' | 'PROJECT_SPECIFICATION' | 'ADOPTED_CODE' | 'PUBLIC_REVIEW_DRAFT' | 'UNKNOWN';
+export enum SourceType {
+  ASHRAE_PUBLISHED = 'ASHRAE_PUBLISHED',
+  ASHRAE_PUBLISHED_ADDENDUM = 'ASHRAE_PUBLISHED_ADDENDUM',
+  ASHRAE_PUBLISHED_ERRATA = 'ASHRAE_PUBLISHED_ERRATA',
+  PROJECT_SPECIFICATION = 'PROJECT_SPECIFICATION',
+  ADOPTED_CODE = 'ADOPTED_CODE',
+  PUBLIC_REVIEW_DRAFT = 'PUBLIC_REVIEW_DRAFT',
+  UNKNOWN = 'UNKNOWN'
+}
 
 export interface StandardRevision {
     standard: string;
@@ -53,6 +61,7 @@ export interface Ashrae621Ez {
 }
 
 export interface Ashrae621ExhaustType {
+  notes?: string;
   standard: string;
   id: string;
   name: string;

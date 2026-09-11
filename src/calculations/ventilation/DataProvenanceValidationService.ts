@@ -15,6 +15,7 @@ export class DataProvenanceValidationService {
   ): DataProvenanceValidationResult {
     const reasons: string[] = [];
     
+    // 6. VERIFY PARENT METADATA
     if (exhaustType.standard !== expectedStandard) reasons.push('Invalid Standard Configuration');
     if (exhaustType.edition !== expectedEdition) reasons.push('Edition Mismatch');
     
@@ -33,33 +34,42 @@ export class DataProvenanceValidationService {
       reasons.push('Unverified Exhaust');
     }
 
+    // 7. PROTECT AGAINST CONTRADICTORY STATES
     if (exhaustType.verificationStatus === 'VERIFIED') {
-      if (!this.isAshraeSourceTypeAcceptable(exhaustType.sourceType)) reasons.push('Unverified Exhaust');
-      if (!this.isAshraeSourceTypeAcceptable(exhaustType.revisionState?.source as SourceType)) reasons.push('Unverified Exhaust');
-      if (!exhaustType.verificationDate) reasons.push('Unverified Exhaust');
+      // 5. STRICT SOURCE CONSISTENCY
+      if (!this.isAshraeSourceTypeAcceptable(exhaustType.sourceType)) reasons.push('Contradictory Source Type');
+      if (!this.isAshraeSourceTypeAcceptable(exhaustType.revisionState?.source)) reasons.push('Contradictory Source Type');
+      
+      // 4. STRICT EXHAUST VERIFICATION DATE
+      if (!exhaustType.verificationDate) {
+        reasons.push('Missing Verification Date');
+      } else {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(exhaustType.verificationDate)) reasons.push('Invalid Verification Date');
+        const d = new Date(exhaustType.verificationDate);
+        if (isNaN(d.getTime())) reasons.push('Invalid Verification Date');
+      }
     } else {
       reasons.push('Unverified Exhaust');
+      if (exhaustType.notes?.toLowerCase().includes('verified')) {
+        reasons.push('Contradictory Verification Status');
+      }
     }
     
     const valid = reasons.length === 0;
     let status: ValidationStatus = 'PASS';
     
     if (!valid) {
-      if (reasons.some(r => r.includes('Missing') || r.includes('Mismatch') || r.includes('Invalid'))) {
-        status = reasons.includes('Missing Reference') ? 'BLOCKED' : 'INCOMPLETE';
-      }
-      if (reasons.some(r => r.includes('Unverified') || r.includes('Contradictory'))) {
-        status = 'BLOCKED';
-      }
+      // 1. NORMALIZE EXHAUST PROVENANCE STATUS -> always BLOCKED
+      status = 'BLOCKED';
     }
 
     return { valid, status, reasons };
   }
 
   static isAshraeSourceTypeAcceptable(sourceType: SourceType): boolean {
-    return sourceType === 'ASHRAE_PUBLISHED' ||
-           sourceType === 'ASHRAE_PUBLISHED_ADDENDUM' ||
-           sourceType === 'ASHRAE_PUBLISHED_ERRATA';
+    return sourceType === SourceType.ASHRAE_PUBLISHED ||
+           sourceType === SourceType.ASHRAE_PUBLISHED_ADDENDUM ||
+           sourceType === SourceType.ASHRAE_PUBLISHED_ERRATA;
   }
 
   static validateProvenance(
@@ -92,12 +102,13 @@ export class DataProvenanceValidationService {
     return true;
   }
   
-    static isValidSourceType(source: any): source is SourceType {
+    static isValidSourceType(source: unknown): source is SourceType {
+    if (typeof source !== 'string') return false;
     const validSourceTypes: SourceType[] = [
-      'ASHRAE_PUBLISHED', 'ASHRAE_PUBLISHED_ADDENDUM', 'ASHRAE_PUBLISHED_ERRATA',
-      'PROJECT_SPECIFICATION', 'ADOPTED_CODE', 'PUBLIC_REVIEW_DRAFT', 'UNKNOWN'
+      SourceType.ASHRAE_PUBLISHED, SourceType.ASHRAE_PUBLISHED_ADDENDUM, SourceType.ASHRAE_PUBLISHED_ERRATA,
+      SourceType.PROJECT_SPECIFICATION, SourceType.ADOPTED_CODE, SourceType.PUBLIC_REVIEW_DRAFT, SourceType.UNKNOWN
     ];
-    return validSourceTypes.includes(source);
+    return validSourceTypes.includes(source as SourceType);
   }
 
   static checkParentConsistency(parent: any, prov: DataProvenance | undefined): boolean {

@@ -19,8 +19,8 @@ export interface ScanReport {
 
 export class DataSourceScannerService {
   static readonly VALID_SOURCE_TYPES: SourceType[] = [
-    'ASHRAE_PUBLISHED', 'ASHRAE_PUBLISHED_ADDENDUM', 'ASHRAE_PUBLISHED_ERRATA',
-    'PROJECT_SPECIFICATION', 'ADOPTED_CODE', 'PUBLIC_REVIEW_DRAFT', 'UNKNOWN'
+    SourceType.ASHRAE_PUBLISHED, SourceType.ASHRAE_PUBLISHED_ADDENDUM, SourceType.ASHRAE_PUBLISHED_ERRATA,
+    SourceType.PROJECT_SPECIFICATION, SourceType.ADOPTED_CODE, SourceType.PUBLIC_REVIEW_DRAFT, SourceType.UNKNOWN
   ];
 
   static readonly VALID_VERIFICATION_STATUSES: VerificationStatus[] = [
