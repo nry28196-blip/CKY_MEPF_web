@@ -7,6 +7,7 @@ const createFixture = (overrides: Partial<Ashrae621ExhaustType> = {}): Ashrae621
   id: 'fixture-01',
   name: 'Test Fixture Only - NOT AN ASSERTION THAT CURRENT ASHRAE 62.1-2025 PRODUCTION DATA IS VERIFIED',
   category: 'Educational',
+  operatingCondition: 'continuous',
   rate: 25,
   unitType: 'fixture',
   exhaustClass: 1,
