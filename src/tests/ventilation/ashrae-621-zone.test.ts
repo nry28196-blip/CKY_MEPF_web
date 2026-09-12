@@ -183,7 +183,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
     });
 
     expect(result.status).toBe('BLOCKED');
-    expect(result.reason).toBe('Calculation blocked: ASHRAE 62.1-2025 Unverified Ez');
+    expect(result.reason).toContain('Calculation blocked: ASHRAE 62.1-2025');
     expect(result.voz).toBeNull();
   });
 

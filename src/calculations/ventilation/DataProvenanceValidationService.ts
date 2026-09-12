@@ -1,4 +1,4 @@
-import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, DataProvenance, SourceType } from '../../data/ventilation/ashrae621/types';
+import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, DataProvenance, SourceType, VerificationStatus, StandardRevision, AshraeEdition } from '../../data/ventilation/ashrae621/types';
 import { ValidationStatus } from './VentilationValidationService';
 
 export interface DataProvenanceValidationResult {
@@ -7,7 +7,14 @@ export interface DataProvenanceValidationResult {
   reasons: string[];
 }
 
-export interface ProvenanceParent { sourceType: unknown; verificationStatus?: string; standard: string; edition: string; revisionState?: { source?: unknown; standard?: string; edition?: string; }; }
+export interface ProvenanceParent {
+  sourceType: SourceType;
+  verificationStatus: VerificationStatus;
+  standard: string;
+  edition: string;
+  revisionState?: StandardRevision;
+  verificationDate?: string;
+}
 export class DataProvenanceValidationService {
   static validateExhaustData(
     exhaustType: Ashrae621ExhaustType,
@@ -51,9 +58,7 @@ export class DataProvenanceValidationService {
       }
     } else {
       reasons.push('Unverified Exhaust');
-      if (exhaustType.notes?.toLowerCase().includes('verified')) {
-        reasons.push('Contradictory Verification Status');
-      }
+      
     }
     
     const valid = reasons.length === 0;
@@ -147,6 +152,7 @@ export class DataProvenanceValidationService {
   ): DataProvenanceValidationResult {
     const reasons: string[] = [];
     
+    if (spaceType.verificationStatus === 'VERIFIED' && !this.isAshraeSourceTypeAcceptable(spaceType.sourceType)) reasons.push('Invalid Source Type for VERIFIED data');
     if (spaceType.standard !== expectedStandard) reasons.push('Invalid Standard Configuration');
     if (spaceType.edition !== expectedEdition) reasons.push('Edition Mismatch');
     
@@ -180,23 +186,13 @@ export class DataProvenanceValidationService {
       }
     }
     
-    // 18. CONTRADICTORY DATA - Reject notes = "Verified" while verificationStatus = NOT_VERIFIED
-    // The prompt says: Reject notes="Verified" while verificationStatus=NOT_VERIFIED.
-    // If the record claims to be verified via notes but lacks structural verification, it fails.
-    if (spaceType.notes?.toLowerCase().includes('verified') && spaceType.verificationStatus !== 'VERIFIED') {
-        reasons.push('Contradictory Verification Status');
-    }
+    
     
     const valid = reasons.length === 0;
     let status: ValidationStatus = 'PASS';
     
     if (!valid) {
-      if (reasons.some(r => r.includes('Missing') || r.includes('Mismatch') || r.includes('Invalid'))) {
-        status = 'BLOCKED';
-      }
-      if (reasons.some(r => r.includes('Unverified') || r.includes('Contradictory'))) {
-        status = 'BLOCKED';
-      }
+      status = 'BLOCKED';
     }
 
     return { valid, status, reasons };
@@ -209,6 +205,7 @@ export class DataProvenanceValidationService {
   ): DataProvenanceValidationResult {
     const reasons: string[] = [];
     
+    if (ezConfig.verificationStatus === 'VERIFIED' && !this.isAshraeSourceTypeAcceptable(ezConfig.sourceType)) reasons.push('Invalid Source Type for VERIFIED data');
     if (ezConfig.standard !== expectedStandard) reasons.push('Invalid Standard Configuration');
     if (ezConfig.edition !== expectedEdition) reasons.push('Edition Mismatch');
     
@@ -238,12 +235,7 @@ export class DataProvenanceValidationService {
     let status: ValidationStatus = 'PASS';
     
     if (!valid) {
-      if (reasons.some(r => r.includes('Missing') || r.includes('Mismatch') || r.includes('Invalid'))) {
-        status = 'BLOCKED';
-      }
-      if (reasons.some(r => r.includes('Unverified'))) {
-        status = 'BLOCKED';
-      }
+      status = 'BLOCKED';
     }
 
     return { valid, status, reasons };

@@ -1,18 +1,112 @@
-import { describe, it, expect } from 'vitest';
+const fs = require('fs');
+
+const code = `import { describe, it, expect } from 'vitest';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
 import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, SourceType, AshraeEdition } from '../../data/ventilation/ashrae621/types';
 import { AuditStatus } from '../../types';
-import { createSyntheticVerifiedSpaceType, createSyntheticVerifiedEz, createSyntheticVerifiedExhaust } from './test-fixtures';
 
+function createSyntheticVerifiedSpaceType(edition: AshraeEdition): Ashrae621SpaceType {
+  return {
+    id: \`synthetic-office-\${edition}\`,
+    name: 'Synthetic Verified Office',
+    category: 'Test',
+    standard: 'ASHRAE 62.1',
+    edition: edition,
+    sourceType: SourceType.ASHRAE_PUBLISHED,
+    verificationStatus: 'VERIFIED',
+    revisionState: {
+      source: SourceType.ASHRAE_PUBLISHED,
+      standard: 'ASHRAE 62.1',
+      edition: edition,
+      baseEdition: edition,
+      publishedAddendaApplied: [],
+      publishedErrataApplied: [],
+      verificationDate: '2025-01-01'
+    },
+    verificationDate: '2025-01-01',
+    reference: 'Synthetic Test Data',
+    units: 'Test',
+    exhaustRequired: false,
+    notes: 'Test',
+    rpMetric: 2.5,
+    raMetric: 0.3,
+    defaultOccupancyMetric: 5.4,
+    provenance: {
+      rp: { sourceType: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: edition, verificationStatus: 'VERIFIED', verificationDate: '2025-01-01', reference: 'Test', value: 0, revision: edition },
+      ra: { sourceType: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: edition, verificationStatus: 'VERIFIED', verificationDate: '2025-01-01', reference: 'Test', value: 0, revision: edition },
+      defaultOccupancy: { sourceType: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: edition, verificationStatus: 'VERIFIED', verificationDate: '2025-01-01', reference: 'Test', value: 0, revision: edition },
+      reference: { sourceType: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: edition, verificationStatus: 'VERIFIED', verificationDate: '2025-01-01', reference: 'Test', value: 0, revision: edition }
+    }
+  };
+}
+
+function createSyntheticVerifiedEz(edition: AshraeEdition): Ashrae621Ez {
+  return {
+    id: \`synthetic-ez-\${edition}\`,
+    name: 'Synthetic Verified Ez',
+    standard: 'ASHRAE 62.1',
+    edition: edition,
+    sourceType: SourceType.ASHRAE_PUBLISHED,
+    verificationStatus: 'VERIFIED',
+    revisionState: {
+      source: SourceType.ASHRAE_PUBLISHED,
+      standard: 'ASHRAE 62.1',
+      edition: edition,
+      baseEdition: edition,
+      publishedAddendaApplied: [],
+      publishedErrataApplied: [],
+      verificationDate: '2025-01-01'
+    },
+    verificationDate: '2025-01-01',
+    reference: 'Synthetic Test Data',
+    ez: 1.0,
+    configuration: 'Test',
+    applicableCondition: 'Test',
+    supplyArrangement: 'Test',
+    returnArrangement: 'Test',
+    provenance: {
+      ez: { sourceType: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: edition, verificationStatus: 'VERIFIED', verificationDate: '2025-01-01', reference: 'Test', value: 0, revision: edition },
+      applicability: { sourceType: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: edition, verificationStatus: 'VERIFIED', verificationDate: '2025-01-01', reference: 'Test', value: 0, revision: edition },
+      reference: { sourceType: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: edition, verificationStatus: 'VERIFIED', verificationDate: '2025-01-01', reference: 'Test', value: 0, revision: edition }
+    }
+  };
+}
+
+function createSyntheticVerifiedExhaust(edition: AshraeEdition): Ashrae621ExhaustType {
+  return {
+    id: \`synthetic-exhaust-\${edition}\`,
+    name: 'Synthetic Verified Exhaust',
+    category: 'Test',
+    operatingCondition: 'Test',
+    standard: 'ASHRAE 62.1',
+    edition: edition,
+    sourceType: SourceType.ASHRAE_PUBLISHED,
+    verificationStatus: 'VERIFIED',
+    revisionState: {
+      source: SourceType.ASHRAE_PUBLISHED,
+      standard: 'ASHRAE 62.1',
+      edition: edition,
+      baseEdition: edition,
+      publishedAddendaApplied: [],
+      publishedErrataApplied: [],
+      verificationDate: '2025-01-01'
+    },
+    verificationDate: '2025-01-01',
+    reference: 'Synthetic Test Data',
+    rate: 25,
+    unitType: 'fixture',
+    exhaustClass: 2
+  };
+}
 
 const editions: AshraeEdition[] = ['2019', '2022', '2025'];
 
 describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
   describe('8. EXPLICIT "NO UNVERIFIED DATA CAN PASS" REGRESSION TEST', () => {
     editions.forEach(edition => {
-      it(`blocks all unverified production SpaceType records in ${edition}`, () => {
+      it(\`blocks all unverified production SpaceType records in \${edition}\`, () => {
         const spaces = StandardDataProvider.get621SpaceTypes(edition);
         const syntheticEz = createSyntheticVerifiedEz(edition);
         let checkedCount = 0;
@@ -32,7 +126,7 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
         expect(checkedCount).toBeGreaterThan(0);
       });
 
-      it(`blocks all unverified production Ez records in ${edition}`, () => {
+      it(\`blocks all unverified production Ez records in \${edition}\`, () => {
         const ezs = StandardDataProvider.get621EzValues(edition);
         const syntheticSpace = createSyntheticVerifiedSpaceType(edition);
         let checkedCount = 0;
@@ -51,7 +145,7 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
         expect(checkedCount).toBeGreaterThan(0);
       });
 
-      it(`blocks all unverified production Exhaust records in ${edition} even with large design exhausts`, () => {
+      it(\`blocks all unverified production Exhaust records in \${edition} even with large design exhausts\`, () => {
         const exhausts = StandardDataProvider.get621ExhaustRates(edition);
         let checkedCount = 0;
         for (const ex of exhausts) {
@@ -108,3 +202,6 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     });
   });
 });
+`;
+
+fs.writeFileSync('src/tests/ventilation/ashrae-621-production-safety.test.ts', code);

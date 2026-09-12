@@ -162,7 +162,7 @@ describe('Exhaust Provenance Validation', () => {
           tested++;
           const res = Ashrae621ExhaustService.calculate({
             expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
-            exhaustType: record as any, qty: 10, designExhaust: 100000 // Huge design exhaust should still fail
+            exhaustType: record, qty: 10, designExhaust: 100000 // Huge design exhaust should still fail
           });
           expect(res.status).toBe('BLOCKED');
           expect(res.requiredExhaust).toBeNull();
@@ -178,7 +178,7 @@ describe('Exhaust Provenance Validation', () => {
       expect(record.verificationStatus).not.toBe('VERIFIED');
       const res = Ashrae621ExhaustService.calculate({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
-        exhaustType: record as any, qty: 1, designExhaust: 999999
+        exhaustType: record, qty: 1, designExhaust: 999999
       });
       expect(res.status).toBe('BLOCKED');
     });
