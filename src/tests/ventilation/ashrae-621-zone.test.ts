@@ -145,8 +145,8 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
     });
 
     
-      expect(result.status).toBe('INCOMPLETE');
-    expect(result.reason).toBe('Edition Mismatch');
+      expect(result.status).toBe('BLOCKED');
+    expect(result.reason).toContain('Edition Mismatch');
     expect(result.vbz).toBeNull();
     expect(result.voz).toBeNull();
   });
@@ -373,7 +373,7 @@ describe('ASHRAE 62.1 Zone Service - Vbz and Voz', () => {
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
       });
-      expect(result.status).toBe('INCOMPLETE');
+      expect(result.status).toBe('BLOCKED');
     });
     it('32. TEST — PROJECT REQUIREMENT SEPARATE FROM ASHRAE', () => {
       const office = createSyntheticVerifiedSpaceType(SourceType.ASHRAE_PUBLISHED, 'VERIFIED');

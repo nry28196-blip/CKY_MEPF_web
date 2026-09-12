@@ -7,6 +7,7 @@ export interface DataProvenanceValidationResult {
   reasons: string[];
 }
 
+export interface ProvenanceParent { sourceType: unknown; verificationStatus?: string; standard: string; edition: string; revisionState?: { source?: unknown; standard?: string; edition?: string; }; }
 export class DataProvenanceValidationService {
   static validateExhaustData(
     exhaustType: Ashrae621ExhaustType,
@@ -111,7 +112,7 @@ export class DataProvenanceValidationService {
     return validSourceTypes.includes(source as SourceType);
   }
 
-  static checkParentConsistency(parent: any, prov: DataProvenance | undefined): boolean {
+  static checkParentConsistency(parent: ProvenanceParent, prov: DataProvenance | undefined): boolean {
       if (!prov) return true;
       
       // Ensure revision source is actually a valid SourceType
@@ -191,7 +192,7 @@ export class DataProvenanceValidationService {
     
     if (!valid) {
       if (reasons.some(r => r.includes('Missing') || r.includes('Mismatch') || r.includes('Invalid'))) {
-        status = reasons.includes('Missing Reference') ? 'BLOCKED' : 'INCOMPLETE';
+        status = 'BLOCKED';
       }
       if (reasons.some(r => r.includes('Unverified') || r.includes('Contradictory'))) {
         status = 'BLOCKED';
@@ -238,7 +239,7 @@ export class DataProvenanceValidationService {
     
     if (!valid) {
       if (reasons.some(r => r.includes('Missing') || r.includes('Mismatch') || r.includes('Invalid'))) {
-        status = reasons.includes('Missing Ez Reference') ? 'BLOCKED' : 'INCOMPLETE';
+        status = 'BLOCKED';
       }
       if (reasons.some(r => r.includes('Unverified'))) {
         status = 'BLOCKED';

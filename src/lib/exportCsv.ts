@@ -311,7 +311,7 @@ export function exportVentilationToCsv(params: {
         rows.push({
           section: `Zone ${index + 1}: ${zone.name || 'Unnamed'}`,
           parameter: 'Zone Outdoor Airflow (Voz)',
-          value: Number(zResult.voz).toFixed(2),
+          value: zResult.voz === null ? 'BLOCKED' : Number(zResult.voz).toFixed(2),
           unit: params.isMetric ? 'L/s' : 'cfm',
           notes: ''
         });
