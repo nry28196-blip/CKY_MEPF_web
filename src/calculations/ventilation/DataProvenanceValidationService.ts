@@ -72,7 +72,7 @@ export class DataProvenanceValidationService {
     return { valid, status, reasons };
   }
 
-  static isAshraeSourceTypeAcceptable(sourceType: SourceType): boolean {
+  static isAshraeSourceTypeAcceptable(sourceType: SourceType | undefined | unknown): boolean {
     return sourceType === SourceType.ASHRAE_PUBLISHED ||
            sourceType === SourceType.ASHRAE_PUBLISHED_ADDENDUM ||
            sourceType === SourceType.ASHRAE_PUBLISHED_ERRATA;
@@ -153,6 +153,17 @@ export class DataProvenanceValidationService {
     const reasons: string[] = [];
     
     if (spaceType.verificationStatus === 'VERIFIED' && !this.isAshraeSourceTypeAcceptable(spaceType.sourceType)) reasons.push('Invalid Source Type for VERIFIED data');
+
+    if (spaceType.verificationStatus === 'VERIFIED') {
+      if (!spaceType.verificationDate) {
+        reasons.push('Missing Verification Date');
+      } else {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(spaceType.verificationDate)) reasons.push('Invalid Verification Date');
+        const d = new Date(spaceType.verificationDate);
+        if (isNaN(d.getTime())) reasons.push('Invalid Verification Date');
+      }
+    }
+
     if (spaceType.standard !== expectedStandard) reasons.push('Invalid Standard Configuration');
     if (spaceType.edition !== expectedEdition) reasons.push('Edition Mismatch');
     
@@ -206,6 +217,17 @@ export class DataProvenanceValidationService {
     const reasons: string[] = [];
     
     if (ezConfig.verificationStatus === 'VERIFIED' && !this.isAshraeSourceTypeAcceptable(ezConfig.sourceType)) reasons.push('Invalid Source Type for VERIFIED data');
+
+    if (ezConfig.verificationStatus === 'VERIFIED') {
+      if (!ezConfig.verificationDate) {
+        reasons.push('Missing Verification Date');
+      } else {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(ezConfig.verificationDate)) reasons.push('Invalid Verification Date');
+        const d = new Date(ezConfig.verificationDate);
+        if (isNaN(d.getTime())) reasons.push('Invalid Verification Date');
+      }
+    }
+
     if (ezConfig.standard !== expectedStandard) reasons.push('Invalid Standard Configuration');
     if (ezConfig.edition !== expectedEdition) reasons.push('Edition Mismatch');
     

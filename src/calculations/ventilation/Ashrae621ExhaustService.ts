@@ -48,7 +48,7 @@ export class Ashrae621ExhaustService {
     // 10. NEGATIVE / NON-FINITE INPUTS
     if (input.qty === null || input.qty === undefined || Number.isNaN(input.qty)) {
       // Qty NaN should be FAIL according to 'NaN quantity => FAIL or INCOMPLETE according to documented input semantics'. Let's say FAIL for invalid numbers, INCOMPLETE for null.
-      if (Number.isNaN(input.qty as any)) {
+      if (typeof input.qty === 'number' && Number.isNaN(input.qty)) {
          return { requiredExhaust: null, designExhaust: null, unitType: input.exhaustType.unitType, exhaustClass: input.exhaustType.exhaustClass, status: 'FAIL' };
       }
       return { requiredExhaust: null, designExhaust: null, unitType: input.exhaustType.unitType, exhaustClass: input.exhaustType.exhaustClass, status: 'INCOMPLETE' };

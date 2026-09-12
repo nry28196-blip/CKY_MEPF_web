@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest';
+const fs = require('fs');
+
+const code = `import { describe, it, expect } from 'vitest';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
@@ -10,7 +12,7 @@ const editions: AshraeEdition[] = ['2019', '2022', '2025'];
 describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
   describe('8. EXPLICIT "NO UNVERIFIED DATA CAN PASS" REGRESSION TEST', () => {
     editions.forEach(edition => {
-      it(`blocks all unverified production SpaceType records in ${edition}`, () => {
+      it(\`blocks all unverified production SpaceType records in \${edition}\`, () => {
         const spaces = StandardDataProvider.get621SpaceTypes(edition);
         const syntheticEz = createSyntheticVerifiedEz(edition);
         let checkedCount = 0;
@@ -30,7 +32,7 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
         expect(checkedCount).toBeGreaterThan(0);
       });
 
-      it(`blocks all unverified production Ez records in ${edition}`, () => {
+      it(\`blocks all unverified production Ez records in \${edition}\`, () => {
         const ezs = StandardDataProvider.get621EzValues(edition);
         const syntheticSpace = createSyntheticVerifiedSpaceType(edition);
         let checkedCount = 0;
@@ -49,7 +51,7 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
         expect(checkedCount).toBeGreaterThan(0);
       });
 
-      it(`blocks all unverified production Exhaust records in ${edition} even with large design exhausts`, () => {
+      it(\`blocks all unverified production Exhaust records in \${edition} even with large design exhausts\`, () => {
         const exhausts = StandardDataProvider.get621ExhaustRates(edition);
         let checkedCount = 0;
         for (const ex of exhausts) {
@@ -245,3 +247,5 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     });
   });
 });
+`
+fs.writeFileSync('src/tests/ventilation/ashrae-621-production-safety.test.ts', code);
