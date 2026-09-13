@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+
 import { useUnit } from './UnitContext';
 import { CONVERSIONS, convertValue, deltaCelsiusToFahrenheit, deltaFahrenheitToCelsius } from './unitConverter';
 

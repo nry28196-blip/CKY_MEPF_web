@@ -2,8 +2,8 @@ import { AuditStatus } from '../types';
 import { UnitConversionService, ft2ToM2 } from "./UnitConversionService";
 import { ValidationStatus, VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
 import { Ashrae621ZoneService, ZoneVentilationInput, ZoneVentilationResult } from '../calculations/ventilation/Ashrae621ZoneService';
-import { Ashrae621SimplifiedSystemService, SimplifiedSystemInput, SimplifiedSystemResult, SimplifiedSystemZoneInput } from '../calculations/ventilation/Ashrae621SimplifiedSystemService';
-import { Ashrae621AlternativeSystemService, AlternativeSystemInput, AlternativeSystemResult, AlternativeZoneInput } from '../calculations/ventilation/Ashrae621AlternativeSystemService';
+import { Ashrae621SimplifiedSystemService, SimplifiedSystemResult, SimplifiedSystemZoneInput } from '../calculations/ventilation/Ashrae621SimplifiedSystemService';
+import { Ashrae621AlternativeSystemService, AlternativeSystemResult, AlternativeZoneInput } from '../calculations/ventilation/Ashrae621AlternativeSystemService';
 import { DensityCorrectionService, DensityInput, DensityResult } from './DensityCorrectionService';
 
 export interface SingleZoneInput {

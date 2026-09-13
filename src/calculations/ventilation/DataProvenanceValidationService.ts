@@ -1,4 +1,4 @@
-import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, DataProvenance, SourceType, VerificationStatus, StandardRevision, AshraeEdition } from '../../data/ventilation/ashrae621/types';
+import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, DataProvenance, SourceType, VerificationStatus, StandardRevision } from '../../data/ventilation/ashrae621/types';
 import { ValidationStatus } from './VentilationValidationService';
 
 export interface DataProvenanceValidationResult {
@@ -105,7 +105,7 @@ export class DataProvenanceValidationService {
   }
   
     
-  static isDateValid(dateString: string | undefined): boolean {
+  static isDateValid(dateString: string | undefined | null): boolean {
     if (!dateString) return false;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
     const d = new Date(dateString);
@@ -166,7 +166,7 @@ export class DataProvenanceValidationService {
       if (!this.isDateValid(spaceType.verificationDate)) {
         reasons.push('Invalid Verification Date');
       }
-      if (!this.isDateValid(spaceType.revisionState?.verificationDate)) {
+      console.log("REV DATE:", spaceType.revisionState?.verificationDate); if (!this.isDateValid(spaceType.revisionState?.verificationDate)) {
         reasons.push('Invalid Revision Verification Date');
       }
     }

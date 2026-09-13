@@ -18,7 +18,7 @@ export interface StandardRevision {
     baseEdition: AshraeEdition;
     publishedAddendaApplied: string[];
     publishedErrataApplied: string[];
-    verificationDate: string;
+    verificationDate?: string;
     source: SourceType;
 }
 

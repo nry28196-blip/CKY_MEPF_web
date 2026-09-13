@@ -1,7 +1,7 @@
 import { SourceType } from '../../data/ventilation/ashrae621/types';
 import { describe, it, expect } from 'vitest';
 import { VentilationEngine } from '../../lib/VentilationEngine';
-import { UnitConversionService, ft2ToM2 } from "../../lib/UnitConversionService";
+import { ft2ToM2 } from "../../lib/UnitConversionService";
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 
 describe('ASHRAE 62.1 Office Ventilation Golden Tests', () => {

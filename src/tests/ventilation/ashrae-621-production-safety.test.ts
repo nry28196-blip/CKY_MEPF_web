@@ -3,7 +3,7 @@ import { StandardDataProvider } from '../../data/ventilation/StandardDataProvide
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
 import { SourceType, AshraeEdition } from '../../data/ventilation/ashrae621/types';
-import { createSyntheticVerifiedSpaceType, createSyntheticVerifiedEz, createSyntheticVerifiedExhaust } from './test-fixtures';
+import { createSyntheticVerifiedSpaceType, createSyntheticVerifiedEz, createSyntheticVerifiedExhaust, withMalformedSpaceType, withMalformedEz, withMalformedExhaust } from './test-fixtures';
 
 const editions: AshraeEdition[] = ['2019', '2022', '2025'];
 
@@ -103,8 +103,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
   describe('10. VERIFICATION-DATE TESTS', () => {
     it('blocks missing verificationDate', () => {
-      const space = createSyntheticVerifiedSpaceType('2025');
-      space.verificationDate = undefined;
+      const space = withMalformedSpaceType(createSyntheticVerifiedSpaceType('2025'), (s) => {
+        s.verificationDate = undefined;
+      });
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -113,8 +114,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     });
 
     it('blocks invalid format', () => {
-      const space = createSyntheticVerifiedSpaceType('2025');
-      space.verificationDate = '2025';
+      const space = withMalformedSpaceType(createSyntheticVerifiedSpaceType('2025'), (s) => {
+        s.verificationDate = 12345;
+      });
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -123,8 +125,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     });
 
     it('blocks invalid calendar date', () => {
-      const space = createSyntheticVerifiedSpaceType('2025');
-      space.verificationDate = '2025-99-99';
+      const space = withMalformedSpaceType(createSyntheticVerifiedSpaceType('2025'), (s) => {
+        s.verificationDate = '2025-99-99';
+      });
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -294,8 +297,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
   describe('11C. REVISION-DATE REGRESSION TESTS', () => {
     // SpaceType tests
     it('blocks SpaceType with missing revisionState.verificationDate', () => {
-      const space = createSyntheticVerifiedSpaceType('2025');
-      space.revisionState.verificationDate = undefined;
+      const space = withMalformedSpaceType(createSyntheticVerifiedSpaceType('2025'), (s) => {
+        s.revisionState.verificationDate = undefined;
+      });
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -304,8 +308,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     });
 
     it('blocks SpaceType with invalid revisionState.verificationDate format', () => {
-      const space = createSyntheticVerifiedSpaceType('2025');
-      space.revisionState.verificationDate = '2025';
+      const space = withMalformedSpaceType(createSyntheticVerifiedSpaceType('2025'), (s) => {
+        s.revisionState.verificationDate = 12345;
+      });
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -314,8 +319,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     });
 
     it('blocks SpaceType with invalid revisionState.verificationDate calendar date', () => {
-      const space = createSyntheticVerifiedSpaceType('2025');
-      space.revisionState.verificationDate = '2025-99-99';
+      const space = withMalformedSpaceType(createSyntheticVerifiedSpaceType('2025'), (s) => {
+        s.revisionState.verificationDate = '2025-99-99';
+      });
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -335,8 +341,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     // Ez tests
     it('blocks Ez with missing revisionState.verificationDate', () => {
-      const ez = createSyntheticVerifiedEz('2025');
-      ez.revisionState.verificationDate = undefined;
+      const ez = withMalformedEz(createSyntheticVerifiedEz('2025'), (e) => {
+        e.revisionState.verificationDate = undefined;
+      });
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
@@ -345,8 +352,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     });
 
     it('blocks Ez with invalid revisionState.verificationDate calendar date', () => {
-      const ez = createSyntheticVerifiedEz('2025');
-      ez.revisionState.verificationDate = '2025-99-99';
+      const ez = withMalformedEz(createSyntheticVerifiedEz('2025'), (e) => {
+        e.revisionState.verificationDate = '2025-99-99';
+      });
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
@@ -366,11 +374,33 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     
     // Exhaust tests
     it('blocks Exhaust with missing revisionState.verificationDate', () => {
-      const ex = createSyntheticVerifiedExhaust('2025');
-      ex.revisionState.verificationDate = undefined;
+      const ex = withMalformedExhaust(createSyntheticVerifiedExhaust('2025'), (e) => {
+        e.revisionState.verificationDate = undefined;
+      });
       const result = Ashrae621ExhaustService.calculate({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', exhaustType: ex,
         qty: 10, designExhaust: 9999
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('passes valid leap-year date', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      space.verificationDate = '2024-02-29';
+      space.revisionState.verificationDate = '2024-02-29';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('blocks invalid non-leap-year date (e.g. 2025-02-29)', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      space.verificationDate = '2025-02-29';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
       });
       expect(result.status).toBe('BLOCKED');
     });

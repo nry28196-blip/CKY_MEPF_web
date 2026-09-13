@@ -2,7 +2,7 @@ import { SourceType } from '../../data/ventilation/ashrae621/types';
 
 import { Ashrae622Service } from '../../calculations/ventilation/Ashrae622Service';
 import { describe, it, expect } from 'vitest';
-import { UnitConversionService, ft2ToM2 } from "../../lib/UnitConversionService";
+import { ft2ToM2 } from "../../lib/UnitConversionService";
 import { VentilationEngine } from '../../lib/VentilationEngine';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
