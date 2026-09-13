@@ -22,7 +22,7 @@ const createFixture = (overrides: Partial<Ashrae621ExhaustType> = {}): Ashrae621
     baseEdition: '2025',
     publishedAddendaApplied: [],
     publishedErrataApplied: [],
-    verificationDate: ''
+    verificationDate: '2025-01-01'
   },
   reference: 'Synthetic reference',
   verificationDate: '2026-09-10',

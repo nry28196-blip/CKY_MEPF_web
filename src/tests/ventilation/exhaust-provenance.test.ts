@@ -23,7 +23,7 @@ const createFixture = (overrides: Partial<Ashrae621ExhaustType> = {}): Ashrae621
     baseEdition: '2025',
     publishedAddendaApplied: [],
     publishedErrataApplied: [],
-    verificationDate: ''
+    verificationDate: '2025-01-01'
   },
   reference: 'Synthetic reference',
   verificationDate: '2026-09-10',
@@ -117,7 +117,7 @@ describe('Exhaust Provenance Validation', () => {
   it('K. revision mismatch => BLOCKED', () => {
     const res = Ashrae621ExhaustService.calculate({
       expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
-      exhaustType: createFixture({ revisionState: { source: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: '2019', baseEdition: '2019', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '' } }), qty: 2, designExhaust: 60
+      exhaustType: createFixture({ revisionState: { source: SourceType.ASHRAE_PUBLISHED, standard: 'ASHRAE 62.1', edition: '2019', baseEdition: '2019', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2025-01-01' } }), qty: 2, designExhaust: 60
     });
     expect(res.status).toBe('BLOCKED');
   });

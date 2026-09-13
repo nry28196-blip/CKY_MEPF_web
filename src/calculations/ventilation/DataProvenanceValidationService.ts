@@ -49,13 +49,9 @@ export class DataProvenanceValidationService {
       if (!this.isAshraeSourceTypeAcceptable(exhaustType.revisionState?.source)) reasons.push('Contradictory Source Type');
       
       // 4. STRICT EXHAUST VERIFICATION DATE
-      if (!exhaustType.verificationDate) {
-        reasons.push('Missing Verification Date');
-      } else {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(exhaustType.verificationDate)) reasons.push('Invalid Verification Date');
-        const d = new Date(exhaustType.verificationDate);
-        if (isNaN(d.getTime())) reasons.push('Invalid Verification Date');
-      }
+      if (!this.isDateValid(exhaustType.verificationDate)) reasons.push('Invalid Verification Date');
+      if (!this.isDateValid(exhaustType.revisionState?.verificationDate)) reasons.push('Invalid Revision Verification Date');
+
     } else {
       reasons.push('Unverified Exhaust');
       
@@ -72,7 +68,7 @@ export class DataProvenanceValidationService {
     return { valid, status, reasons };
   }
 
-  static isAshraeSourceTypeAcceptable(sourceType: SourceType | undefined | unknown): boolean {
+  static isAshraeSourceTypeAcceptable(sourceType: SourceType | undefined): boolean {
     return sourceType === SourceType.ASHRAE_PUBLISHED ||
            sourceType === SourceType.ASHRAE_PUBLISHED_ADDENDUM ||
            sourceType === SourceType.ASHRAE_PUBLISHED_ERRATA;
@@ -108,7 +104,19 @@ export class DataProvenanceValidationService {
     return true;
   }
   
-    static isValidSourceType(source: unknown): source is SourceType {
+    
+  static isDateValid(dateString: string | undefined): boolean {
+    if (!dateString) return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return false;
+    // ensure no impossible dates like 2025-99-99 by checking if ISO string matches original (or parsing doesn't shift it)
+    const [y, m, dNum] = dateString.split('-');
+    if (d.getUTCFullYear() !== parseInt(y) || (d.getUTCMonth() + 1) !== parseInt(m) || d.getUTCDate() !== parseInt(dNum)) return false;
+    return true;
+  }
+
+  static isValidSourceType(source: unknown): source is SourceType {
     if (typeof source !== 'string') return false;
     const validSourceTypes: SourceType[] = [
       SourceType.ASHRAE_PUBLISHED, SourceType.ASHRAE_PUBLISHED_ADDENDUM, SourceType.ASHRAE_PUBLISHED_ERRATA,
@@ -120,7 +128,6 @@ export class DataProvenanceValidationService {
   static checkParentConsistency(parent: ProvenanceParent, prov: DataProvenance | undefined): boolean {
       if (!prov) return true;
       
-      // Ensure revision source is actually a valid SourceType
       const source = parent.revisionState?.source;
       if (!this.isValidSourceType(source)) {
         return false;
@@ -129,13 +136,13 @@ export class DataProvenanceValidationService {
         return false;
       }
 
-      // Verification consistency
+      if (parent.verificationStatus === 'VERIFIED') {
+          if (!this.isAshraeSourceTypeAcceptable(parent.sourceType)) return false;
+          if (!this.isAshraeSourceTypeAcceptable(source)) return false;
+      }
+
       if (prov.verificationStatus === 'VERIFIED' && parent.verificationStatus !== 'VERIFIED') return false;
       
-      
-      // "If provenance says VERIFIED: parent.verificationStatus must also be VERIFIED."
-      // "If parent verificationStatus is NOT_VERIFIED: a child provenance record must not claim VERIFIED."
-
       if (parent.standard !== prov.standard) return false;
       if (parent.edition !== prov.edition) return false;
       if (parent.revisionState?.standard !== prov.standard) return false;
@@ -152,18 +159,17 @@ export class DataProvenanceValidationService {
   ): DataProvenanceValidationResult {
     const reasons: string[] = [];
     
-    if (spaceType.verificationStatus === 'VERIFIED' && !this.isAshraeSourceTypeAcceptable(spaceType.sourceType)) reasons.push('Invalid Source Type for VERIFIED data');
-
-    if (spaceType.verificationStatus === 'VERIFIED') {
-      if (!spaceType.verificationDate) {
-        reasons.push('Missing Verification Date');
-      } else {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(spaceType.verificationDate)) reasons.push('Invalid Verification Date');
-        const d = new Date(spaceType.verificationDate);
-        if (isNaN(d.getTime())) reasons.push('Invalid Verification Date');
+        if (spaceType.verificationStatus === 'VERIFIED') {
+      if (!this.isAshraeSourceTypeAcceptable(spaceType.sourceType) || !this.isAshraeSourceTypeAcceptable(spaceType.revisionState?.source)) {
+        reasons.push('Invalid Source Type for VERIFIED data');
+      }
+      if (!this.isDateValid(spaceType.verificationDate)) {
+        reasons.push('Invalid Verification Date');
+      }
+      if (!this.isDateValid(spaceType.revisionState?.verificationDate)) {
+        reasons.push('Invalid Revision Verification Date');
       }
     }
-
     if (spaceType.standard !== expectedStandard) reasons.push('Invalid Standard Configuration');
     if (spaceType.edition !== expectedEdition) reasons.push('Edition Mismatch');
     
@@ -216,18 +222,17 @@ export class DataProvenanceValidationService {
   ): DataProvenanceValidationResult {
     const reasons: string[] = [];
     
-    if (ezConfig.verificationStatus === 'VERIFIED' && !this.isAshraeSourceTypeAcceptable(ezConfig.sourceType)) reasons.push('Invalid Source Type for VERIFIED data');
-
-    if (ezConfig.verificationStatus === 'VERIFIED') {
-      if (!ezConfig.verificationDate) {
-        reasons.push('Missing Verification Date');
-      } else {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(ezConfig.verificationDate)) reasons.push('Invalid Verification Date');
-        const d = new Date(ezConfig.verificationDate);
-        if (isNaN(d.getTime())) reasons.push('Invalid Verification Date');
+        if (ezConfig.verificationStatus === 'VERIFIED') {
+      if (!this.isAshraeSourceTypeAcceptable(ezConfig.sourceType) || !this.isAshraeSourceTypeAcceptable(ezConfig.revisionState?.source)) {
+        reasons.push('Invalid Source Type for VERIFIED data');
+      }
+      if (!this.isDateValid(ezConfig.verificationDate)) {
+        reasons.push('Invalid Verification Date');
+      }
+      if (!this.isDateValid(ezConfig.revisionState?.verificationDate)) {
+        reasons.push('Invalid Revision Verification Date');
       }
     }
-
     if (ezConfig.standard !== expectedStandard) reasons.push('Invalid Standard Configuration');
     if (ezConfig.edition !== expectedEdition) reasons.push('Edition Mismatch');
     
