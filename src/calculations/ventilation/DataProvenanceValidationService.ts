@@ -105,8 +105,8 @@ export class DataProvenanceValidationService {
   }
   
     
-  static isDateValid(dateString: string | undefined | null): boolean {
-    if (!dateString) return false;
+  static isDateValid(dateString: unknown): boolean {
+    if (typeof dateString !== "string" || !dateString) return false;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
     const d = new Date(dateString);
     if (isNaN(d.getTime())) return false;
@@ -166,7 +166,7 @@ export class DataProvenanceValidationService {
       if (!this.isDateValid(spaceType.verificationDate)) {
         reasons.push('Invalid Verification Date');
       }
-      console.log("REV DATE:", spaceType.revisionState?.verificationDate); if (!this.isDateValid(spaceType.revisionState?.verificationDate)) {
+      if (!this.isDateValid(spaceType.revisionState?.verificationDate)) {
         reasons.push('Invalid Revision Verification Date');
       }
     }
