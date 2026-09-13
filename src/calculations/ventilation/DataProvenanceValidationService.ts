@@ -96,10 +96,7 @@ export class DataProvenanceValidationService {
     if (!this.isAshraeSourceTypeAcceptable(provenance.sourceType)) return false;
 
     // 8. verificationDate exists and is a valid date
-    if (!provenance.verificationDate) return false;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(provenance.verificationDate)) return false;
-    const d = new Date(provenance.verificationDate);
-    if (isNaN(d.getTime())) return false;
+    if (!this.isDateValid(provenance.verificationDate)) return false;
     
     return true;
   }
