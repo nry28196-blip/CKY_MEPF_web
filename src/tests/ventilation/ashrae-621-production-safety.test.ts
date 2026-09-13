@@ -384,10 +384,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
       expect(result.status).toBe('BLOCKED');
     });
 
-    it('passes valid leap-year date', () => {
+    it('passes SpaceType with valid leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
       space.verificationDate = '2024-02-29';
-      space.revisionState.verificationDate = '2024-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -395,7 +394,7 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
       expect(result.status).toBe('PASS');
     });
 
-    it('blocks invalid non-leap-year date (e.g. 2025-02-29)', () => {
+    it('blocks SpaceType with invalid non-leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
       space.verificationDate = '2025-02-29';
       const result = Ashrae621ZoneService.calculateZone({
@@ -404,7 +403,26 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
       });
       expect(result.status).toBe('BLOCKED');
     });
-  });
+
+    it('passes SpaceType with valid leap-year revisionState.verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      space.revisionState.verificationDate = '2024-02-29';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('blocks SpaceType with invalid non-leap-year revisionState.verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      space.revisionState.verificationDate = '2025-02-29';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
 
   describe('12. MATHEMATICAL SYNTHETIC TESTS (VERIFIED FIXTURES ONLY)', () => {
     it('calculates zone successfully with mathematical golden test (design occupancy)', () => {
@@ -442,4 +460,5 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
       expect(result.designExhaust).toBe(60);
     });
   });
+});
 });
