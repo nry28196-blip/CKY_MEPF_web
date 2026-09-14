@@ -160,9 +160,8 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('blocks parent VERIFIED + child NOT_VERIFIED', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance?.rp) {
-        space.provenance.rp.verificationStatus = 'NOT_VERIFIED';
-      }
+      expect(space.provenance?.rp).toBeDefined();
+      space.provenance!.rp!.verificationStatus = 'NOT_VERIFIED';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -508,9 +507,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
   describe('11D. CHILD PROVENANCE DATE REGRESSION TESTS', () => {
     it('passes Rp provenance with valid leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.rp) {
-        space.provenance.rp.verificationDate = '2024-02-29';
-      }
+      expect(space.provenance?.rp).toBeDefined();
+      expect(space.provenance?.rp?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.rp!.verificationDate = '2024-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -520,9 +519,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('blocks Rp provenance with invalid non-leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.rp) {
-        space.provenance.rp.verificationDate = '2025-02-29';
-      }
+      expect(space.provenance?.rp).toBeDefined();
+      expect(space.provenance?.rp?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.rp!.verificationDate = '2025-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -532,9 +531,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('blocks Rp provenance with impossible calendar date', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.rp) {
-        space.provenance.rp.verificationDate = '2024-02-30';
-      }
+      expect(space.provenance?.rp).toBeDefined();
+      expect(space.provenance?.rp?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.rp!.verificationDate = '2024-02-30';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -544,9 +543,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('passes Ra provenance with valid leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.ra) {
-        space.provenance.ra.verificationDate = '2024-02-29';
-      }
+      expect(space.provenance?.ra).toBeDefined();
+      expect(space.provenance?.ra?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.ra!.verificationDate = '2024-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -556,9 +555,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('blocks Ra provenance with invalid non-leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.ra) {
-        space.provenance.ra.verificationDate = '2025-02-29';
-      }
+      expect(space.provenance?.ra).toBeDefined();
+      expect(space.provenance?.ra?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.ra!.verificationDate = '2025-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -568,9 +567,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('blocks Ra provenance with impossible calendar date', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.ra) {
-        space.provenance.ra.verificationDate = '2024-02-30';
-      }
+      expect(space.provenance?.ra).toBeDefined();
+      expect(space.provenance?.ra?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.ra!.verificationDate = '2024-02-30';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -580,9 +579,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('passes defaultOccupancy provenance with valid leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.defaultOccupancy) {
-        space.provenance.defaultOccupancy.verificationDate = '2024-02-29';
-      }
+      expect(space.provenance?.defaultOccupancy).toBeDefined();
+      expect(space.provenance?.defaultOccupancy?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.defaultOccupancy!.verificationDate = '2024-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: null, useDefaultOccupancy: true, ezConfig: createSyntheticVerifiedEz('2025')
@@ -592,9 +591,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('blocks defaultOccupancy provenance with invalid non-leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.defaultOccupancy) {
-        space.provenance.defaultOccupancy.verificationDate = '2025-02-29';
-      }
+      expect(space.provenance?.defaultOccupancy).toBeDefined();
+      expect(space.provenance?.defaultOccupancy?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.defaultOccupancy!.verificationDate = '2025-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: null, useDefaultOccupancy: true, ezConfig: createSyntheticVerifiedEz('2025')
@@ -604,9 +603,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('blocks defaultOccupancy provenance with impossible calendar date', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.defaultOccupancy) {
-        space.provenance.defaultOccupancy.verificationDate = '2024-02-30';
-      }
+      expect(space.provenance?.defaultOccupancy).toBeDefined();
+      expect(space.provenance?.defaultOccupancy?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.defaultOccupancy!.verificationDate = '2024-02-30';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: null, useDefaultOccupancy: true, ezConfig: createSyntheticVerifiedEz('2025')
@@ -616,9 +615,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('passes reference provenance with valid leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.reference) {
-        space.provenance.reference.verificationDate = '2024-02-29';
-      }
+      expect(space.provenance?.reference).toBeDefined();
+      expect(space.provenance?.reference?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.reference!.verificationDate = '2024-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -628,9 +627,9 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
 
     it('blocks reference provenance with invalid non-leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.reference) {
-        space.provenance.reference.verificationDate = '2025-02-29';
-      }
+      expect(space.provenance?.reference).toBeDefined();
+      expect(space.provenance?.reference?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.reference!.verificationDate = '2025-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
@@ -639,12 +638,139 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     });
     it('blocks reference provenance with impossible calendar date', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
-      if (space.provenance && space.provenance.reference) {
-        space.provenance.reference.verificationDate = '2024-02-30';
-      }
+      expect(space.provenance?.reference).toBeDefined();
+      expect(space.provenance?.reference?.verificationStatus).toBe('VERIFIED');
+      space.provenance!.reference!.verificationDate = '2024-02-30';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    // EZ Child Provenance
+    it('passes Ez provenance.ez with valid leap-year verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      const ezConfig = createSyntheticVerifiedEz('2025');
+      expect(ezConfig.provenance?.ez).toBeDefined();
+      expect(ezConfig.provenance?.ez?.verificationStatus).toBe('VERIFIED');
+      ezConfig.provenance!.ez!.verificationDate = '2024-02-29';
+      
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('blocks Ez provenance.ez with invalid non-leap-year verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      const ezConfig = createSyntheticVerifiedEz('2025');
+      expect(ezConfig.provenance?.ez).toBeDefined();
+      expect(ezConfig.provenance?.ez?.verificationStatus).toBe('VERIFIED');
+      ezConfig.provenance!.ez!.verificationDate = '2025-02-29';
+      
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('blocks Ez provenance.ez with impossible calendar date', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      const ezConfig = createSyntheticVerifiedEz('2025');
+      expect(ezConfig.provenance?.ez).toBeDefined();
+      expect(ezConfig.provenance?.ez?.verificationStatus).toBe('VERIFIED');
+      ezConfig.provenance!.ez!.verificationDate = '2024-02-30';
+      
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('passes Ez provenance.applicability with valid leap-year verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      const ezConfig = createSyntheticVerifiedEz('2025');
+      expect(ezConfig.provenance?.applicability).toBeDefined();
+      expect(ezConfig.provenance?.applicability?.verificationStatus).toBe('VERIFIED');
+      ezConfig.provenance!.applicability!.verificationDate = '2024-02-29';
+      
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('blocks Ez provenance.applicability with invalid non-leap-year verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      const ezConfig = createSyntheticVerifiedEz('2025');
+      expect(ezConfig.provenance?.applicability).toBeDefined();
+      expect(ezConfig.provenance?.applicability?.verificationStatus).toBe('VERIFIED');
+      ezConfig.provenance!.applicability!.verificationDate = '2025-02-29';
+      
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('blocks Ez provenance.applicability with impossible calendar date', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      const ezConfig = createSyntheticVerifiedEz('2025');
+      expect(ezConfig.provenance?.applicability).toBeDefined();
+      expect(ezConfig.provenance?.applicability?.verificationStatus).toBe('VERIFIED');
+      ezConfig.provenance!.applicability!.verificationDate = '2024-02-30';
+      
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('passes Ez provenance.reference with valid leap-year verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      const ezConfig = createSyntheticVerifiedEz('2025');
+      expect(ezConfig.provenance?.reference).toBeDefined();
+      expect(ezConfig.provenance?.reference?.verificationStatus).toBe('VERIFIED');
+      ezConfig.provenance!.reference!.verificationDate = '2024-02-29';
+      
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('blocks Ez provenance.reference with invalid non-leap-year verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      const ezConfig = createSyntheticVerifiedEz('2025');
+      expect(ezConfig.provenance?.reference).toBeDefined();
+      expect(ezConfig.provenance?.reference?.verificationStatus).toBe('VERIFIED');
+      ezConfig.provenance!.reference!.verificationDate = '2025-02-29';
+      
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('blocks Ez provenance.reference with impossible calendar date', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      const ezConfig = createSyntheticVerifiedEz('2025');
+      expect(ezConfig.provenance?.reference).toBeDefined();
+      expect(ezConfig.provenance?.reference?.verificationStatus).toBe('VERIFIED');
+      ezConfig.provenance!.reference!.verificationDate = '2024-02-30';
+      
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig
       });
       expect(result.status).toBe('BLOCKED');
     });
