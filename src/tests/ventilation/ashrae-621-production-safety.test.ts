@@ -3,7 +3,7 @@ import { StandardDataProvider } from '../../data/ventilation/StandardDataProvide
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
 import { SourceType, AshraeEdition } from '../../data/ventilation/ashrae621/types';
-import { createSyntheticVerifiedSpaceType, createSyntheticVerifiedEz, createSyntheticVerifiedExhaust, withMalformedSpaceType, withMalformedEz, withMalformedExhaust } from './test-fixtures';
+import { createSyntheticVerifiedSpaceType, createSyntheticVerifiedEz, createSyntheticVerifiedExhaust, withMalformedSpaceType, withMalformedExhaust } from './test-fixtures';
 
 const editions: AshraeEdition[] = ['2019', '2022', '2025'];
 
@@ -339,36 +339,64 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
     });
 
     // Ez tests
-    it('blocks Ez with missing revisionState.verificationDate', () => {
-      const ez = withMalformedEz(createSyntheticVerifiedEz('2025'), (e) => {
-        e.revisionState.verificationDate = undefined;
-      });
-      const result = Ashrae621ZoneService.calculateZone({
-        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
-        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
-      });
-      expect(result.status).toBe('BLOCKED');
-    });
-
-    it('blocks Ez with invalid revisionState.verificationDate calendar date', () => {
-      const ez = withMalformedEz(createSyntheticVerifiedEz('2025'), (e) => {
-        e.revisionState.verificationDate = '2025-99-99';
-      });
-      const result = Ashrae621ZoneService.calculateZone({
-        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
-        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
-      });
-      expect(result.status).toBe('BLOCKED');
-    });
-
-    it('passes Ez with valid revisionState.verificationDate', () => {
+    it('passes Ez with valid leap-year verificationDate', () => {
       const ez = createSyntheticVerifiedEz('2025');
-      ez.revisionState.verificationDate = '2025-01-01';
+      ez.verificationDate = '2024-02-29';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
         area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
       });
       expect(result.status).toBe('PASS');
+    });
+
+    it('blocks Ez with invalid non-leap-year verificationDate', () => {
+      const ez = createSyntheticVerifiedEz('2025');
+      ez.verificationDate = '2025-02-29';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('blocks Ez with impossible calendar verificationDate', () => {
+      const ez = createSyntheticVerifiedEz('2025');
+      ez.verificationDate = '2024-02-30';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('passes Ez with valid leap-year revisionState.verificationDate', () => {
+      const ez = createSyntheticVerifiedEz('2025');
+      ez.revisionState.verificationDate = '2024-02-29';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('blocks Ez with invalid non-leap-year revisionState.verificationDate', () => {
+      const ez = createSyntheticVerifiedEz('2025');
+      ez.revisionState.verificationDate = '2025-02-29';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('blocks Ez with impossible calendar revisionState.verificationDate', () => {
+      const ez = createSyntheticVerifiedEz('2025');
+      ez.revisionState.verificationDate = '2024-02-30';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: createSyntheticVerifiedSpaceType('2025'),
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ez
+      });
+      expect(result.status).toBe('BLOCKED');
     });
     
     // Exhaust tests
