@@ -22,6 +22,7 @@ export interface AlternativeZoneResult {
   id: string;
   vpz: number;
   vpzMin: number;
+  vdzMin: number;
   zd: number;
   ep: number;
   er: number;
@@ -132,10 +133,11 @@ export class Ashrae621AlternativeSystemService {
       status: AuditStatus.DERIVED
     });
 
-    let missingEpEr = false;
+        let missingEpEr = false;
+    let hasInvalidZd = false;
+    let hasZeroVdz = false;
     const zoneCalcs = input.zones.map(z => {
       let vpzMin = z.dMode === 'VAV' ? (z.vpzMinDesign || z.vpzMinRequired) : (z.vpz || 0);
-      let zd = vpzMin > 0 ? z.voz / vpzMin : 1.0;
       
       let ep = 1.0;
       let er = 0.0;
@@ -150,11 +152,21 @@ export class Ashrae621AlternativeSystemService {
         if (z.er === null || z.er === undefined || isNaN(z.er)) missingEpEr = true;
         else er = z.er;
       }
+
+      let vdzMin = 0;
+      if (ep > 0) {
+        vdzMin = vpzMin / ep;
+      } else {
+        hasZeroVdz = true;
+      }
+
+      let zd = vdzMin > 0 ? z.voz / vdzMin : 1.0;
+      if (zd > 1.0) hasInvalidZd = true;
       
       let fa = ep + (1 - ep) * er;
       let fb = ep;
       let fc = 1 - (1 - z.ez) * (1 - er) * (1 - ep);
-      return { id: z.id, vpzMin, zd, ep, er, fa, fb, fc, evz: 1.0 };
+      return { id: z.id, vpzMin, vdzMin, zd, ep, er, fa, fb, fc, evz: 1.0 };
     });
 
     if (missingEpEr) {
@@ -167,6 +179,22 @@ export class Ashrae621AlternativeSystemService {
         result: 'INCOMPLETE',
         unit: '',
         reference: 'ASHRAE 62.1 Alternative Procedure',
+        status: AuditStatus.FAIL
+      });
+      const finalStatus = VentilationValidationService.aggregateStatus(statuses);
+      return { zoneResults: [], ev: null, vou, vps, xs: null, criticalZoneId: null, status: finalStatus, auditTrail };
+    }
+
+    if (hasZeroVdz || hasInvalidZd) {
+      statuses.push('FAIL');
+      auditTrail.push({
+        symbol: 'Zd',
+        name: 'Zone Discharge Airflow Validation',
+        formula: 'Zd <= 1.0 and Vdz > 0',
+        inputs: {},
+        result: 'FAIL',
+        unit: '',
+        reference: 'ASHRAE 62.1-2025 Appendix A',
         status: AuditStatus.FAIL
       });
       const finalStatus = VentilationValidationService.aggregateStatus(statuses);
@@ -249,6 +277,7 @@ export class Ashrae621AlternativeSystemService {
         id: zc.id,
         vpz: zInput.vpz!,
         vpzMin: zc.vpzMin,
+        vdzMin: zc.vdzMin,
         zd: zc.zd,
         ep: zc.ep,
         er: zc.er,
