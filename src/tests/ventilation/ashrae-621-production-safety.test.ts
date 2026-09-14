@@ -384,6 +384,66 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
       expect(result.status).toBe('BLOCKED');
     });
 
+    it('passes ExhaustType with valid leap-year verificationDate', () => {
+      const ex = createSyntheticVerifiedExhaust('2025');
+      ex.verificationDate = '2024-02-29';
+      const result = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', exhaustType: ex,
+        qty: 10, designExhaust: 9999
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('blocks ExhaustType with invalid non-leap-year verificationDate', () => {
+      const ex = createSyntheticVerifiedExhaust('2025');
+      ex.verificationDate = '2025-02-29';
+      const result = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', exhaustType: ex,
+        qty: 10, designExhaust: 9999
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('blocks ExhaustType with impossible calendar verificationDate', () => {
+      const ex = createSyntheticVerifiedExhaust('2025');
+      ex.verificationDate = '2024-02-30';
+      const result = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', exhaustType: ex,
+        qty: 10, designExhaust: 9999
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('passes ExhaustType with valid leap-year revisionState.verificationDate', () => {
+      const ex = createSyntheticVerifiedExhaust('2025');
+      ex.revisionState.verificationDate = '2024-02-29';
+      const result = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', exhaustType: ex,
+        qty: 10, designExhaust: 9999
+      });
+      expect(result.status).toBe('PASS');
+    });
+
+    it('blocks ExhaustType with invalid non-leap-year revisionState.verificationDate', () => {
+      const ex = createSyntheticVerifiedExhaust('2025');
+      ex.revisionState.verificationDate = '2025-02-29';
+      const result = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', exhaustType: ex,
+        qty: 10, designExhaust: 9999
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
+    it('blocks ExhaustType with impossible calendar revisionState.verificationDate', () => {
+      const ex = createSyntheticVerifiedExhaust('2025');
+      ex.revisionState.verificationDate = '2024-02-30';
+      const result = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', exhaustType: ex,
+        qty: 10, designExhaust: 9999
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
     it('passes SpaceType with valid leap-year verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
       space.verificationDate = '2024-02-29';
