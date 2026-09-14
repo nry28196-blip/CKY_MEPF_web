@@ -404,6 +404,16 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
       expect(result.status).toBe('BLOCKED');
     });
 
+    it('blocks SpaceType with impossible calendar verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      space.verificationDate = '2024-02-30';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+
     it('passes SpaceType with valid leap-year revisionState.verificationDate', () => {
       const space = createSyntheticVerifiedSpaceType('2025');
       space.revisionState.verificationDate = '2024-02-29';
@@ -423,6 +433,17 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
       });
       expect(result.status).toBe('BLOCKED');
     });
+
+    it('blocks SpaceType with impossible calendar revisionState.verificationDate', () => {
+      const space = createSyntheticVerifiedSpaceType('2025');
+      space.revisionState.verificationDate = '2024-02-30';
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025', spaceType: space,
+        area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: createSyntheticVerifiedEz('2025')
+      });
+      expect(result.status).toBe('BLOCKED');
+    });
+  });
 
   describe('11D. CHILD PROVENANCE DATE REGRESSION TESTS', () => {
     it('passes Rp provenance with valid leap-year verificationDate', () => {
@@ -605,5 +626,4 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
       expect(result.designExhaust).toBe(60);
     });
   });
-});
 });
