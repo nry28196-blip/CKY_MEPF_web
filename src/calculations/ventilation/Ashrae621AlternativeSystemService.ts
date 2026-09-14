@@ -59,11 +59,39 @@ export class Ashrae621AlternativeSystemService {
     const sumPz = input.zones.reduce((sum, z) => sum + z.pz, 0);
     const sumRaAz = input.zones.reduce((sum, z) => sum + (z.ra * z.az), 0);
     const sumRpPz = input.zones.reduce((sum, z) => sum + (z.rp * z.pz), 0);
-    
-    if (input.ps === null || isNaN(input.ps) || input.ps < 0) {
+
+    if (input.ps === null || isNaN(input.ps)) {
+      statuses.push('INCOMPLETE');
+    } else if (input.ps < 0) {
+      statuses.push('FAIL');
+    }
+
+    if (sumPz < 0) {
+      statuses.push('FAIL');
+    }
+
+    if (sumPz === 0) {
       statuses.push('INCOMPLETE');
     }
+
     const ps = (input.ps !== null && !isNaN(input.ps)) ? input.ps : 0;
+    
+    if (sumPz > 0 && ps > sumPz) {
+      statuses.push('FAIL');
+      auditTrail.push({
+        symbol: 'Invalid Ps',
+        name: 'System Population Validation',
+        formula: 'Ps <= ΣPz',
+        inputs: { 'Ps': ps, 'ΣPz': sumPz },
+        result: 'FAIL',
+        unit: '',
+        reference: 'ASHRAE 62.1-2025',
+        status: AuditStatus.FAIL
+      });
+      const finalStatus = VentilationValidationService.aggregateStatus(statuses);
+      return { zoneResults: [], ev: null, vou: null, vps: null, xs: null, criticalZoneId: null, status: finalStatus, auditTrail };
+    }
+
     const d = sumPz > 0 ? ps / sumPz : 1.0;
     const vou = d * sumRpPz + sumRaAz;
 
@@ -104,28 +132,57 @@ export class Ashrae621AlternativeSystemService {
       status: AuditStatus.DERIVED
     });
 
-    // Iterative solver for Ev and Xs
-    let ev = 1.0;
-    let xs = 0;
-    let iterations = 0;
-    const maxIterations = 50;
-    let converged = false;
-    
+    let missingEpEr = false;
     const zoneCalcs = input.zones.map(z => {
       let vpzMin = z.dMode === 'VAV' ? (z.vpzMinDesign || z.vpzMinRequired) : (z.vpz || 0);
       let zd = vpzMin > 0 ? z.voz / vpzMin : 1.0;
-      let ep = input.systemType === 'single_supply' ? 1.0 : (z.ep !== null ? z.ep : 1.0);
-      let er = input.systemType === 'single_supply' ? 0.0 : (z.er !== null ? z.er : 0.0);
+      
+      let ep = 1.0;
+      let er = 0.0;
+      
+      if (input.systemType === 'single_supply') {
+        ep = 1.0;
+        er = 0.0;
+      } else {
+        if (z.ep === null || z.ep === undefined || isNaN(z.ep)) missingEpEr = true;
+        else ep = z.ep;
+        
+        if (z.er === null || z.er === undefined || isNaN(z.er)) missingEpEr = true;
+        else er = z.er;
+      }
+      
       let fa = ep + (1 - ep) * er;
       let fb = ep;
       let fc = 1 - (1 - z.ez) * (1 - er) * (1 - ep);
       return { id: z.id, vpzMin, zd, ep, er, fa, fb, fc, evz: 1.0 };
-      status: AuditStatus.DERIVED
     });
 
+    if (missingEpEr) {
+      statuses.push('INCOMPLETE');
+      auditTrail.push({
+        symbol: 'Ep/Er',
+        name: 'Missing Secondary Recirculation Inputs',
+        formula: 'Ep, Er Required',
+        inputs: {},
+        result: 'INCOMPLETE',
+        unit: '',
+        reference: 'ASHRAE 62.1 Alternative Procedure',
+        status: AuditStatus.FAIL
+      });
+      const finalStatus = VentilationValidationService.aggregateStatus(statuses);
+      return { zoneResults: [], ev: null, vou, vps, xs: null, criticalZoneId: null, status: finalStatus, auditTrail };
+    }
+
+    // Iterative solver for Ev and Xs
+    let ev: number | null = 1.0;
+    let xs = 0;
+    let iterations = 0;
+    const maxIterations = 50;
+    let converged = false;
+
     while (iterations < maxIterations && !converged) {
-      let prevEv = ev;
-      xs = vps > 0 ? (vou / ev) / vps : 1.0;
+      let prevEv = ev!;
+      xs = vps > 0 ? (vou / ev!) / vps : 1.0;
       let minEvz = 1.0;
       
       for (const zc of zoneCalcs) {
@@ -142,25 +199,50 @@ export class Ashrae621AlternativeSystemService {
       iterations++;
     }
 
-    if (!converged || ev <= 0) {
+    let isEvValid = true;
+    if (!converged || ev <= 0 || isNaN(ev) || !isFinite(ev)) {
       statuses.push('FAIL');
+      isEvValid = false;
+      ev = null;
+      auditTrail.push({
+        symbol: 'Ev',
+        name: 'System Ventilation Efficiency',
+        formula: 'min(Evz) [Iterative]',
+        inputs: { 'Xs': xs, 'Iterations': iterations },
+        result: 'FAIL',
+        unit: '',
+        reference: 'ASHRAE 62.1 Alternative Procedure',
+        status: AuditStatus.FAIL
+      });
     } else {
       statuses.push('PASS');
+      auditTrail.push({
+        symbol: 'Ev',
+        name: 'System Ventilation Efficiency',
+        formula: 'min(Evz) [Iterative]',
+        inputs: { 'Xs': xs, 'Iterations': iterations },
+        result: ev,
+        unit: '',
+        reference: 'ASHRAE 62.1 Alternative Procedure',
+        status: AuditStatus.DERIVED
+      });
     }
 
-    auditTrail.push({
-      symbol: 'Ev',
-      name: 'System Ventilation Efficiency',
-      formula: 'min(Evz) [Iterative]',
-      inputs: { 'Xs': xs, 'Iterations': iterations },
-      result: ev,
-      unit: '',
-      reference: 'ASHRAE 62.1 Alternative Procedure',
-      status: AuditStatus.DERIVED
-    });
-
     const finalStatus = VentilationValidationService.aggregateStatus(statuses);
-    
+
+    if (!isEvValid) {
+        return {
+          zoneResults: [],
+          ev: null,
+          vou,
+          vps,
+          xs,
+          criticalZoneId: null,
+          status: finalStatus,
+          auditTrail
+        };
+    }
+
     const zoneResults: AlternativeZoneResult[] = zoneCalcs.map(zc => {
       const zInput = input.zones.find(z => z.id === zc.id)!;
       return {
@@ -174,11 +256,10 @@ export class Ashrae621AlternativeSystemService {
         fb: zc.fb,
         fc: zc.fc,
         evz: zc.evz,
-        isCritical: Math.abs(zc.evz - ev) < 0.001,
+        isCritical: Math.abs(zc.evz - ev!) < 0.001,
         status: finalStatus,
         auditTrail: []
       };
-      status: AuditStatus.DERIVED
     });
 
     const criticalZone = zoneResults.find(zr => zr.isCritical);

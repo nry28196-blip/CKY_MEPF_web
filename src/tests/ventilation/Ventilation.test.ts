@@ -228,7 +228,7 @@ const makeVerified = (item: any) => {
         useDefaultOccupancy: false,
         ezConfig: verifiedEz
       },
-      density: { elevation: NaN, temperature: NaN } // Missing
+      density: { elevation: null, temperature: null } // Missing
     });
 
     expect(result.status).toBe('INCOMPLETE');

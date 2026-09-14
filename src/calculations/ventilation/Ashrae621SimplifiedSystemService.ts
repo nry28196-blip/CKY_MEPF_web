@@ -35,16 +35,45 @@ export class Ashrae621SimplifiedSystemService {
     const sumPz = input.zones.reduce((sum, z) => sum + z.pz, 0);
     const sumRaAz = input.zones.reduce((sum, z) => sum + (z.ra * z.az), 0);
     const sumRpPz = input.zones.reduce((sum, z) => sum + (z.rp * z.pz), 0);
-
+    
     const statuses: ValidationStatus[] = [];
 
-    if (input.ps === null || isNaN(input.ps) || input.ps < 0) {
+    if (input.ps === null || isNaN(input.ps)) {
+      statuses.push('INCOMPLETE');
+    } else if (input.ps < 0) {
+      statuses.push('FAIL');
+    }
+
+    if (sumPz < 0) {
+      statuses.push('FAIL');
+    }
+
+    if (sumPz === 0) {
       statuses.push('INCOMPLETE');
     }
 
-    
-
     const ps = (input.ps !== null && !isNaN(input.ps)) ? input.ps : 0;
+    
+    if (sumPz > 0 && ps > sumPz) {
+      statuses.push('FAIL');
+      auditTrail.push({
+        symbol: 'Invalid Ps',
+        name: 'System Population Validation',
+        formula: 'Ps <= ΣPz',
+        inputs: { 'Ps': ps, 'ΣPz': sumPz },
+        result: 'FAIL',
+        unit: '',
+        reference: 'ASHRAE 62.1-2025',
+        status: AuditStatus.FAIL
+      });
+      const finalStatus = VentilationValidationService.aggregateStatus(statuses);
+      return {
+        sumPz, ps, d: 0, ev: 0, vou: 0,
+        status: finalStatus,
+        auditTrail
+      };
+    }
+
     const d = sumPz > 0 ? ps / sumPz : 1.0;
     
     let ev = 0;

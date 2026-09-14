@@ -39,8 +39,7 @@ export class DensityCorrectionService {
     let status: ValidationStatus = 'PASS';
 
     // Check for missing data
-    if (!input || input.elevation === null || input.temperature === null || 
-        isNaN(input.elevation) || isNaN(input.temperature)) {
+    if (!input || input.elevation === null || input.temperature === null) {
       status = 'INCOMPLETE';
       auditTrail.push({
         symbol: 'Assumed Data',
@@ -51,6 +50,50 @@ export class DensityCorrectionService {
         unit: '',
         reference: 'Missing site elevation or design temperature'
       });
+    } else if (isNaN(input.elevation) || isNaN(input.temperature) || !isFinite(input.temperature) || input.temperature <= -273.15) {
+      status = 'FAIL';
+      auditTrail.push({
+        symbol: 'T',
+        name: 'Invalid Temperature or Elevation',
+        formula: 'T(K) > 0',
+        inputs: { 'T (°C)': input.temperature, 'Z (m)': input.elevation },
+        result: 'FAIL',
+        unit: '',
+        reference: 'Invalid numeric input'
+      });
+      return {
+        elevation: input.elevation || 0,
+        temperature: input.temperature || 0,
+        relativeHumidity: 0,
+        pressureAtm: 0,
+        density: 0,
+        humidityRatioKgKg: 0,
+        eRho: 1.0,
+        status,
+        auditTrail
+      };
+    } else if (!isFinite(input.elevation)) {
+      status = 'FAIL';
+      auditTrail.push({
+        symbol: 'Z',
+        name: 'Invalid Elevation',
+        formula: 'Z must be finite',
+        inputs: { 'Z (m)': input.elevation },
+        result: 'FAIL',
+        unit: '',
+        reference: 'Validation'
+      });
+      return {
+        elevation: input.elevation,
+        temperature: input.temperature,
+        relativeHumidity: 0,
+        pressureAtm: 0,
+        density: 0,
+        humidityRatioKgKg: 0,
+        eRho: 1.0,
+        status,
+        auditTrail
+      };
     } else {
       elevation = input.elevation;
       temperature = input.temperature;
