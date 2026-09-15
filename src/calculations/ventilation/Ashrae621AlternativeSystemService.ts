@@ -12,7 +12,8 @@ export interface AlternativeZoneInput {
   vpz: number | null; // Zone primary airflow
   vpzMinRequired: number; // Required Vpz-min from calculation (Voz for CV)
   vpzMinDesign: number | null; // User's design minimum
-  ep: number | null;
+  vdzMinDesign?: number | null; // Minimum total discharge airflow (required for secondary_recirculation)
+  ep?: number | null;
   er: number | null;
   ez: number;
   dMode: 'VAV' | 'CV';
@@ -136,32 +137,46 @@ export class Ashrae621AlternativeSystemService {
         let missingEpEr = false;
     let hasInvalidZd = false;
     let hasZeroVdz = false;
+    let hasInvalidEp = false;
+
     const zoneCalcs = input.zones.map(z => {
-      let vpzMin = z.dMode === 'VAV' ? (z.vpzMinDesign || z.vpzMinRequired) : (z.vpz || 0);
+      let vpzMin = z.dMode === 'VAV' ? (z.vpzMinDesign !== null && z.vpzMinDesign !== undefined ? z.vpzMinDesign : z.vpzMinRequired) : (z.vpz || 0);
       
       let ep = 1.0;
       let er = 0.0;
+      let vdzMin = 0;
       
       if (input.systemType === 'single_supply') {
         ep = 1.0;
         er = 0.0;
+        vdzMin = vpzMin;
       } else {
-        if (z.ep === null || z.ep === undefined || isNaN(z.ep)) missingEpEr = true;
-        else ep = z.ep;
-        
         if (z.er === null || z.er === undefined || isNaN(z.er)) missingEpEr = true;
         else er = z.er;
-      }
+        
+        if (z.dMode === 'VAV' && (z.vpzMinDesign === null || z.vpzMinDesign === undefined || isNaN(z.vpzMinDesign))) {
+          missingEpEr = true;
+        } else if (z.vpzMinDesign !== null && z.vpzMinDesign !== undefined && z.vpzMinDesign <= 0) {
+          hasInvalidEp = true;
+        }
 
-      let vdzMin = 0;
-      if (ep > 0) {
-        vdzMin = vpzMin / ep;
-      } else {
-        hasZeroVdz = true;
+        if (z.vdzMinDesign === null || z.vdzMinDesign === undefined || isNaN(z.vdzMinDesign)) {
+          missingEpEr = true;
+        } else if (z.vdzMinDesign <= 0) {
+          hasInvalidEp = true;
+          vdzMin = 0;
+        } else {
+          vdzMin = z.vdzMinDesign;
+          ep = vpzMin / vdzMin;
+          if (isNaN(ep) || !isFinite(ep) || ep <= 0 || ep > 1.0) {
+            hasInvalidEp = true;
+          }
+        }
       }
 
       let zd = vdzMin > 0 ? z.voz / vdzMin : 1.0;
       if (zd > 1.0) hasInvalidZd = true;
+      if (vdzMin <= 0) hasZeroVdz = true;
       
       let fa = ep + (1 - ep) * er;
       let fb = ep;
@@ -172,9 +187,9 @@ export class Ashrae621AlternativeSystemService {
     if (missingEpEr) {
       statuses.push('INCOMPLETE');
       auditTrail.push({
-        symbol: 'Ep/Er',
+        symbol: 'Ep/Er/VdzMin',
         name: 'Missing Secondary Recirculation Inputs',
-        formula: 'Ep, Er Required',
+        formula: 'Vpz-min, Vdz-min, Er Required',
         inputs: {},
         result: 'INCOMPLETE',
         unit: '',
@@ -185,12 +200,12 @@ export class Ashrae621AlternativeSystemService {
       return { zoneResults: [], ev: null, vou, vps, xs: null, criticalZoneId: null, status: finalStatus, auditTrail };
     }
 
-    if (hasZeroVdz || hasInvalidZd) {
+    if (hasZeroVdz || hasInvalidZd || hasInvalidEp) {
       statuses.push('FAIL');
       auditTrail.push({
-        symbol: 'Zd',
+        symbol: 'Zd/Ep',
         name: 'Zone Discharge Airflow Validation',
-        formula: 'Zd <= 1.0 and Vdz > 0',
+        formula: 'Zd <= 1.0, 0 < Ep <= 1.0, and Vdz > 0',
         inputs: {},
         result: 'FAIL',
         unit: '',

@@ -23,7 +23,8 @@ interface ZoneState {
   ezId: string;
   primaryAirflow: number | '';
   vpzMin: number | '';
-  ep?: number | '';
+  vdzMinDesign?: number | '';
+  ep?: number | ''; // Keep for type compat but unused for secondary
   er?: number | '';
 }
 
@@ -56,7 +57,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       primaryAirflow: isMetric ? 400 : 800,
       vpzMin: '',
       ep: 1.0,
-      er: 0.0
+      er: 0.0,
+      vdzMinDesign: ''
     }
   ]);
 
@@ -74,7 +76,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         primaryAirflow: isMetric ? 400 : 800,
         vpzMin: '',
         ep: 1.0,
-        er: 0.0
+        er: 0.0,
+        vdzMinDesign: ''
       }
     ]);
   };
@@ -140,6 +143,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
             dMode: isVAV ? 'VAV' : 'CV',
             vpz,
             vpzMinDesign: vpzMin,
+            vdzMinDesign: typeof z.vdzMinDesign === 'number' ? z.vdzMinDesign : null,
             ep: typeof z.ep === 'number' ? z.ep : null,
             er: typeof z.er === 'number' ? z.er : null
           };
@@ -399,7 +403,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                 </div>
               )}
               
-              {systemType !== 'single' && isVAV && (
+              {systemType !== 'single' && isVAV && !(systemType === 'multi_alternative' && alternativeConfig === 'secondary-recirculation') && (
                 <div>
                   <TooltipLabel label={`Vpz-min (${isMetric ? 'L/s' : 'cfm'})`} tooltip="VAV minimum primary airflow" />
                   <input 
@@ -413,14 +417,28 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               
               {systemType === 'multi_alternative' && alternativeConfig === 'secondary-recirculation' && (
                 <>
-                  <div>
-                    <TooltipLabel label="Ep" tooltip="Primary Air Fraction" />
-                    <input 
-                      type="number" step="0.1"
-                      className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
-                      value={z.ep}
-                      onChange={(e) => updateZone(z.id, 'ep', e.target.value ? Number(e.target.value) : '')}
-                    />
+                  <div className="col-span-full md:col-span-2 space-y-2 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                    <p className="text-xs text-slate-400 mb-2 font-medium">VAV Minimum Flow Conditions (Both values must represent the same minimum-flow design condition)</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <TooltipLabel label="Vpz-min" tooltip="Minimum Primary Airflow" />
+                        <input 
+                          type="number" step="1"
+                          className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
+                          value={z.vpzMin}
+                          onChange={(e) => updateZone(z.id, 'vpzMin', e.target.value ? Number(e.target.value) : '')}
+                        />
+                      </div>
+                      <div>
+                        <TooltipLabel label="Vdz-min" tooltip="Minimum Discharge Airflow" />
+                        <input 
+                          type="number" step="1"
+                          className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
+                          value={z.vdzMinDesign}
+                          onChange={(e) => updateZone(z.id, 'vdzMinDesign', e.target.value ? Number(e.target.value) : '')}
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <TooltipLabel label="Er" tooltip="Secondary Recirculation Fraction" />

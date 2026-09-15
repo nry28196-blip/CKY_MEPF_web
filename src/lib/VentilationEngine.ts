@@ -24,7 +24,7 @@ export interface SingleZoneResult {
 }
 
 export interface MultiZoneInput {
-  zones: (ZoneVentilationInput & { id: string; dMode: 'VAV'|'CV'; vpz: number|null; vpzMinDesign: number|null; ep: number|null; er: number|null; })[];
+  zones: (ZoneVentilationInput & { id: string; dMode: 'VAV'|'CV'; vpz: number|null; vpzMinDesign: number|null; vdzMinDesign?: number|null; ep?: number|null; er: number|null; })[];
   density: DensityInput | null;
   method: 'Simplified' | 'Alternative';
   systemPopulation: number | null; // For Simplified
@@ -158,6 +158,7 @@ export class VentilationEngine {
         vpz: z.vpz,
         vpzMinRequired: zoneResults[idx].voz, 
         vpzMinDesign: z.vpzMinDesign,
+        vdzMinDesign: z.vdzMinDesign,
         ep: z.ep,
         er: z.er,
         ez: zoneResults[idx].ez,
