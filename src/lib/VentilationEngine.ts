@@ -1,3 +1,4 @@
+export const ACTIVE_62_1_2022_SCOPE = "ANSI/ASHRAE Standard 62.1-2022 with Addendum j";
 import { AuditStatus } from '../types';
 import { UnitConversionService, ft2ToM2 } from "./UnitConversionService";
 import { ValidationStatus, VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';

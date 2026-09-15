@@ -6,7 +6,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -15,7 +15,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -24,7 +24,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -33,7 +33,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -42,7 +42,7 @@ export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -54,7 +54,7 @@ export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -63,7 +63,7 @@ export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -72,7 +72,7 @@ export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -81,7 +81,7 @@ export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -94,7 +94,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -104,7 +104,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -114,7 +114,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -124,7 +124,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -134,7 +134,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
@@ -144,7 +144,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     standard: 'ASHRAE 62.1',
     edition: '2022',
     baseEdition: '2022',
-    publishedAddendaApplied: [],
+    publishedAddendaApplied: ['Addendum j'],
     publishedErrataApplied: [],
     verificationDate: '2026-09-08',
     source: SourceType.UNKNOWN
