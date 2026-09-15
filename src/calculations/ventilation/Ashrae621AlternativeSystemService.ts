@@ -37,6 +37,7 @@ export interface AlternativeZoneResult {
 }
 
 export interface AlternativeSystemInput {
+  edition?: '2019' | '2022' | '2025';
   zones: AlternativeZoneInput[];
   ps: number | null;
   systemType: 'single_supply' | 'secondary_recirculation';
@@ -87,7 +88,7 @@ export class Ashrae621AlternativeSystemService {
         inputs: { 'Ps': ps, 'ΣPz': sumPz },
         result: 'FAIL',
         unit: '',
-        reference: 'ASHRAE 62.1-2025',
+        reference: 'ASHRAE 62.1',
         status: AuditStatus.FAIL
       });
       const finalStatus = VentilationValidationService.aggregateStatus(statuses);
@@ -145,15 +146,21 @@ export class Ashrae621AlternativeSystemService {
       let ep = 1.0;
       let er = 0.0;
       let vdzMin = 0;
+      let zd = 1.0;
       
       if (input.systemType === 'single_supply') {
         ep = 1.0;
         er = 0.0;
         vdzMin = vpzMin;
+        zd = vdzMin > 0 ? z.voz / vdzMin : 1.0;
+        if (zd > 1.0) hasInvalidZd = true;
+        if (vdzMin <= 0) hasZeroVdz = true;
       } else {
         if (z.er === null || z.er === undefined || isNaN(z.er)) missingEpEr = true;
         else er = z.er;
-        
+
+        // Pre-2025 (2022, 2019) AND 2025 both use Vpz-min / Vdz-min for secondary recirculation
+        // 62.1-2022 Equation A-8: Ep = Vpz / Vdz
         if (z.dMode === 'VAV' && (z.vpzMinDesign === null || z.vpzMinDesign === undefined || isNaN(z.vpzMinDesign))) {
           missingEpEr = true;
         } else if (z.vpzMinDesign !== null && z.vpzMinDesign !== undefined && z.vpzMinDesign <= 0) {
@@ -172,12 +179,13 @@ export class Ashrae621AlternativeSystemService {
             hasInvalidEp = true;
           }
         }
+        
+        zd = vdzMin > 0 ? z.voz / vdzMin : 1.0;
+        if (zd > 1.0) hasInvalidZd = true;
+        if (vdzMin <= 0) hasZeroVdz = true;
+
       }
 
-      let zd = vdzMin > 0 ? z.voz / vdzMin : 1.0;
-      if (zd > 1.0) hasInvalidZd = true;
-      if (vdzMin <= 0) hasZeroVdz = true;
-      
       let fa = ep + (1 - ep) * er;
       let fb = ep;
       let fc = 1 - (1 - z.ez) * (1 - er) * (1 - ep);
@@ -209,7 +217,7 @@ export class Ashrae621AlternativeSystemService {
         inputs: {},
         result: 'FAIL',
         unit: '',
-        reference: 'ASHRAE 62.1-2025 Appendix A',
+        reference: 'ASHRAE 62.1 Appendix A',
         status: AuditStatus.FAIL
       });
       const finalStatus = VentilationValidationService.aggregateStatus(statuses);

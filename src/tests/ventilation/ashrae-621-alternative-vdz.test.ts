@@ -26,7 +26,7 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
   it('TEST 1 — Single Supply: Confirm existing behavior remains unchanged', () => {
     const input = {
       zones: [createBaseZone('Z1', { voz: 40, vpzMinDesign: 80 })],
-      ps: 10,
+      ps: 10, edition: '2022' as const,
       systemType: 'single_supply' as const
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
@@ -40,7 +40,7 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
   it('TEST 2 — Secondary Recirculation Valid: Derive Ep and verify Zd', () => {
     const input = {
       zones: [createBaseZone('Z1', { voz: 40, vpzMinDesign: 40, vdzMinDesign: 80, er: 0.5 })],
-      ps: 10,
+      ps: 10, edition: '2022' as const,
       systemType: 'secondary_recirculation' as const
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
@@ -54,7 +54,7 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
   it('TEST 3 — Missing VdzMin', () => {
     const input = {
       zones: [createBaseZone('Z1', { vdzMinDesign: null, er: 0.5 })],
-      ps: 10,
+      ps: 10, edition: '2022' as const,
       systemType: 'secondary_recirculation' as const
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
@@ -64,7 +64,7 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
   it('TEST 4 — Missing VpzMin', () => {
     const input = {
       zones: [createBaseZone('Z1', { vpzMinDesign: null, vdzMinDesign: 80, er: 0.5 })],
-      ps: 10,
+      ps: 10, edition: '2022' as const,
       systemType: 'secondary_recirculation' as const
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
@@ -74,7 +74,7 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
   it('TEST 5 — Invalid VdzMin', () => {
     const input = {
       zones: [createBaseZone('Z1', { vpzMinDesign: 40, vdzMinDesign: -10, er: 0.5 })],
-      ps: 10,
+      ps: 10, edition: '2022' as const,
       systemType: 'secondary_recirculation' as const
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
@@ -84,7 +84,7 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
   it('TEST 6 — Invalid VpzMin', () => {
     const input = {
       zones: [createBaseZone('Z1', { vpzMinDesign: -10, vdzMinDesign: 80, er: 0.5 })],
-      ps: 10,
+      ps: 10, edition: '2022' as const,
       systemType: 'secondary_recirculation' as const
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
@@ -94,7 +94,7 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
   it('TEST 7 — Derived Ep', () => {
     const input = {
       zones: [createBaseZone('Z1', { voz: 40, vpzMinDesign: 50, vdzMinDesign: 100, er: 0.5 })],
-      ps: 10,
+      ps: 10, edition: '2022' as const,
       systemType: 'secondary_recirculation' as const
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
@@ -106,7 +106,7 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
     // If user inputs a peak Vpz (100) but minimum Vdz (80), Ep = 100/80 = 1.25 > 1.0
     const input = {
       zones: [createBaseZone('Z1', { vpzMinDesign: 100, vdzMinDesign: 80, er: 0.5 })],
-      ps: 10,
+      ps: 10, edition: '2022' as const,
       systemType: 'secondary_recirculation' as const
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);

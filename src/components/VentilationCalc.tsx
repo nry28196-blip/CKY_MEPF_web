@@ -10,9 +10,9 @@ import Ashrae621ExhaustCalc from './Ashrae621ExhaustCalc';
 import AirBalanceCalc from './AirBalanceCalc';
 import SystemPerformanceCalc from './SystemPerformanceCalc';
 
-export default function VentilationCalc({ onVentilationChange, governingStandard = 'ASHRAE 62.1-2025' }: { onVentilationChange?: (flow: number, details?: any) => void, governingStandard?: string }) {
+export default function VentilationCalc({ onVentilationChange, governingStandard = 'ASHRAE 62.1-2022' }: { onVentilationChange?: (flow: number, details?: any) => void, governingStandard?: string }) {
   const standardParts = governingStandard.split('-');
-  const edition = standardParts.length > 1 ? standardParts[1] : '2025';
+  const edition = standardParts.length > 1 ? standardParts[1] : '2022';
 
   const { t } = useLanguage();
   const { unitSystem } = useUnit();

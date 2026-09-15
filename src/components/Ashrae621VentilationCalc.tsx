@@ -30,7 +30,7 @@ interface ZoneState {
 
 import { exportVentilationToCsv } from "../lib/exportCsv";
 
-export default function Ashrae621VentilationCalc({ onVentilationChange, edition = '2025' }: { onVentilationChange?: (flow: number, details?: any) => void, edition?: '2019' | '2022' | '2025' }) {
+export default function Ashrae621VentilationCalc({ onVentilationChange, edition = '2022' }: { onVentilationChange?: (flow: number, details?: any) => void, edition?: '2019' | '2022' | '2025' }) {
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
 
@@ -151,7 +151,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         density: densityInput,
         method: systemType === 'multi_simplified' ? 'Simplified' : 'Alternative',
         systemPopulation: systemPopulation === '' ? null : systemPopulation,
-        systemType: alternativeConfig
+        systemType: alternativeConfig,
+        edition: edition
       };
       return VentilationEngine.runMultiZone(mzInput);
     }
@@ -418,7 +419,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               {systemType === 'multi_alternative' && alternativeConfig === 'secondary-recirculation' && (
                 <>
                   <div className="col-span-full md:col-span-2 space-y-2 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                    <p className="text-xs text-slate-400 mb-2 font-medium">VAV Minimum Flow Conditions (Both values must represent the same minimum-flow design condition)</p>
+                    <p className="text-xs text-slate-400 mb-2 font-medium">VAV Minimum Flow Conditions (Equation A-8)</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <TooltipLabel label="Vpz-min" tooltip="Minimum Primary Airflow" />

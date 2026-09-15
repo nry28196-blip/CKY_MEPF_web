@@ -1,3 +1,9 @@
+/**
+ * ASHRAE 62.1-2025 support is intentionally deferred.
+ * The active production ventilation baseline is ASHRAE 62.1-2022.
+ * 2025 data and calculations are not approved for production use.
+ * Future 2025 activation requires a controlled verification of the published standard, applicable addenda/errata, formulas, and data tables.
+ */
 import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, Ashrae621AirQualityStandards } from './ashrae621/types';
 import { ASHRAE_621_2019_SPACE_TYPES, ASHRAE_621_2019_EZ_VALUES, ASHRAE_621_2019_EXHAUST_RATES, ASHRAE_621_2019_AIR_QUALITY_STANDARDS } from './ashrae621/2019/data';
 import { ASHRAE_621_2022_SPACE_TYPES, ASHRAE_621_2022_EZ_VALUES, ASHRAE_621_2022_EXHAUST_RATES, ASHRAE_621_2022_AIR_QUALITY_STANDARDS } from './ashrae621/2022/data';

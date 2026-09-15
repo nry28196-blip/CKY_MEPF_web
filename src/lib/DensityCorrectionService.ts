@@ -5,6 +5,7 @@ export interface DensityInput {
   elevation: number | null; // meters
   temperature: number | null; // °C
   relativeHumidity?: number; // %, defaults to 0 (dry air) if omitted
+  edition?: '2019' | '2022' | '2025';
 }
 
 export interface DensityResult {
@@ -135,7 +136,7 @@ export class DensityCorrectionService {
       },
       result: eRho,
       unit: '',
-      reference: 'ASHRAE 62.1-2025 Section 6.2.4.4 (Errata)'
+      reference: 'ASHRAE 62.1 Section 6.2.4.4 (Errata)'
     });
 
     return {

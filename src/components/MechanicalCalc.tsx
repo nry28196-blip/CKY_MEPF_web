@@ -50,7 +50,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
   const [subTab, setSubTab] = useState<SubTab>('ductSizing'); // Default to the highly advanced requested module!
   const [showCoolingRef, setShowCoolingRef] = useState(false);
   const [projectType, setProjectType] = useState<'Commercial' | 'Residential' | 'Industrial' | 'Healthcare'>('Commercial');
-  const [governingStandard, setGoverningStandard] = useState<string>('ASHRAE 62.1-2025');
+  const [governingStandard, setGoverningStandard] = useState<string>('ASHRAE 62.1-2022');
 
   // --- NEW ADVANCED ASHRAE STATE ---
   const [outdoorTemp, setOutdoorTemp] = useState<number>(35);
@@ -218,10 +218,10 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
             value={governingStandard}
             onChange={(e) => setGoverningStandard(e.target.value)}
           >
-            <option value="ASHRAE 62.1-2025">ASHRAE 62.1-2025 (Commercial)</option>
+            <option value="ASHRAE 62.1-2025" disabled>ASHRAE 62.1-2025 (Commercial) — Deferred</option>
             <option value="ASHRAE 62.1-2022">ASHRAE 62.1-2022 (Commercial)</option>
             <option value="ASHRAE 62.1-2019">ASHRAE 62.1-2019 (Commercial)</option>
-            <option value="ASHRAE 62.2-2025">ASHRAE 62.2-2025 (Residential)</option>
+            <option value="ASHRAE 62.2-2025" disabled>ASHRAE 62.2-2025 (Residential) — Deferred</option>
             <option value="ASHRAE 62.2-2022">ASHRAE 62.2-2022 (Residential)</option>
             <option value="ASHRAE 62.2-2019">ASHRAE 62.2-2019 (Residential)</option>
           </select>

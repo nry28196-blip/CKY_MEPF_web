@@ -9,6 +9,7 @@ import { DensityCorrectionService, DensityInput, DensityResult } from './Density
 export interface SingleZoneInput {
   zone: ZoneVentilationInput;
   density: DensityInput | null;
+  edition?: '2019' | '2022' | '2025';
 }
 
 export interface SingleZoneResult {
@@ -26,6 +27,7 @@ export interface SingleZoneResult {
 export interface MultiZoneInput {
   zones: (ZoneVentilationInput & { id: string; dMode: 'VAV'|'CV'; vpz: number|null; vpzMinDesign: number|null; vdzMinDesign?: number|null; ep?: number|null; er: number|null; })[];
   density: DensityInput | null;
+  edition?: '2019' | '2022' | '2025';
   method: 'Simplified' | 'Alternative';
   systemPopulation: number | null; // For Simplified
   systemType: 'single_supply' | 'secondary_recirculation'; // For Alternative
@@ -51,7 +53,7 @@ export class VentilationEngine {
   static runSingleZone(input: SingleZoneInput): SingleZoneResult {
     const zoneResult = Ashrae621ZoneService.calculateZone(input.zone);
     const auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[] = [];
-    const densityResult = DensityCorrectionService.calculate(input.density);
+    const densityResult = DensityCorrectionService.calculate({ ...input.density, edition: input.edition } as any);
     
     const statuses = [zoneResult.status, densityResult.status];
     const status = VentilationValidationService.aggregateStatus(statuses);
@@ -87,7 +89,7 @@ export class VentilationEngine {
       id: z.id
     }));
     
-    const densityResult = DensityCorrectionService.calculate(input.density);
+    const densityResult = DensityCorrectionService.calculate({ ...input.density, edition: input.edition } as any);
     
     let vou: number | null = null;
     let ev: number | null = null;
@@ -113,7 +115,7 @@ export class VentilationEngine {
             inputs: { 'Voz': voz, 'Design Vpz-min': z.vpzMinDesign },
             result: z.vpzMinDesign >= vpzMinRequired ? 'PASS' : 'FAIL',
             unit: '',
-            reference: input.method === 'Simplified' ? 'ASHRAE 62.1-2025 Section 6.2.5.3.1' : 'ASHRAE 62.1-2025'
+            reference: input.method === 'Simplified' ? 'ASHRAE 62.1 Section 6.2.5.3.1' : 'ASHRAE 62.1'
           });
 
           if (z.vpzMinDesign < vpzMinRequired) {
@@ -168,7 +170,8 @@ export class VentilationEngine {
       alternativeSystem = Ashrae621AlternativeSystemService.calculate({
         zones: altZones,
         ps: input.systemPopulation,
-        systemType: input.systemType
+        systemType: input.systemType,
+          edition: input.edition
       });
       ev = alternativeSystem.ev;
       vou = alternativeSystem.vou;
@@ -194,7 +197,7 @@ export class VentilationEngine {
         inputs: { 'Vou': vou, 'Ev': ev },
         result: votStandard,
         unit: 'L/s',
-        reference: 'ASHRAE 62.1-2025 Equation 6-10 (Pre-correction)'
+        reference: 'ASHRAE 62.1 Equation 6-10 (Pre-correction)'
       });
       auditTrail.push({
         symbol: 'Vot_actual',
@@ -203,7 +206,7 @@ export class VentilationEngine {
         inputs: { 'Vot_standard': votStandard, 'Eρ': densityResult.eRho },
         result: votDensityCorrected,
         unit: 'L/s',
-        reference: 'ASHRAE 62.1-2025 Section 6.2.4.4 (Errata Equation 6-10)'
+        reference: 'ASHRAE 62.1 Section 6.2.4.4 (Errata Equation 6-10)'
       });
     }
     
