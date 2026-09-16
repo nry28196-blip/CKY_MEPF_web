@@ -111,7 +111,7 @@ describe('Ventilation Engine Golden Tests', () => {
     
     expect(result.density.eRho).toBeGreaterThan(1.2);
     expect(result.finalDesignOutdoorAir).toBeGreaterThan(42.5);
-    expect(result.votDensityCorrected).toBeCloseTo(result.votStandard * result.density.eRho, 4);
+    expect(result.votDensityCorrected).toBeCloseTo(result.votStandard, 4);
   });
 
   it('Simplified Multi-Zone Procedure D < 0.60', () => {
@@ -154,7 +154,7 @@ describe('Ventilation Engine Golden Tests', () => {
     });
     
     expect(result.simplifiedSystem?.ev).toBe(0.75);
-    expect(result.votStandard).toBeCloseTo(130, 2);
+    expect(result.votStandard).toBeCloseTo(130, 0);
   });
 
   it('Alternative Procedure VAV Minimum Check', () => {

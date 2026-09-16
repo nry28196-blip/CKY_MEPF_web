@@ -41,6 +41,7 @@ export interface AlternativeSystemInput {
   zones: AlternativeZoneInput[];
   ps: number | null;
   systemType: 'single_supply' | 'secondary_recirculation';
+  eRho?: number;
 }
 
 export interface AlternativeSystemResult {
@@ -96,16 +97,17 @@ export class Ashrae621AlternativeSystemService {
     }
 
     const d = sumPz > 0 ? ps / sumPz : 1.0;
-    const vou = d * sumRpPz + sumRaAz;
+    const eRho = input.eRho ?? 1.0;
+    const vou = (d * sumRpPz + sumRaAz) * eRho;
 
     auditTrail.push({
       symbol: 'Vou',
       name: 'Uncorrected Outdoor Air Intake',
-      formula: 'D × Σ(Rp×Pz) + Σ(Ra×Az)',
-      inputs: { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz },
+      formula: input.eRho !== undefined ? '(D × Σ(Rp×Pz) + Σ(Ra×Az)) × Eρ' : 'D × Σ(Rp×Pz) + Σ(Ra×Az)',
+      inputs: input.eRho !== undefined ? { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz, 'Eρ': eRho } : { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz },
       result: vou,
       unit: 'L/s',
-      reference: 'ASHRAE 62.1 Alternative Procedure',
+      reference: input.eRho !== undefined ? 'ASHRAE 62.1 Addendum j' : 'ASHRAE 62.1 Alternative Procedure',
       status: AuditStatus.DERIVED
     });
 

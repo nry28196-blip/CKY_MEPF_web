@@ -41,8 +41,8 @@ export default function AirBalanceCalc() {
   return (
     <div className="space-y-6 animate-fade-in">
       <EngineeringStatusHeader 
-        status="READY" 
-        message="Engineering analysis of building and room-level mass airflow balance."
+        status="NOT_READY_FOR_ENGINEERING_USE" 
+        message="This module performs simplified volumetric checks and does not yet compute full rigorous mass balance. Do not use for engineering sign-off."
         className="mb-4"
       />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">

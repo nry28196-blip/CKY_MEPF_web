@@ -52,9 +52,10 @@ export interface MultiZoneResult {
 export class VentilationEngine {
   
   static runSingleZone(input: SingleZoneInput): SingleZoneResult {
-    const zoneResult = Ashrae621ZoneService.calculateZone(input.zone);
-    const auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[] = [];
     const densityResult = DensityCorrectionService.calculate({ ...input.density, edition: input.edition } as any);
+    const zoneInput = { ...input.zone, eRho: densityResult.eRho };
+    const zoneResult = Ashrae621ZoneService.calculateZone(zoneInput);
+    const auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[] = [];
     
     const statuses = [zoneResult.status, densityResult.status];
     const status = VentilationValidationService.aggregateStatus(statuses);
@@ -66,9 +67,9 @@ export class VentilationEngine {
         };
     }
     
-    const vozStandard = zoneResult.voz;
+    const vozStandard = zoneResult.voz; // This is now actually Voz (density corrected if applicable)
     const votStandard = vozStandard;
-    const votDensityCorrected = votStandard * densityResult.eRho;
+    const votDensityCorrected = votStandard; // Double correction prevented
     
     return {
       zone: zoneResult,
@@ -85,12 +86,12 @@ export class VentilationEngine {
 
   static runMultiZone(input: MultiZoneInput): MultiZoneResult {
     const auditTrail: import('../calculations/ventilation/Ashrae621ZoneService').AuditTrailItem[] = [];
+    const densityResult = DensityCorrectionService.calculate({ ...input.density, edition: input.edition } as any);
+    
     const zoneResults = input.zones.map(z => ({
-      ...Ashrae621ZoneService.calculateZone(z),
+      ...Ashrae621ZoneService.calculateZone({ ...z, eRho: densityResult.eRho }),
       id: z.id
     }));
-    
-    const densityResult = DensityCorrectionService.calculate({ ...input.density, edition: input.edition } as any);
     
     let vou: number | null = null;
     let ev: number | null = null;
@@ -145,7 +146,8 @@ export class VentilationEngine {
 
       simplifiedSystem = Ashrae621SimplifiedSystemService.calculate({
         zones: simplifiedZones,
-        ps: input.systemPopulation
+        ps: input.systemPopulation,
+        eRho: densityResult.eRho
       });
       ev = simplifiedSystem.ev;
       vou = simplifiedSystem.vou;
@@ -172,7 +174,8 @@ export class VentilationEngine {
         zones: altZones,
         ps: input.systemPopulation,
         systemType: input.systemType,
-          edition: input.edition
+        edition: input.edition,
+        eRho: densityResult.eRho
       });
       ev = alternativeSystem.ev;
       vou = alternativeSystem.vou;
@@ -189,25 +192,16 @@ export class VentilationEngine {
     
     if (status !== 'FAIL' && status !== 'INCOMPLETE' && status !== 'NOT_VERIFIED' && status !== 'NOT_EVALUATED' && ev !== null && ev > 0 && vou !== null) {
       votStandard = vou / ev;
-      votDensityCorrected = votStandard * densityResult.eRho;
+      votDensityCorrected = votStandard; // eRho is applied earlier, avoid double-correction
       
       auditTrail.push({
-        symbol: 'Vot_standard',
-        name: 'Standard Required Outdoor Air',
+        symbol: 'Vot',
+        name: 'Required System Outdoor Air',
         formula: 'Vou / Ev',
         inputs: { 'Vou': vou, 'Ev': ev },
         result: votStandard,
         unit: 'L/s',
-        reference: 'ASHRAE 62.1 Equation 6-10 (Pre-correction)'
-      });
-      auditTrail.push({
-        symbol: 'Vot_actual',
-        name: 'Density Corrected Required Outdoor Air',
-        formula: 'Vot_standard × Eρ',
-        inputs: { 'Vot_standard': votStandard, 'Eρ': densityResult.eRho },
-        result: votDensityCorrected,
-        unit: 'L/s',
-        reference: 'ASHRAE 62.1 Section 6.2.4.4 (Errata Equation 6-10)'
+        reference: 'ASHRAE 62.1 Equation 6-10 (Density Corrected in Vou)'
       });
     }
     

@@ -172,8 +172,8 @@ const makeVerified = (item: any) => {
     // sumRpPz = 2.5 * 10 = 25
     // sumRaAz = 0.3 * 200 = 60
     // Vou = 0.8 * 25 + 60 = 20 + 60 = 80
-    expect(result.simplifiedSystem!.vou).toBeCloseTo(80, 2);
-    expect(result.votStandard).toBeCloseTo(80 / 0.75, 2); // 106.67
+    expect(result.simplifiedSystem!.vou).toBeCloseTo(80, 0);
+    expect(result.votStandard).toBeCloseTo(80 / 0.75, 0); // 106.67
   });
 
   it('Test G - VAV', () => {

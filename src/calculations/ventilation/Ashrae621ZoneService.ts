@@ -23,6 +23,7 @@ export interface ZoneVentilationInput {
   designOccupancy: number | null;
   useDefaultOccupancy: boolean;
   ezConfig: Ashrae621Ez | null;
+  eRho?: number;
 }
 
 export interface ZoneVentilationResult {
@@ -118,7 +119,10 @@ export class Ashrae621ZoneService {
     const vbp = rp * pz;
     const vba = ra * az;
     const vbz = vbp + vba;
-    const voz = vbz / ez;
+    
+    // Addendum j correction
+    const eRho = input.eRho ?? 1.0;
+    const voz = (vbz / ez) * eRho;
 
     auditTrail.push({
       symbol: 'Vbz',
@@ -135,12 +139,12 @@ export class Ashrae621ZoneService {
     auditTrail.push({
       symbol: 'Voz',
       name: 'Zone Outdoor Airflow',
-      formula: 'Vbz / Ez',
-      inputs: { 'Vbz': vbz, 'Ez': ez },
+      formula: input.eRho !== undefined ? '(Vbz / Ez) × Eρ' : 'Vbz / Ez',
+      inputs: input.eRho !== undefined ? { 'Vbz': vbz, 'Ez': ez, 'Eρ': eRho } : { 'Vbz': vbz, 'Ez': ez },
       result: voz,
       unit: 'L/s',
-      reference: input.ezConfig.reference,
-      revision: input.ezConfig.revisionState?.source || '',
+      reference: input.eRho !== undefined ? 'ASHRAE 62.1-2022 Addendum j (Eq 6-2)' : input.ezConfig.reference,
+      revision: input.eRho !== undefined ? 'Addendum j' : (input.ezConfig.revisionState?.source || ''),
       status: AuditStatus.DERIVED
     });
 
