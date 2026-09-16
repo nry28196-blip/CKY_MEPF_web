@@ -120,3 +120,6 @@ export interface EzProvenance {
   applicability?: DataProvenance;
   reference?: DataProvenance;
 }
+
+// Active scope identifier for production engineering
+export const ACTIVE_62_1_2022_SCOPE = "ANSI/ASHRAE Standard 62.1-2022 + Addendum j";

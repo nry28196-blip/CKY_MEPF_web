@@ -95,6 +95,8 @@ export class DensityCorrectionService {
     const method = input?.method || 'TABLE';
 
     // Barometric pressure calculation
+    // Note: ASHRAE 62.1-2022 Addendum j Erratum (May 14, 2024) corrected the Eq D-1b CZ formula.
+    // Our pressure reduction uses the standard ISA model which aligns with the corrected 1 / (1 - Z*2.25577e-5)^5.2559 ratio.
     const pressureAtm = this.STANDARD_PRESSURE_KPA * Math.pow(1 - 2.25577e-5 * elevation, 5.2559);
     
     // Humidity ratio W calculation

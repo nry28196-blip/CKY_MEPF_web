@@ -18,7 +18,7 @@ interface ExhaustRow {
   designExhaust: number | '';
 }
 
-export default function Ashrae621ExhaustCalc({ edition = '2025' }: { edition?: string }) {
+export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: string }) {
   const { unitSystem } = useUnit();
   const exhaustRates = StandardDataProvider.get621ExhaustRates(edition);
   const isMetric = unitSystem === 'metric';

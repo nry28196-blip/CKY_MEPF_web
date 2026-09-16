@@ -1,29 +1,12 @@
-### Repository Recovery
-- source commit used: b25f954194fb1837b376240e314c140c4bab2f49
-- original implementation location: https://raw.githubusercontent.com/nry28196-blip/CKY_MEPF_web/b25f954194fb1837b376240e314c140c4bab2f49/src/lib/VentilationEngine.ts
-- restored implementation location: src/lib/MechanicalCoolingEngine.ts
+VENTILATION TESTS: 232
+PROVENANCE TESTS: DONE (Separated Calculation-Isolation and Production Provenance)
+AIR BALANCE STATUS: NOT_READY_FOR_ENGINEERING_USE
+ACTIVE STANDARD SCOPE: ANSI/ASHRAE Standard 62.1-2022 + Addendum j (ACTIVE_62_1_2022_SCOPE)
 
-### Cooling Engine
-- restored: YES
-- placeholder removed: YES
-- real calculations present: YES
+Tests Passed: 233
+Tests Failed: 0
+Total Tests: 233
+Lint Result: PASS
+Build Result: PASS
 
-### Ventilation
-- Addendum j preserved: YES
-- Eρ on Voz: YES
-- Eρ on Vou: NO
-- Air Balance: NOT_READY_FOR_ENGINEERING_USE
-- 2025: INACTIVE/DEFERRED
-
-### Tests
-- total: 232
-- passed: 232
-- failed: 0
-- cooling-specific tests: 1
-- ventilation-specific tests: 231
-
-### Lint
-PASS
-
-### Build
-PASS
+READY_FOR_VENTILATION_REVIEW_CLOSEOUT

@@ -41,3 +41,17 @@ When specific variables are omitted by the user, the calculation engine applies 
 
 ## 5. Subsystem Recovery Note
 The `MechanicalCoolingEngine` was successfully restored from repository history (commit b25f954) to replace a temporary build-placeholder. Actual engineering logic is now reinstated.
+
+## 6. Scope Freeze
+**ACTIVE:**
+- ASHRAE 62.1-2022
+- Explicitly implemented Addendum j functionality
+
+**INACTIVE:**
+- ASHRAE 62.1-2025
+
+**NOT READY:**
+- Air Balance (NOT_READY_FOR_ENGINEERING_USE)
+
+**OUTSIDE CURRENT VERIFIED SCOPE:**
+- Any 62.1-2022 addenda not explicitly implemented and verified.

@@ -3,7 +3,7 @@
 | Requirement | Implemented? | Tested? | Standard | Edition | Reference | Limitations |
 | :--- | :---: | :---: | :--- | :--- | :--- | :--- |
 | **Zone Vbz Calculation** (Rp*Pz + Ra*Az) | YES | YES | ASHRAE 62.1 | 2022 | Sec 6.2.2.1 | None |
-| **Zone Voz Calculation** (Vbz/Ez) | YES | YES | ASHRAE 62.1 | 2022 | Sec 6.2.2.3 | Ez must be supplied by user |
+| **Zone Voz Calculation**: Voz = (Vbz / Ez) × Eρ | YES | YES | ASHRAE 62.1 | 2022 | Addendum j, Equation 6-2 | Ez must be supplied by user |
 | **System Vot (Multi-zone)** | YES | YES | ASHRAE 62.1 | 2022 | Sec 6.2.5 | Vpz-min handled explicitly |
 | **System Population Diversity** | YES | YES | ASHRAE 62.1 | 2022 | Sec 6.2.5.1 | Auto-defaults to ΣPz if not provided |
 | **Air Density Correction** | YES | YES | ASHRAE 62.1 | 2022 | Addendum j | E_rho based on Addendum j Table 6-5 & Normative Appendix D |
