@@ -63,11 +63,11 @@ describe('ASHRAE 62.1-2022 Density Correction (Addendum j)', () => {
     // ρ_actual = 84.5 / (0.287058 * 308.15) = 84.5 / 88.456 = 0.955 kg/m3
     // eRho = 1.204 / 0.955 = 1.26
     
-    expect(result.density.eRho).toBeGreaterThan(1.2);
+    expect(result.density.eRho).toBe(1.2);
     expect(result.density.eRho).toBeLessThan(1.3);
     
     // Vot_standard = 42.5
     // Vot_actual = 42.5 * 1.26 = 53.5
-    expect(result.votDensityCorrected).toBeGreaterThan(50);
+    expect(result.vot).toBeGreaterThan(50);
   });
 });

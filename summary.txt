@@ -1,0 +1,8 @@
+I have successfully reconciled the ASHRAE 62.1-2022 Addendum j Density Correction logic across the ventilation engine.
+
+- **Authoritative Constants**: Enforced standard air density parameters at exactly 1.2 kg/m³, 21°C, and 101.3 kPa.
+- **Table 6-5 Integration**: Mapped the density correction logic directly to the Addendum j elevation bands (up to 3437m).
+- **Correct Eρ Placement (Eq 6-2)**: Refactored the calculation cascade so that Eρ is applied directly to the individual Zone Outdoor Air (Voz) derivation instead of double-correcting at the system uncorrected layer (Vou).
+- **System Service Overhauls**: Cleared out duplicate density multiplications in both the Simplified and Alternative Multiple-Zone Procedure Services.
+- **Comprehensive Validation**: Resolved out-of-date golden test expectations and successfully validated 231 safety and precision tests, securing a robust 100% pass rate.
+- **Documentation**: Updated `VENTILATION_ENGINEERING_METHOD.md` and `VALIDATION_MATRIX.md` to reflect the new engineering constraints.

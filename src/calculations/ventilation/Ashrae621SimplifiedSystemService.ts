@@ -17,7 +17,6 @@ export interface SimplifiedSystemZoneInput {
 export interface SimplifiedSystemInput {
   zones: SimplifiedSystemZoneInput[];
   ps: number | null; // System population
-  eRho?: number;
 }
 
 export interface SimplifiedSystemResult {
@@ -44,11 +43,9 @@ export class Ashrae621SimplifiedSystemService {
     } else if (input.ps < 0) {
       statuses.push('FAIL');
     }
-
     if (sumPz < 0) {
       statuses.push('FAIL');
     }
-
     if (sumPz === 0) {
       statuses.push('INCOMPLETE');
     }
@@ -84,8 +81,7 @@ export class Ashrae621SimplifiedSystemService {
       ev = 0.75;
     }
     
-    const eRho = input.eRho ?? 1.0;
-    const vou = (d * sumRpPz + sumRaAz) * eRho;
+    const vou = d * sumRpPz + sumRaAz;
 
     auditTrail.push({
       symbol: 'D',
@@ -101,11 +97,11 @@ export class Ashrae621SimplifiedSystemService {
     auditTrail.push({
       symbol: 'Vou',
       name: 'Uncorrected Outdoor Air Intake',
-      formula: input.eRho !== undefined ? '(D × Σ(Rp×Pz) + Σ(Ra×Az)) × Eρ' : 'D × Σ(Rp×Pz) + Σ(Ra×Az)',
-      inputs: input.eRho !== undefined ? { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz, 'Eρ': eRho } : { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz },
+      formula: 'D × Σ(Rp×Pz) + Σ(Ra×Az)',
+      inputs: { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz },
       result: vou,
       unit: 'L/s',
-      reference: input.eRho !== undefined ? 'ASHRAE 62.1 Addendum j (Eq 6-6)' : 'ASHRAE 62.1 Section 6.2.5.3',
+      reference: 'ASHRAE 62.1 Section 6.2.5.3',
       status: AuditStatus.DERIVED
     });
 
@@ -121,6 +117,7 @@ export class Ashrae621SimplifiedSystemService {
     });
 
     statuses.push('PASS');
+
     const finalStatus = VentilationValidationService.aggregateStatus(statuses);
 
     return {

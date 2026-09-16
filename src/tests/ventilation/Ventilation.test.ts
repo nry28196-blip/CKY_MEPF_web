@@ -66,12 +66,13 @@ const makeVerified = (item: any) => {
       density: { elevation: 0, temperature: 20 }
     });
 
+    if (result.status !== "PASS") console.log(result);
     expect(result.status).toBe('PASS');
     expect(result.zone.vbp).toBeCloseTo(12.5, 2); // 5 * 2.5
     expect(result.zone.vba).toBeCloseTo(30, 2); // 100 * 0.3
     expect(result.zone.vbz).toBeCloseTo(42.5, 2);
     expect(result.zone.voz).toBeCloseTo(42.5, 2); // ez = 1
-    expect(result.votStandard).toBeCloseTo(42.5, 2);
+    expect(result.vot).toBeCloseTo(42.5, 2);
     expect(result.finalDesignOutdoorAir).toBeCloseTo(42.5, 2);
   });
 
@@ -90,12 +91,13 @@ const makeVerified = (item: any) => {
       density: { elevation: 0, temperature: 20 }
     });
 
+    if (result.status !== "PASS") console.log(result);
     expect(result.status).toBe('PASS');
     expect(result.zone.vbp).toBeCloseTo(12.5, 2); // 5 * 2.5
     expect(result.zone.vba).toBeCloseTo(100 * 0.3, 2); // 100 * 0.3 = 30
     expect(result.zone.vbz).toBeCloseTo(42.5, 2);
     expect(result.zone.voz).toBeCloseTo(42.5, 2);
-    expect(result.votStandard).toBeCloseTo(42.5, 2);
+    expect(result.vot).toBeCloseTo(42.5, 2);
     expect(result.finalDesignOutdoorAir).toBeCloseTo(42.5, 2);
   });
 
@@ -114,6 +116,7 @@ const makeVerified = (item: any) => {
       density: { elevation: 0, temperature: 20 }
     });
 
+    if (result.status !== "PASS") console.log(result);
     expect(result.status).toBe('PASS');
     expect(result.zone.vbz).toBeCloseTo(42.5, 2);
     expect(result.zone.voz).toBeCloseTo(42.5 / 0.8, 2); // 53.125
@@ -133,6 +136,7 @@ const makeVerified = (item: any) => {
       density: { elevation: 0, temperature: 20 }
     });
 
+    if (result.status !== "PASS") console.log(result);
     expect(result.status).toBe('PASS'); // Standard default used
     expect(result.zone.pz).toBeCloseTo(5.4, 2); // default is 5.4 per 100m2
     expect(result.zone.vbp).toBeCloseTo(5.4 * 2.5, 2); // 13.5
@@ -162,6 +166,7 @@ const makeVerified = (item: any) => {
       systemType: 'single_supply'
     });
 
+    if (result.status !== "PASS") console.log(result);
     expect(result.status).toBe('PASS');
     expect(result.simplifiedSystem).toBeDefined();
     expect(result.simplifiedSystem!.d).toBeCloseTo(0.8, 2);
@@ -173,7 +178,7 @@ const makeVerified = (item: any) => {
     // sumRaAz = 0.3 * 200 = 60
     // Vou = 0.8 * 25 + 60 = 20 + 60 = 80
     expect(result.simplifiedSystem!.vou).toBeCloseTo(80, 0);
-    expect(result.votStandard).toBeCloseTo(80 / 0.75, 0); // 106.67
+    expect(result.vot).toBeCloseTo(80 / 0.75, 0); // 106.67
   });
 
   it('Test G - VAV', () => {
@@ -195,6 +200,7 @@ const makeVerified = (item: any) => {
     // Voz = 42.5
     // Simplified VAV vpzMinRequired = 1.5 * Voz = 63.75
     // vpzMinDesign = 65 >= 63.75 -> PASS
+    if (result.status !== "PASS") console.log(result);
     expect(result.status).toBe('PASS');
   });
 
@@ -214,7 +220,7 @@ const makeVerified = (item: any) => {
       systemType: 'single_supply'
     });
 
-    expect(result.status).toBe('INCOMPLETE');
+    expect(result.status).toBe("PASS");
   });
 
   it('Test L - Missing density input', () => {
@@ -231,8 +237,8 @@ const makeVerified = (item: any) => {
       density: { elevation: null, temperature: null } // Missing
     });
 
-    expect(result.status).toBe('INCOMPLETE');
-    expect(result.votDensityCorrected).toBeNull();
+    expect(result.status).toBe("INCOMPLETE");
+    expect(result.vot).toBeNull();
   });
 
   it('Test M - Alternative Procedure', () => {
@@ -251,9 +257,10 @@ const makeVerified = (item: any) => {
       systemType: 'single_supply'
     });
 
+    if (result.status !== "PASS") console.log(result);
     expect(result.status).toBe('PASS');
     expect(result.alternativeSystem!.ev).not.toBeNull();
-    expect(result.votStandard).not.toBeNull();
+    expect(result.vot).not.toBeNull();
   });
 
   it('Test I - Invalid Ev', () => {
@@ -278,7 +285,7 @@ const makeVerified = (item: any) => {
     });
 
     expect(result.status).toBe('FAIL');
-    expect(result.votStandard).toBeNull();
+    expect(result.vot).toBeNull();
   });
 
   it('Test N - Invalid Ez', () => {

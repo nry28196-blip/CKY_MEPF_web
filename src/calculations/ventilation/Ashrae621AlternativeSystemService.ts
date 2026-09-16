@@ -9,14 +9,21 @@ export interface AlternativeZoneInput {
   ra: number;
   az: number;
   voz: number;
-  vpz: number | null; // Zone primary airflow
-  vpzMinRequired: number; // Required Vpz-min from calculation (Voz for CV)
-  vpzMinDesign: number | null; // User's design minimum
-  vdzMinDesign?: number | null; // Minimum total discharge airflow (required for secondary_recirculation)
+  vpz: number | null;
+  vpzMinDesign: number | null;
+  vpzMinRequired: number | null;
+  vdzMinDesign?: number | null;
+  dMode: 'VAV' | 'CV';
   ep?: number | null;
   er: number | null;
   ez: number;
-  dMode: 'VAV' | 'CV';
+}
+
+export interface AlternativeSystemInput {
+  edition?: '2019' | '2022' | '2025';
+  zones: AlternativeZoneInput[];
+  ps: number | null;
+  systemType: 'single_supply' | 'secondary_recirculation';
 }
 
 export interface AlternativeZoneResult {
@@ -34,14 +41,6 @@ export interface AlternativeZoneResult {
   isCritical: boolean;
   status: ValidationStatus;
   auditTrail: AuditTrailItem[];
-}
-
-export interface AlternativeSystemInput {
-  edition?: '2019' | '2022' | '2025';
-  zones: AlternativeZoneInput[];
-  ps: number | null;
-  systemType: 'single_supply' | 'secondary_recirculation';
-  eRho?: number;
 }
 
 export interface AlternativeSystemResult {
@@ -73,7 +72,6 @@ export class Ashrae621AlternativeSystemService {
     if (sumPz < 0) {
       statuses.push('FAIL');
     }
-
     if (sumPz === 0) {
       statuses.push('INCOMPLETE');
     }
@@ -97,17 +95,17 @@ export class Ashrae621AlternativeSystemService {
     }
 
     const d = sumPz > 0 ? ps / sumPz : 1.0;
-    const eRho = input.eRho ?? 1.0;
-    const vou = (d * sumRpPz + sumRaAz) * eRho;
+
+    const vou = d * sumRpPz + sumRaAz;
 
     auditTrail.push({
       symbol: 'Vou',
       name: 'Uncorrected Outdoor Air Intake',
-      formula: input.eRho !== undefined ? '(D × Σ(Rp×Pz) + Σ(Ra×Az)) × Eρ' : 'D × Σ(Rp×Pz) + Σ(Ra×Az)',
-      inputs: input.eRho !== undefined ? { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz, 'Eρ': eRho } : { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz },
+      formula: 'D × Σ(Rp×Pz) + Σ(Ra×Az)',
+      inputs: { 'D': d, 'Σ(Rp×Pz)': sumRpPz, 'Σ(Ra×Az)': sumRaAz },
       result: vou,
       unit: 'L/s',
-      reference: input.eRho !== undefined ? 'ASHRAE 62.1 Addendum j' : 'ASHRAE 62.1 Alternative Procedure',
+      reference: 'ASHRAE 62.1 Alternative Procedure',
       status: AuditStatus.DERIVED
     });
 
@@ -136,8 +134,8 @@ export class Ashrae621AlternativeSystemService {
       reference: 'ASHRAE 62.1 Alternative Procedure',
       status: AuditStatus.DERIVED
     });
-
-        let missingEpEr = false;
+    
+    let missingEpEr = false;
     let hasInvalidZd = false;
     let hasZeroVdz = false;
     let hasInvalidEp = false;
@@ -161,8 +159,6 @@ export class Ashrae621AlternativeSystemService {
         if (z.er === null || z.er === undefined || isNaN(z.er)) missingEpEr = true;
         else er = z.er;
 
-        // Pre-2025 (2022, 2019) AND 2025 both use Vpz-min / Vdz-min for secondary recirculation
-        // 62.1-2022 Equation A-8: Ep = Vpz / Vdz
         if (z.dMode === 'VAV' && (z.vpzMinDesign === null || z.vpzMinDesign === undefined || isNaN(z.vpzMinDesign))) {
           missingEpEr = true;
         } else if (z.vpzMinDesign !== null && z.vpzMinDesign !== undefined && z.vpzMinDesign <= 0) {
@@ -185,12 +181,12 @@ export class Ashrae621AlternativeSystemService {
         zd = vdzMin > 0 ? z.voz / vdzMin : 1.0;
         if (zd > 1.0) hasInvalidZd = true;
         if (vdzMin <= 0) hasZeroVdz = true;
-
       }
 
       let fa = ep + (1 - ep) * er;
       let fb = ep;
       let fc = 1 - (1 - z.ez) * (1 - er) * (1 - ep);
+
       return { id: z.id, vpzMin, vdzMin, zd, ep, er, fa, fb, fc, evz: 1.0 };
     });
 
@@ -307,8 +303,7 @@ export class Ashrae621AlternativeSystemService {
         ep: zc.ep,
         er: zc.er,
         fa: zc.fa,
-        fb: zc.fb,
-        fc: zc.fc,
+        fb: zc.fb,        fc: zc.fc,
         evz: zc.evz,
         isCritical: Math.abs(zc.evz - ev!) < 0.001,
         status: finalStatus,

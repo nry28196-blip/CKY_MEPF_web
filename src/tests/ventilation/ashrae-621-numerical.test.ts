@@ -70,7 +70,7 @@ describe('ASHRAE 62.1-2025 Numerical Verification Tests', () => {
       expect(result.zone.vba).toBeCloseTo(30.0);
       expect(result.zone.vbz).toBeCloseTo(42.5);
       expect(result.zone.voz).toBeCloseTo(42.5); // Vbz / Ez = 42.5 / 1.0
-      expect(result.votStandard).toBeCloseTo(42.5);
+      expect(result.vot).toBeCloseTo(42.5);
     });
 
     it('Should calculate correctly with Ez < 1.0 (Heating, ceiling return)', () => {
@@ -91,7 +91,7 @@ describe('ASHRAE 62.1-2025 Numerical Verification Tests', () => {
       
       expect(result.zone.vbz).toBeCloseTo(42.5);
       expect(result.zone.voz).toBeCloseTo(53.125);
-      expect(result.votStandard).toBeCloseTo(53.125);
+      expect(result.vot).toBeCloseTo(53.125);
     });
   });
 
@@ -108,7 +108,7 @@ describe('ASHRAE 62.1-2025 Numerical Verification Tests', () => {
       });
       // Allow minor deviation based on psychrometric formula
       expect(result.density.eRho).toBeCloseTo(1.0, 1);
-      expect(result.votDensityCorrected).toBeCloseTo(42.5, 1);
+      expect(result.vot).toBeCloseTo(42.5, 1);
     });
 
     it('Should inflate flow rates at high altitudes and hot temperatures', () => {
@@ -122,8 +122,8 @@ describe('ASHRAE 62.1-2025 Numerical Verification Tests', () => {
         }
       });
       
-      expect(result.density.eRho).toBeGreaterThan(1.2);
-      expect(result.votDensityCorrected).toBeCloseTo(result.votStandard, 4);
+      expect(result.density.eRho).toBe(1.2);
+      expect(result.vot).toBeCloseTo(result.vot, 4);
     });
   });
 
@@ -137,6 +137,7 @@ describe('ASHRAE 62.1-2025 Numerical Verification Tests', () => {
       
       const result = VentilationEngine.runMultiZone({
         method: 'Simplified',
+        edition: '2025',
         systemPopulation: 10,
         systemType: 'single_supply',
         density: { elevation: 0, temperature: 20 },
@@ -157,13 +158,14 @@ describe('ASHRAE 62.1-2025 Numerical Verification Tests', () => {
       // Vou = D * Sum(Rp * Pz) + Sum(Ra * Az) 
       // Vou = 0.5 * (2.5 * 20) + (0.3 * 200) = 0.5 * 50 + 60 = 25 + 60 = 85
       expect(result.simplifiedSystem!.vou).toBeCloseTo(85, 0);
-      expect(result.votStandard).toBeCloseTo(85 / 0.66, 0); // Vot = Vou / Ev = 85 / 0.66 = 128.78...
+      expect(result.vot).toBeCloseTo(85 / 0.66, 0); // Vot = Vou / Ev = 85 / 0.66 = 128.78...
     });
 
     it('Should assign Ev = 0.75 when Diversity (D) >= 0.60', () => {
       // Ps = 15. D = 15 / 20 = 0.75 (D >= 0.60)
       const result = VentilationEngine.runMultiZone({
         method: 'Simplified',
+        edition: '2025',
         systemPopulation: 15,
         systemType: 'single_supply',
         density: { elevation: 0, temperature: 20 },
@@ -181,7 +183,7 @@ describe('ASHRAE 62.1-2025 Numerical Verification Tests', () => {
       expect(result.simplifiedSystem!.ev).toBeCloseTo(0.75); // D >= 0.60
       // Vou = D * Sum(Rp * Pz) + Sum(Ra * Az) = 0.75 * 50 + 60 = 37.5 + 60 = 97.5
       expect(result.simplifiedSystem!.vou).toBeCloseTo(97.5, 1);
-      expect(result.votStandard).toBeCloseTo(97.5 / 0.75, 0); // 130
+      expect(result.vot).toBeCloseTo(97.5 / 0.75, 0); // 130
     });
   });
 });

@@ -6,6 +6,7 @@ export interface DensityInput {
   temperature: number | null; // °C
   relativeHumidity?: number; // %, defaults to 0 (dry air) if omitted
   edition?: '2019' | '2022' | '2025';
+  method?: 'TABLE' | 'ANALYTICAL';
 }
 
 export interface DensityResult {
@@ -21,31 +22,41 @@ export interface DensityResult {
 }
 
 export class DensityCorrectionService {
-  static STANDARD_PRESSURE_KPA = 101.325;
-  static STANDARD_TEMP_C = 20.0;
+  static STANDARD_PRESSURE_KPA = 101.3;
+  static STANDARD_TEMP_C = 21.0;
   static R_DRY_AIR_KJ = 0.287058;
   static R_VAPOR_KJ = 0.461495;
-  static STANDARD_DENSITY = 1.204; // kg/m³, dry air at 20°C, 101.325 kPa per ASHRAE 62.1
+  static STANDARD_DENSITY = 1.2; // kg/m³, dry air at 21°C, 101.3 kPa per ASHRAE 62.1 Addendum j
 
-  /**
-   * Calculates air density and Eρ (Density Correction Factor)
-   * Eρ = ρ_standard / ρ_actual
-   */
+  static getTableERho(elevation: number): number | null {
+    if (elevation <= 158) return 1.00;
+    if (elevation <= 566) return 1.05;
+    if (elevation <= 951) return 1.10;
+    if (elevation <= 1317) return 1.15;
+    if (elevation <= 1664) return 1.20;
+    if (elevation <= 1994) return 1.25;
+    if (elevation <= 2309) return 1.30;
+    if (elevation <= 2609) return 1.35;
+    if (elevation <= 2897) return 1.40;
+    if (elevation <= 3173) return 1.45;
+    if (elevation <= 3437) return 1.50;
+    return null; // Above 3437m requires Appendix D
+  }
+
   static calculate(input: DensityInput | null): DensityResult {
     const auditTrail: AuditTrailItem[] = [];
     
     let elevation = 0;
-    let temperature = 20.0;
+    let temperature = 21.0;
     let rh = 0;
     let status: ValidationStatus = 'PASS';
 
-    // Check for missing data
     if (!input || input.elevation === null || input.temperature === null) {
       status = 'INCOMPLETE';
       auditTrail.push({
         symbol: 'Assumed Data',
         name: 'Missing Density Inputs',
-        formula: 'Default to Sea Level, 20°C',
+        formula: 'Default to Sea Level, 21°C',
         inputs: {},
         result: 'ASSUMED',
         unit: '',
@@ -62,17 +73,7 @@ export class DensityCorrectionService {
         unit: '',
         reference: 'Invalid numeric input'
       });
-      return {
-        elevation: input.elevation || 0,
-        temperature: input.temperature || 0,
-        relativeHumidity: 0,
-        pressureAtm: 0,
-        density: 0,
-        humidityRatioKgKg: 0,
-        eRho: 1.0,
-        status,
-        auditTrail
-      };
+      return { elevation: input.elevation || 0, temperature: input.temperature || 0, relativeHumidity: 0, pressureAtm: 0, density: 0, humidityRatioKgKg: 0, eRho: 1.0, status, auditTrail };
     } else if (!isFinite(input.elevation)) {
       status = 'FAIL';
       auditTrail.push({
@@ -84,29 +85,22 @@ export class DensityCorrectionService {
         unit: '',
         reference: 'Validation'
       });
-      return {
-        elevation: input.elevation,
-        temperature: input.temperature,
-        relativeHumidity: 0,
-        pressureAtm: 0,
-        density: 0,
-        humidityRatioKgKg: 0,
-        eRho: 1.0,
-        status,
-        auditTrail
-      };
+      return { elevation: input.elevation, temperature: input.temperature, relativeHumidity: 0, pressureAtm: 0, density: 0, humidityRatioKgKg: 0, eRho: 1.0, status, auditTrail };
     } else {
       elevation = input.elevation;
       temperature = input.temperature;
       rh = input.relativeHumidity && !isNaN(input.relativeHumidity) ? input.relativeHumidity : 0;
     }
 
-    // Barometric pressure equation: P = 101.325 * (1 - 2.25577e-5 * Z)^5.2559
+    const method = input?.method || 'TABLE';
+
+    // Barometric pressure calculation
     const pressureAtm = this.STANDARD_PRESSURE_KPA * Math.pow(1 - 2.25577e-5 * elevation, 5.2559);
     
+    // Humidity ratio W calculation
     const tKelvin = temperature + 273.15;
-    
     let pv = 0;
+    let humidityRatioKgKg = 0;
     if (rh > 0) {
       let psat = 0;
       if (temperature >= 0) {
@@ -117,27 +111,61 @@ export class DensityCorrectionService {
       const rhFraction = Math.max(0, Math.min(100, rh)) / 100;
       pv = rhFraction * psat;
     }
-    
     const pd = pressureAtm - pv;
     const density = (pd / (this.R_DRY_AIR_KJ * tKelvin)) + (pv / (this.R_VAPOR_KJ * tKelvin));
-    const humidityRatioKgKg = pd > 0 ? 0.621945 * (pv / pd) : 0;
-    
-    const eRho = this.STANDARD_DENSITY / density;
+    if (pd > 0) {
+      humidityRatioKgKg = 0.621945 * (pv / pd);
+    }
 
-    auditTrail.push({
-      symbol: 'Eρ',
-      name: 'Air Density Factor',
-      formula: 'ρ_standard / ρ_actual',
-      inputs: {
-        'Z (m)': elevation,
-        'T (°C)': temperature,
-        'ρ_actual (kg/m³)': density,
-        'ρ_standard': this.STANDARD_DENSITY
-      },
-      result: eRho,
-      unit: '',
-      reference: 'ASHRAE 62.1 Section 6.2.4.4 (Errata)'
-    });
+    let eRho = 1.0;
+
+    if (method === 'TABLE') {
+      const tableERho = this.getTableERho(elevation);
+      if (tableERho !== null) {
+        eRho = tableERho;
+        auditTrail.push({
+          symbol: 'Eρ',
+          name: 'Air Density Factor (Table)',
+          formula: 'Table 6-5 Lookup',
+          inputs: { 'Z (m)': elevation },
+          result: eRho,
+          unit: '',
+          reference: 'ASHRAE 62.1 Addendum j Table 6-5'
+        });
+      } else {
+        // Fallback to Analytical if above 3437m
+        auditTrail.push({
+          symbol: 'Table Limit',
+          name: 'Elevation above Table 6-5',
+          formula: 'Z > 3437m, fallback to Appendix D',
+          inputs: { 'Z (m)': elevation },
+          result: 'FALLBACK',
+          unit: '',
+          reference: 'ASHRAE 62.1 Addendum j Table 6-5 Note'
+        });
+        eRho = this.STANDARD_DENSITY / density;
+        auditTrail.push({
+          symbol: 'Eρ',
+          name: 'Air Density Factor (Analytical)',
+          formula: '1.2 / ρ_actual',
+          inputs: { 'Z (m)': elevation, 'T (°C)': temperature, 'ρ_actual (kg/m³)': density, 'ρ_standard': this.STANDARD_DENSITY },
+          result: eRho,
+          unit: '',
+          reference: 'ASHRAE 62.1 Addendum j Normative Appendix D (Eq D-5b)'
+        });
+      }
+    } else {
+      eRho = this.STANDARD_DENSITY / density;
+      auditTrail.push({
+        symbol: 'Eρ',
+        name: 'Air Density Factor (Analytical)',
+        formula: '1.2 / ρ_actual',
+        inputs: { 'Z (m)': elevation, 'T (°C)': temperature, 'W (kg/kg)': humidityRatioKgKg, 'ρ_actual (kg/m³)': density, 'ρ_standard': this.STANDARD_DENSITY },
+        result: eRho,
+        unit: '',
+        reference: 'ASHRAE 62.1 Addendum j Normative Appendix D (Eq D-5b)'
+      });
+    }
 
     return {
       elevation,
@@ -152,14 +180,12 @@ export class DensityCorrectionService {
     };
   }
 
-  /**
-   * Compatibility adapter for legacy AirDensityService usages
-   */
   static getAirProperties(elevationM: number, temperatureC: number, relativeHumidity: number = 0) {
     const res = this.calculate({
         elevation: elevationM,
         temperature: temperatureC,
-        relativeHumidity: relativeHumidity
+        relativeHumidity: relativeHumidity,
+        method: 'ANALYTICAL'
     });
     
     return {

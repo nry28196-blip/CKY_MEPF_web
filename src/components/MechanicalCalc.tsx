@@ -20,7 +20,7 @@ import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
 import { DensityCorrectionService } from '../lib/DensityCorrectionService';
-import { MechanicalCoolingEngine } from '../lib/VentilationEngine';
+import { MechanicalCoolingEngine } from '../lib/MechanicalCoolingEngine';
 import { UnitConversionService } from '../lib/UnitConversionService';
 import { VentilationValidator } from '../validation/VentilationValidator';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';

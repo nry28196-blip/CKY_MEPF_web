@@ -16,6 +16,14 @@ export interface AuditTrailItem {
 }
 
 export interface ZoneVentilationInput {
+  dMode?: "CV" | "VAV";
+  vpz?: number | null;
+  vpzMinDesign?: number | null;
+  vpzMinRequired?: number | null;
+  vdzMinDesign?: number | null;
+  ep?: number | null;
+  er?: number | null;
+  id?: string;
   expectedStandard: string;
   expectedEdition: string;
   spaceType: Ashrae621SpaceType | null;
@@ -27,6 +35,7 @@ export interface ZoneVentilationInput {
 }
 
 export interface ZoneVentilationResult {
+  id?: string;
   reason?: string;
   standard: string;
   edition: string;
