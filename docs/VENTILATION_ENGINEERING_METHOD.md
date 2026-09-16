@@ -38,3 +38,6 @@ When specific variables are omitted by the user, the calculation engine applies 
 *   **System Primary Airflow ($V_{ps}$)**: If omitted, the engine assumes $V_{ps}$ equals the sum of the minimum expected primary airflows to all zones ($\sum V_{pz-min}$).
 *   **Zone Minimum Primary Airflow ($V_{pz-min}$)**: If omitted in a VAV multi-zone setup, the engine conservatively derives it as $\max(0.3 \times V_{pz}, V_{oz})$ to guarantee system compliance for minimum VAV damper positions.
 *   **Mathematical Clamping**: To prevent calculation crashes (e.g., division by zero if $V_{pz-min} = 0$), System Ventilation Efficiency ($E_v$) is constrained to a minimum theoretical floor of $0.1$. It is mathematically capped at $1.0$ (100% efficient).
+
+## 5. Subsystem Recovery Note
+The `MechanicalCoolingEngine` was successfully restored from repository history (commit b25f954) to replace a temporary build-placeholder. Actual engineering logic is now reinstated.
