@@ -1,0 +1,771 @@
+﻿
+
+
+<!DOCTYPE html>
+<html id="htmlTag" xmlns="http://www.w3.org/1999/xhtml">
+<head id="Head1">
+    <!--Copyright Bridgeline Digital, Inc. An unpublished work created in 2009. All rights reserved. This software contains the confidential and trade secret information of Bridgeline Digital, Inc. ("Bridgeline").  Copying, distribution or disclosure without Bridgeline's express written permission is prohibited-->
+    <title>Page Not Found</title>
+<meta name="description" content="Learn more about Page Not Found at ashrae.org" />
+<meta name="robots" content="noindex,follow" />
+<link media="ALL" rel="stylesheet" type="text/css" href="/Style%20Library/css/main.css" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.7/jquery-ui.min.js"></script>
+<script type="text/javascript" src="/js/CustomTrackingScript.js"></script>
+<script type="text/javascript" src="/Script%20Library/front-end/frontEnd.js"></script>
+<script type="text/javascript" src="/Script%20Library/GoogleAnalytics/GoogleAnalyticsInclude.js"></script>
+<script type="text/javascript" src="/Script%20Library/RM%20and%20FB/facebookbasepixel.js"></script>
+<script type="text/javascript" src="/Script%20Library/RM%20and%20FB/Rmtrackingcode.js"></script>
+<script type="text/javascript">
+    //<![CDATA[
+    var publicSiteUrl = 'https://www.ashrae.org/';
+    var editorContext = 'SiteEditor';
+    var basePageType = 'basepage';
+    var pageState = 'View';
+    var jSpinnerUrl = '/iapps_images/spinner.gif';
+    var jRotatingCube = '/iapps_images/loading-spinner.gif';
+    var jWebApiRoutePath = 'api';
+    var PageId = '4be7a59a-1fd9-436e-ac15-928bb0c949ab';
+    var WorkflowId = '';
+    var ReferrerTypeId = '8';
+    var ReferrerUrl = 'error/404-page-not-found';
+
+    var appInsights = window.appInsights || function (config) { function r(config) { t[config] = function () { var i = arguments; t.queue.push(function () { t[config].apply(t, i) }) } } var t = { config: config }, u = document, e = window, o = "script", s = u.createElement(o), i, f; for (s.src = config.url || "//az416426.vo.msecnd.net/scripts/a/ai.0.js", u.getElementsByTagName(o)[0].parentNode.appendChild(s), t.cookie = u.cookie, t.queue = [], i = ["Event", "Exception", "Metric", "PageView", "Trace"]; i.length;) r("track" + i.pop()); return r("setAuthenticatedUserContext"), r("clearAuthenticatedUserContext"), config.disableExceptionTracking || (i = "onerror", r("_" + i), f = e[i], e[i] = function (config, r, u, e, o) { var s = f && f(config, r, u, e, o); return s !== !0 && t["_" + i](config, r, u, e, o), s }), t }({ instrumentationKey: '7c459ffc-dd28-4801-a4b7-1be384cf8478' }); window.appInsights = appInsights; appInsights.trackPageView();
+    var siteId = '8039ce09-e7da-47e1-bcec-df96b5e411f4'; var swgif = '/Tracking/WebPageEventLogger.axd';
+    //]]>
+</script>
+<meta charset="utf-8">
+<meta name="mobile-web-app-capable" content="yes"><meta name="google-site-verification" content="OGrBPJ3X7qcl_k0ESYSyCr8H_IC8qNnq1Pkkq8DXJWo" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="apple-mobile-web-app-capable" content="yes" /><meta name="apple-mobile-web-app-status-bar-style" content="black" /><meta name="apple-mobile-web-app-title" content="Web Starter Kit" /><meta name="msapplication-TileImage" content="Image Library/template-images/touch/ms-touch-icon-144x144-precomposed.png" /><meta name="msapplication-TileColor" content="#3372DF" /><script type="text/javascript" src="//platform-api.sharethis.com/js/sharethis.js#property=59b7cee33ece4e001182cc54&product=custom-share-buttons" async="async"></script><meta name="mobile-web-app-capable" content="yes" /><link rel="icon" sizes="192x192" href="/images/icon_192x192.png"></link><meta name="apple-mobile-web-app-capable" content="yes" /><meta name="apple-mobile-web-app-status-bar-style" content="default" /><meta name="apple-mobile-web-app-title" content="ASHRAE" /><link rel="apple-touch-icon" href="/images/icon_120x120.png"></link><link rel="apple-touch-icon" sizes="152x152" href="/images/icon_152x152.png"></link><link rel="apple-touch-icon" sizes="167x167" href="/images/icon_167x167.png"></link><link rel="apple-touch-icon" sizes="180x180" href="/images/icon_180x180.png"></link><meta name="msapplication-TileImage" content="/images/icon_144x144.png" /><meta name="msapplication-TileColor" content="#00529b" /></head>
+<body id="bodyTag">
+    
+        
+
+<div class="pageWrap">
+    
+
+<SCRIPT LANGUAGE=JavaScript1.1>
+<!--
+OAS_version = 11;
+if ((navigator.userAgent.indexOf('Mozilla/3') != -1) ||
+(navigator.userAgent.indexOf('Mozilla/4.0 webTV') != -1))
+OAS_version = 10;
+if (OAS_version >= 11) document.write('<SCR' + 'IPT LANGUAGE=JavaScript1.1 SRC="' +
+OAS_url + 'adstream_mjx.ads/' + OAS_sitepage + '/1' + OAS_rns + '@' +
+OAS_listpos + '?' + OAS_query + '"><\/SCRIPT>');//-->
+</SCRIPT>
+<!-- 2/25/2014 Working with MJX
+http://onlinehelp.247media.com/oas132/Default.htm#Ad Tagging/Working with MJX/Working with MJX.htm?Highlight=MJX 10/10 -->
+<SCRIPT LANGUAGE=JavaScript>
+<!--
+    document.write('');
+    function OAS_AD(pos) {
+        if (OAS_version >= 11)
+            OAS_RICH(pos);
+        else
+            OAS_NORMAL(pos);
+    }
+    //-->
+</SCRIPT>
+<!------ OAS SETUP end ------>
+
+<header class="headerMain">
+
+    <div class="headerMain-util">
+        <div class="headerMain-utilInner">
+          <div class="headerMain-utilZone01">
+                <div class="logoMain">
+                    <a href="/">
+                        <img src="/Image Library/content-images/logo_ashrae.png" alt=""></a><span>Shaping Tomorrow's Built Environment Today</span>
+                </div>
+            </div>
+            <div class="headerMain-utilZone02">
+                <i class="placeholder" data-placeholderid="11138"></i>
+                <div class="searchBox searchBox--main">
+                    <input id="searchMain" type="text" placeholder="What Are You Looking For?" name="" class="searchBox-textField">
+                    <a class="searchBox-submit" ></a>
+                </div>
+            </div>
+            <div class="headerMain-utilZone03">
+                <nav class="navUtil"><ul>
+    <li class=""><a href="/join">Join</a></li>
+    <li class=""><a href="/volunteer">Volunteer</a></li>
+    <li class=""><a href="/make-a-gift">Make A Gift</a></li>
+    <li class="navUtil-btn"><a href="https://www.techstreet.com/ashrae/pages/home">Bookstore</a></li>
+  </ul></nav>
+
+
+                
+
+<nav class="navSignin"> 
+    <ul>
+        <li><a href="/login" class="navSignin-signin">Log In</a></li>
+    </ul>
+</nav>
+
+
+            </div>
+        </div>
+    </div>
+    <div class="headerMain-main">
+        <div class="headerMain-mainInner">
+            <div class="headerMain-mainZone01">
+            </div>
+            <div class="headerMain-mainZone02">
+                <nav id="navMain" runat="server" class="navMain"><ul>
+    <li class="hasChildren is-mega"><a href="/about">About</a><ul>
+        <div class="mega-column">
+          <li class=""><a href="/about/mission-and-vision">Mission & Vision</a><ul class="mega-column--inset">
+              <li class=""><a href="/about/mission-and-vision/ashrae-industry-history">ASHRAE & Industry History</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/about/leadership">Leadership</a><ul class="mega-column--inset">
+              <li class=""><a href="/about/leadership/ashrae-board-of-directors">ASHRAE Board of Directors</a></li>
+              <li class=""><a href="/about/leadership/ashrae-president">ASHRAE President</a></li>
+              <li class=""><a href="/about/leadership/leadership-recall">Leadership Recall</a></li>
+              <li class=""><a href="/about/leadership/officers-directors-councils-committees-staff">Officers, Directors, Councils, Committees, Staff</a></li>
+              <li class=""><a href="/about/leadership/presidential-members-gallery">Presidential Members Gallery</a></li>
+              <li class=""><a href="/File Library/About/Leadership/ASHRAE Board of Directors/ASHRAE-Organization-Chart.pdf">Society Organization Chart</a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="/about/strategic-plan">Strategic Plan</a></li>
+          <li class=""><a href="/about/society-snapshot">Society Snapshot</a></li>
+          <li class=""><a href="/about/governance">Governance</a></li>
+          <li class=""><a href="/about/position-documents">Position Documents</a></li>
+          <li class=""><a href="/about/government-affairs">Government Affairs</a><ul class="mega-column--inset">
+              <li class=""><a href="/about/government-affairs/advocacy-alliances">Advocacy Alliances</a></li>
+              <li class=""><a href="/about/government-affairs/advocacy-faqs">Advocacy FAQs</a></li>
+              <li class=""><a href="/about/government-affairs/advocacy-toolkit">Advocacy Toolkit</a></li>
+              <li class=""><a href="/about/government-affairs/government-affairs-office">Government Affairs Office</a></li>
+              <li class=""><a href="/about/government-affairs/government-affairs-updates">Government Affairs Updates</a></li>
+              <li class=""><a href="/about/government-affairs/grassroots-advocacy">Grassroots Advocacy</a></li>
+              <li class=""><a href="/about/government-affairs/public-policy-resources">Public Policy Resources</a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="/about/news">News</a><ul class="mega-column--inset">
+              <li class=""><a href="/about/news/2018">2018</a></li>
+              <li class=""><a href="/about/news/2017">2017</a></li>
+              <li class=""><a href="/about/news/2016">2016</a></li>
+              <li class=""><a href="/about/news/2015">2015</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/about/careers-at-ashrae">Careers at ASHRAE</a></li>
+          <li class=""><a href="/about/event-space-rental">Event Space Rental</a></li>
+          <li class=""><a href="http://foundation.ashrae.biz/" target="_blank">ASHRAE Foundation <i class="icon-link-ext icon--empty"></i></a></li></div><div class="mega-column"><li class=""><a href="/about/support-ashrae">Support ASHRAE</a><ul class="mega-column--inset">
+              <li class=""><a href="/about/support-ashrae/rp">RP</a></li>
+              <li class=""><a href="http://foundation.ashrae.biz/" target="_blank">Foundation <i class="icon-link-ext icon--empty"></i></a></li>
+              <li class=""><a href="/about/support-ashrae/other">Other</a></li>
+              <li class=""><a href="/about/support-ashrae/volunteer">Volunteer</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/about/marketing-central">Marketing Central</a></li>
+          <li class=""><a href="/about/ashrae-365-app">ASHRAE 365 App</a></li>
+          <li class=""><a href="/about/contact-us">Contact Us</a></li>
+        </div>
+      </ul>
+    </li>
+    <li class="hasChildren is-mega"><a href="/technical-resources">Technical Resources</a><ul>
+        <div class="mega-column">
+          <li class=""><a href="https://www.techstreet.com/ashrae/pages/home" target="_blank">Bookstore <i class="icon-link-ext icon--empty"></i></a></li>
+          <li class=""><a href="/technical-resources/technology-portal">Technology Portal</a></li>
+          <li class=""><a href="/technical-resources/ashrae-apps">ASHRAE Apps</a></li>
+          <li class=""><a href="/technical-resources/free-resources">Free Resources</a><ul class="mega-column--inset">
+              <li class=""><a href="/technical-resources/free-resources/publications">Publications</a></li>
+              <li class=""><a href="/technical-resources/free-resources/software">Software</a></li>
+              <li class=""><a href="/technical-resources/free-resources/supplier-directory-supplier-white-papers">Supplier Directory/Supplier White Papers</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/technical-resources/ashrae-365-app">ASHRAE 365 App</a></li></div><div class="mega-column"><li class=""><a href="/technical-resources/standards-and-guidelines">Standards & Guidelines</a><ul class="mega-column--inset">
+              <li class=""><a href="/technical-resources/standards-and-guidelines/pcs-toolkit">PCs Toolkit</a></li>
+              <li class=""><a href="/technical-resources/standards-and-guidelines/public-review-drafts">Public Review Drafts</a></li>
+              <li class=""><a href="https://www.techstreet.com/ashrae/lists/ashrae_standards.tmpl?ashrae_auth_token=" target="_blank">Purchase Standards & Guidelines <i class="icon-link-ext icon--empty"></i></a></li>
+              <li class=""><a href="/technical-resources/standards-and-guidelines/standards-actions">Standards Actions</a></li>
+              <li class=""><a href="/technical-resources/standards-and-guidelines/standards-addenda">Standards Addenda</a></li>
+              <li class=""><a href="/technical-resources/standards-and-guidelines/standards-errata">Standards Errata</a></li>
+              <li class=""><a href="/technical-resources/standards-and-guidelines/standards-interpretations">Standards Interpretations</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/technical-resources/ashrae-handbook">ASHRAE Handbook</a></li>
+          <li class=""><a href="/technical-resources/ashrae-journal">ASHRAE Journal</a><ul class="mega-column--inset">
+              <li class=""><a href="/technical-resources/ashrae-journal/featured-articles">Featured Articles</a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="http://www.hpbmagazine.org/" target="_blank">High Performing Buildings <i class="icon-link-ext icon--empty"></i></a></li>
+          <li class=""><a href="/technical-resources/supplier-webinars-and-products">Supplier Webinars & Products</a></li>
+          <li class=""><a href="/technical-resources/science-and-technology-for-the-built-environment">Science and Technology for the Built Environment</a></li>
+          <li class=""><a href="/technical-resources/ashrae-transactions">ASHRAE Transactions</a></li>
+          <li class=""><a href="/technical-resources/conference-papers">Conference Papers</a></li>
+          <li class=""><a href="/technical-resources/building-eq">Building EQ</a></li>
+          <li class=""><a href="/technical-resources/aedgs">AEDGs</a></li></div><div class="mega-column"><li class=""><a href="/technical-resources/research">Research</a><ul class="mega-column--inset">
+              <li class=""><a href="/technical-resources/research/ashrae-rp">ASHRAE RP</a></li>
+              <li class=""><a href="https://www.techstreet.com/ashrae/subgroups/34748?ashrae_auth_token=" target="_blank">Purchase Research Reports <i class="icon-link-ext icon--empty"></i></a></li>
+              <li class=""><a href="/technical-resources/research/research-strategic-plan">Research Strategic Plan</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/technical-resources/technical-committees">Technical Committees</a></li></div><div class="mega-column"><li class=""><a href="/technical-resources/authoring-tools">Authoring Tools</a><ul class="mega-column--inset">
+              <li class=""><a href="/technical-resources/authoring-tools/authoring-portal">Authoring Portal</a></li>
+              <li class=""><a href="/technical-resources/authoring-tools/citation-and-abstract-indexes">Citation and Abstract Indexes</a></li>
+              <li class=""><a href="/technical-resources/authoring-tools/terminology">Terminology</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/technical-resources/publication-errata-and-updates">Publication Errata & Updates</a></li>
+          <li class=""><a href="/technical-resources/technical-faqs">Technical FAQs</a></li>
+          <li class=""><a href="/technical-resources/resilience-activities">Resilience Activities</a></li>
+        </div>
+      </ul>
+    </li>
+    <li class="hasChildren is-mega"><a href="/professional-development">Professional Development</a><ul>
+        <div class="mega-column">
+          <li class=""><a href="/professional-development/learning-portal">Learning Portal</a><ul class="mega-column--inset">
+              <li class=""><a href="/professional-development/learning-portal/elearning-on-demand">eLearning On Demand</a></li>
+              <li class=""><a href="/professional-development/learning-portal/instructor-led-training">Instructor-Led Training</a></li>
+              <li class=""><a href="/professional-development/learning-portal/self-directed-learning-group-learning-texts">Self-Directed Learning / Group Learning Texts </a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/professional-development/training-for-companies-and-chapters">Training for Companies & Chapters</a></li></div><div class="mega-column"><li class=""><a href="/professional-development/ashrae-certification">ASHRAE Certification</a><ul class="mega-column--inset">
+              <li class=""><a href="/professional-development/ashrae-certification/certification-types">Certification Types</a></li>
+              <li class=""><a href="/professional-development/ashrae-certification/find-an-ashrae-certified-professional">Find an ASHRAE Certified Professional</a></li>
+              <li class=""><a href="/professional-development/ashrae-certification/government-recognition">Government Recognition</a></li>
+              <li class=""><a href="/professional-development/ashrae-certification/why-get-certified">Why Get Certified</a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="https://jobs.ashrae.org/" target="_blank">Job Board <i class="icon-link-ext icon--empty"></i></a></li>
+          <li class=""><a href="/professional-development/educator-resources">Educator Resources</a></li>
+          <li class=""><a href="/professional-development/ashrae-webcast">ASHRAE Webcast</a></li>
+        </div>
+      </ul>
+    </li>
+    <li class="hasChildren is-mega"><a href="/conferences">Conferences</a><ul>
+        <div class="mega-column">
+          <li class=""><a href="/conferences/annual-conference">2018 Annual Conference | Houston</a></li>
+          <li class=""><a href="/conferences/winter-conference">2019 Winter Conference | Atlanta</a><ul class="mega-column--inset">
+              <li class=""><a href="/conferences/winter-conference/ahr-expo">2019 AHR Expo</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/conferences/topical-conferences">Topical Conferences</a><ul class="mega-column--inset">
+              <li class=""><a href="/conferences/topical-conferences/2018-building-performance-analysis-conference-and-simbuild">2018 Building Performance Analysis Conference and SimBuild</a></li>
+              <li class=""><a href="/conferences/topical-conferences/the-third-international-conference-on-efficient-building-design">The Third International Conference on Efficient Building Design</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/conferences/virtual-conferences">Virtual Conferences</a></li>
+          <li class=""><a href="/conferences/chapters-regional-conferences-crcs">Chapters Regional Conferences (CRCs)</a></li>
+          <li class=""><a href="/conferences/ashrae-endorsed-conferences">ASHRAE Endorsed Conferences</a></li></div><div class="mega-column"><li class=""><a href="/conferences/conference-resources">Conference Resources</a><ul class="mega-column--inset">
+              <li class=""><a href="/conferences/conference-resources/conference-justification-toolkit">Conference Justification Toolkit</a></li>
+              <li class=""><a href="/File Library/Conferences/Conference Resources/Criteria for Annual Conference City Selection/Criteria-for-Annual-Conference-City-Selection.pdf">Criteria for Annual Conference City Selection</a></li>
+              <li class=""><a href="/conferences/conference-resources/emeetings">eMeetings</a></li>
+              <li class=""><a href="/conferences/conference-resources/events-calendar">Events Calendar</a></li>
+              <li class=""><a href="/conferences/conference-resources/papers-and-programs">Papers &amp; Programs</a></li>
+              <li class=""><a href="/conferences/conference-resources/past-ashrae-conferences">Past ASHRAE Conferences</a></li>
+              <li class=""><a href="/conferences/conference-resources/future-ashrae-conferences">Future ASHRAE Conferences</a></li>
+              <li class=""><a href="/conferences/conference-resources/travel">Travel</a></li>
+              <li class=""><a href="/conferences/conference-resources/winter-and-annual-conference-sponsorship-opportunities">Winter & Annual Conference Sponsorship Opportunities</a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="/conferences/speaker-resources">Speaker Resources</a></li>
+          <li class=""><a href="/conferences/ashrae-365-app">ASHRAE 365 App</a></li>
+        </div>
+      </ul>
+    </li>
+    <li class="hasChildren is-mega"><a href="/communities">Communities</a><ul>
+        <div class="mega-column">
+          <li class=""><a href="/communities/regions">Regions</a></li>
+          <li class=""><a href="/communities/chapters">Chapters</a><ul class="mega-column--inset">
+              <li class=""><a href="/communities/chapters/ashrae-chapters">ASHRAE Chapters</a></li>
+              <li class=""><a href="https://eweb.ashrae.org/eweb/dynamicpage.aspx?webcode=ASHRAEChapters" target="_blank">Chapter Reports, PAOE, CIQ <i class="icon-link-ext icon--empty"></i></a></li>
+              <li class=""><a href="https://eweb.ashrae.org/eweb/dynamicpage.aspx?site=ASHRAE&amp;webcode=chaptermeetings&amp;chp_cst_key=00000000-0000-0000-0000-000000000000" target="_blank">Chapter Meetings <i class="icon-link-ext icon--empty"></i></a></li>
+              <li class=""><a href="/communities/chapters/chapter-resources">Chapter Resources</a></li>
+              <li class=""><a href="/communities/chapters/distinguished-lecturers">Distinguished Lecturers</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/communities/volunteer">Volunteer</a></li></div><div class="mega-column"><li class=""><a href="/communities/councils">Councils</a><ul class="mega-column--inset">
+              <li class=""><a href="/communities/councils/members-council">Members Council</a></li>
+              <li class=""><a href="/communities/councils/publishing-and-education-council">Publishing & Education Council</a></li>
+              <li class=""><a href="/communities/councils/technology-council">Technology Council</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/communities/committees">Committees</a><ul class="mega-column--inset">
+              <li class=""><a href="/communities/committees/committee-nominations">Committee Nominations</a></li>
+              <li class=""><a href="/communities/committees/standards-committees">Standards Committees</a></li>
+              <li class=""><a href="/communities/committees/standing-committees">Standing Committees</a></li>
+              <li class=""><a href="/communities/committees/technical-committees">Technical Committees</a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="/communities/student-zone">Student Zone</a><ul class="mega-column--inset">
+              <li class=""><a href="/communities/student-zone/student-activities">Student Activities</a></li>
+              <li class=""><a href="/communities/student-zone/competitions">Competitions</a></li>
+              <li class=""><a href="/communities/student-zone/scholarships-and-grants">Scholarships & Grants</a></li>
+              <li class=""><a href="/communities/student-zone/student-branches">Student Branches</a></li>
+              <li class=""><a href="/communities/student-zone/k-12-activities">K&ndash;12 Activities</a></li>
+              <li class=""><a href="/communities/student-zone/membership-and-meetings">Membership & Meetings</a></li>
+              <li class=""><a href="/communities/student-zone/educational-resources">Educational Resources</a></li>
+              <li class=""><a href="/communities/student-zone/student-news">Student News</a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="/communities/young-engineers-in-ashrae-yea">Young Engineers in ASHRAE (YEA)</a><ul class="mega-column--inset">
+              <li class=""><a href="/communities/young-engineers-in-ashrae-yea/honors-and-awards">Honors & Awards</a></li>
+              <li class=""><a href="/communities/young-engineers-in-ashrae-yea/resources">Resources</a></li>
+              <li class=""><a href="/communities/young-engineers-in-ashrae-yea/yea-committee">YEA Committee</a></li>
+              <li class=""><a href="/communities/young-engineers-in-ashrae-yea/yea-events-and-programs">YEA Events & Programs</a></li>
+              <li class=""><a href="/File Library/Membership/Member Benefits/Membership Promotion Resources/YoungEngineersinASHRAE-Guide.pdf">YEA Guide</a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="/communities/college-of-fellows">College of Fellows</a></li>
+          <li class=""><a href="/communities/life-members-club">Life Members Club</a></li>
+          <li class=""><a href="/communities/ashrae-associate-society-alliance">ASHRAE Associate Society Alliance</a></li>
+          <li class=""><a href="/communities/memoranda-of-understanding-mous">Memoranda of Understanding (MOUs)</a></li>
+          <li class=""><a href="/communities/iaqa">IAQA</a></li>
+        </div>
+      </ul>
+    </li>
+    <li class="hasChildren is-mega"><a href="/membership">Membership</a><ul>
+        <div class="mega-column">
+          <li class=""><a href="/membership/member-benefits">Member Benefits</a><ul class="mega-column--inset">
+              <li class=""><a href="/membership/member-benefits/membership-promotion-resources">Membership Promotion Resources</a></li>
+            </ul>
+          </li>
+          <li class=""><a href="/membership/join">Join</a></li>
+          <li class=""><a href="/membership/renew">Renew</a></li>
+          <li class=""><a href="/membership/special-membership-programs">Special Membership Programs</a><ul class="mega-column--inset">
+              <li class=""><a href="https://www.ashrae.org/membership/special-membership-programs#yea" target="_blank">YEA <i class="icon-link-ext icon--empty"></i></a></li>
+              <li class=""><a href="https://www.ashrae.org/membership/special-membership-programs#smartstart" target="_blank">SmartStart <i class="icon-link-ext icon--empty"></i></a></li>
+              <li class=""><a href="https://www.ashrae.org/membership/special-membership-programs#devecon" target="_blank">Developing Economies <i class="icon-link-ext icon--empty"></i></a></li>
+              <li class=""><a href="https://www.ashrae.org/membership/special-membership-programs#cibse" target="_blank">CIBSE/ASHRAE Membership <i class="icon-link-ext icon--empty"></i></a></li>
+              <li class=""><a href="https://www.ashrae.org/membership/special-membership-programs#iaqa" target="_blank">IAQA/ASHRAE Membership <i class="icon-link-ext icon--empty"></i></a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="/membership/my-ashrae">My ASHRAE</a><ul class="mega-column--inset">
+              <li class=""><a href="/membership/my-ashrae/connect-a-colleague">Connect-a-Colleague</a></li>
+              <li class=""><a href="/membership/my-ashrae/my-community">My Community</a></li>
+              <li class=""><a href="/membership/my-ashrae/my-participation">My Participation</a></li>
+              <li class=""><a href="/membership/my-ashrae/my-professional-development">My Professional Development</a></li>
+              <li class=""><a href="/membership/my-ashrae/my-technical-resources">My Technical Resources</a></li>
+              <li class=""><a href="/membership/my-ashrae/renew-my-membership">Renew My Membership</a></li>
+              <li class=""><a href="/membership/my-ashrae/upgrade-my-membership">Upgrade My Membership</a></li>
+            </ul>
+          </li></div><div class="mega-column"><li class=""><a href="/membership/honors-and-awards">Honors & Awards</a></li>
+          <li class=""><a href="/membership/membership-faqs">Membership FAQs</a></li>
+          <li class=""><a href="/membership/merchandise">Merchandise</a></li>
+        </div>
+      </ul>
+    </li>
+  </ul></nav><div class="mobileDrawerToggle drawerToggle" data-for="globals-mobile" data-mobile="true"></div>
+            </div>
+        </div>
+    </div>
+</header>
+<script>
+    $(document).ready(function () {
+        $('#searchMain').keydown(function (event) {
+            if (event.keyCode == 13) {
+                event.preventDefault();
+                submitSiteSearch($('#searchMain').val());
+            }
+        });
+        $('.searchBox-submit').click(
+            function () {
+                submitSiteSearch($('#searchMain').val());
+            });
+    });
+    function submitSiteSearch(searchVal) {
+        if (searchVal != "") {
+            //document.location = '/search/productsearch?q=' + escape(searchVal);
+            //document.location = '/search/sitesearch?q=' + escape(searchVal);
+            document.location = '/search/ashrae-search?q=' + escape(searchVal);
+        }
+    }
+</script>
+<script src="https://use.typekit.net/rof0zcx.js"></script>
+<script>try { Typekit.load({ async: true }); } catch (e) { }</script>
+
+
+    <main>
+        
+
+<div class="pageMeta">
+    <div class="pageMeta-inner">
+        <nav role="navigation" class="navSecondary">
+            <div id="ctl01_ctlBreadcrumbNav_Breadcrumb" class="Breadcrumb">
+
+</div>
+
+            <!-- TODO: Add nav for sibling links -->
+            <!--<ul class="navSecondary-links">
+                <li><a href="#">Interior Page</a></li>
+                <li><a href="#">Interior Page</a></li>
+                <li><a href="#">Interior Page</a></li>
+            </ul>-->
+        </nav>
+    </div>
+</div>
+
+        
+         
+
+        <div class="section">
+            <div class="contained ">
+                <div class="row">
+                    <div class="column lg-18">
+                        <div id="ctl01_PageZoneContainer1">
+	<div id="ctl01_PageZoneContainer1_PageZoneContainer1_3RNe1m75SIU">
+		<div id="ctl01_PageZoneContainer1_PageZoneContainer1_3RNe1m75SIU_ctl00">
+			<h3>Welcome to the new ashrae.org!</h3>
+<p><strong>We redesigned our website in February 2018 and locations for files and pages have changed. It seems that what you are looking for is among the items that have moved to a new location.&nbsp;</strong></p>
+<p>Below are some tips on how to find what you are looking for:</p>
+<ul>
+<li>Use the search at the top of the site and input the name of the page or file you seek. Use the filters on the side to narrow your search.</li>
+<li>Contact us at <a href="mailto:communications@ashrae.org">communications@ashrae.org</a>.&nbsp;&nbsp;</li>
+<li><a href="https://www.ashrae.org/about/contact-us/contact-us" title="Contact Us" target rel>View a list of staff </a>that can help you.</li>
+<li>If you have landed on this page after searching for a <img style="font-size: 1em;" src="http://ashrae-redesign2017.cloud.prod.iapps.com/Image Library/Global Content/Icons/pdf_icon.png" alt="pdf_icon.png"><span style="font-size: 1em;">&nbsp;PDF,&nbsp; </span><img style="font-size: 1em;" src="http://ashrae-redesign2017.cloud.prod.iapps.com/Image Library/Global Content/Icons/ppt.png" alt="ppt.png"><span style="font-size: 1em;">&nbsp; PPT,&nbsp;</span><img style="font-size: 1em;" src="http://ashrae-redesign2017.cloud.prod.iapps.com/Image Library/Global Content/Icons/word_icon.png" alt="word_icon.png"><span style="font-size: 1em;"> Word document, or </span><img style="font-size: 1em;" src="http://ashrae-redesign2017.cloud.prod.iapps.com/Image Library/Global Content/Icons/page-excel-icon.gif" alt="page-excel-icon.gif"><span style="font-size: 1em;">Excel file in Google, Bing, or another search engine, please enter the filename as shown in the address bar into the search bar on this site to find its new location.&nbsp;</span></li>
+</ul>
+<p>If you are new to the site, we invite you to watch <a href="https://www.ashrae.org/about/news/announcing-the-new-ashrae-org" title="Announcing the New ashrae.org" target rel>our quick overview</a> that introduces where items are located since the site was redesigned in February 2018.&nbsp;&nbsp;</p>
+		</div>
+	</div>
+</div>  
+                    <!-- /.row -->
+                    </div>
+                    <!-- /.column -->
+                    <div class="column columnAds lg-6">
+                          
+                          
+                    </div>
+                    <!-- /.column -->
+                </div>
+                <!--/.row-->
+            </div>
+        </div>
+        
+                    
+    </main>
+
+    
+
+<footer class="footerMain">
+
+    <div class="footermain-social">
+      <div class="column">
+          <nav class="footerMain-topNav footerMain-topNav--socialNav"><ul>
+    <li><a href="https://www.facebook.com/ASHRAEupdates" class="footerMainSocialLink footerMainSocialLink-- icon-facebook-logo h-color-social-fb icon--empty"> </a></li>
+    <li><a href="https://twitter.com/ashraenews" class="footerMainSocialLink footerMainSocialLink-- icon-twitter-logo icon--empty"> </a></li>
+    <li><a href="https://www.youtube.com/user/ASHRAEvideo" class="footerMainSocialLink footerMainSocialLink-- icon-youtube-logo icon--empty"> </a></li>
+    <li><a href="https://www.linkedin.com/company/ashrae" class="footerMainSocialLink footerMainSocialLink-- icon-linkedin-logo icon--empty"> </a></li>
+  </ul></nav>
+      </div>
+      <!--/.column--> 
+  </div>
+      
+      <div class="section smallModule-wrapper">
+           <div id="ctl01_Footer_GrayAreaContent">
+
+</div>
+ 
+       </div>
+       <div class="footermain-top">
+     
+        <div class="footermain-topInner">
+            <div class="row">
+                
+                <div class="column med-6">
+  <h4 class="footerMain-heading">I Want To View</h4>
+  <nav class="footerMain-topNav">
+    <ul>
+      <li>
+        <a href="/i-want-to-view/regions-chapters">Regions / Chapters</a>
+      </li>
+      <li>
+        <a href="/i-want-to-view/committees">Committees</a>
+      </li>
+      <li>
+        <a href="/i-want-to-view/volunteer-information">Volunteer Information</a>
+      </li>
+      <li>
+        <a href="https://www.techstreet.com/ashrae/pages/home?ashrae_auth_token=">Bookstore</a>
+      </li>
+      <li>
+        <a href="/i-want-to-view/standards">Standards</a>
+      </li>
+      <li>
+        <a href="/i-want-to-view/ashrae-journal">ASHRAE Journal</a>
+      </li>
+      <li>
+        <a href="/i-want-to-view/young-engineers">Young Engineers</a>
+      </li>
+      <li>
+        <a href="/i-want-to-view/student-opportunities">Student Opportunities</a>
+      </li>
+      <li>
+        <a href="/i-want-to-view/ways-to-donate-to-ashrae">Ways to Donate to ASHRAE</a>
+      </li>
+      <li>
+        <a href="/i-want-to-view/marketing-central">Marketing Central</a>
+      </li>
+      <li>
+        <a href="/i-want-to-view/ashrae-365-app">ASHRAE 365 App</a>
+      </li>
+    </ul>
+  </nav>
+</div>
+<div class="column med-6">
+  <h4 class="footerMain-heading">Government Affairs</h4>
+  <nav class="footerMain-topNav">
+    <ul>
+      <li>
+        <a href="/government-affairs/advocacy-alliances">Advocacy Alliances</a>
+      </li>
+      <li>
+        <a href="/government-affairs/advocacy-faqs">Advocacy FAQs</a>
+      </li>
+      <li>
+        <a href="/government-affairs/advocacy-toolkit">Advocacy Toolkit</a>
+      </li>
+      <li>
+        <a href="/government-affairs/government-affairs-office">Government Affairs Office</a>
+      </li>
+      <li>
+        <a href="/government-affairs/government affairs updates">Government Affairs Updates</a>
+      </li>
+      <li>
+        <a href="/government-affairs/grassroots-advocacy">Grassroots Advocacy</a>
+      </li>
+      <li>
+        <a href="/government-affairs/public-policy-resources">Public Policy Resources</a>
+      </li>
+    </ul>
+  </nav>
+</div>
+<div class="column med-6">
+  <h4 class="footerMain-heading">ASHRAE Membership</h4>
+  <nav class="footerMain-topNav">
+    <ul>
+      <li>
+        <a href="/ashrae-membership/member-benefits">Member Benefits</a>
+      </li>
+      <li>
+        <a href="/ashrae-membership/join">Join</a>
+      </li>
+      <li>
+        <a href="/ashrae-membership/renew">Renew</a>
+      </li>
+      <li>
+        <a href="/ashrae-membership/manage">Manage</a>
+      </li>
+    </ul>
+  </nav>
+</div>
+      
+                <div id="ctl01_Footer_pnFooterAd" class="column med-6">
+	            
+                    <script>
+                        OAS_AD('Feature1');
+		            </script>
+                
+</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footermain-bottom">
+      <div class="footermain-bottomInner">
+        
+          <span class="footerMain-bottomInfo">
+           
+            Copyright ASHRAE
+               
+            <address itemprop="address" itemscope itemtype="http://schema.org/PostalAddress">
+                <span itemprop="streetAddress">1791 Tullie Circle Northeast</span>,
+                <span itemprop="addressLocality">Atlanta</span>, 
+                <span itemprop="addressRegion">Georgia</span> 
+                <span itemprop="postalCode">30329</span>
+                <span itemprop="addressCountry">US</span>
+            </address>  
+            
+          </span>
+        <nav class="footerMain-bottomNav">
+            <ul class="CLHierarchicalNav"><li class="first"><a href="/contact-us">Contact Us</a></li><li><a href="/permissions">Permissions</a></li><li><a href="/terms-of-use">Terms of Use</a></li><li><a href="/privacy-policy">Privacy Policy</a></li><li><a href="/careers">Careers</a></li><li><a href="/advertising">Advertising</a></li><li class="last"><a href="/site-map">Site Map</a></li></ul>
+        </nav>
+      </div>
+    </div>
+</footer>
+
+<div class="drawer">
+    <div class="drawer-close">Close</div>
+    <div class="drawer-content">
+
+    </div>
+</div>
+
+<div class="globals-mobile drawerItem" data-id="globals-mobile">
+    <nav class="navMain-mobile">
+        <ul>
+        </ul>
+    </nav>
+</div>
+
+<div class="filters-mobile drawerItem" data-id="filters-mobile">
+</div>
+
+<script>
+    jQuery.redirect = function (obj, url, params) {
+        url = url || window.location.href || '';
+        url = url.match(/\?/) ? url : url + '?';
+        for (var key in params) {
+            var re = RegExp(';?' + key + '=?[^&;]*', 'g'); //RegExp('[;&]' + key + '=?[^&;]*', 'g')
+            url = url.replace(re, '');
+            url += '&' + key + '=' + params[key];
+        }
+        url = url.replace(/[;&]$/, '');
+        url = url.replace(/\?[;&]/, '?');
+        url = url.replace(/[&]{2}/g, '&');
+        url = url.replace(/[;&]{2}/g, ';');
+        obj.href = url;
+    };
+
+    $(document).ready(function () {
+        var token = '';
+        if (token != '') {
+            $("a[href*='techstreet.com']").each(function () {
+                $.redirect(this, this.href, { ashrae_auth_token: token });
+            });
+        }
+    });
+</script>
+
+<script>
+    $(document).ready(function () {
+        var requestQuote = getParameterByName("requestQuote");
+
+        if (requestQuote == "true") {
+            var sku = getParameterByName("sku");
+            var name = getParameterByName("name");
+
+            $(".txtQuoteProdSku").val(sku);
+            $(".txtQuoteProdName").val(name);
+        }
+    });
+
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)", "i"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+</script>
+
+<script>
+    $('.galleryMainContainer .galleryMain').slick({
+        slidesToShow: 1,
+        slidesToScroll: 1,
+        arrows: false,
+        fade: true,
+        asNavFor: '.galleryNav'
+        //adaptiveHeight: true
+    });
+    $('.galleryMainContainer .galleryNav').slick({
+        slidesToShow: 5,
+        slidesToScroll: 1,
+        asNavFor: '.galleryMain',
+        dots: false,
+        //centerMode: true,
+        //centerPadding: '0',
+        focusOnSelect: true,
+        vertical: true,
+        responsive: [
+    {
+        breakpoint: 1024,
+        settings: {
+            slidesToShow: 5,
+            slidesToScroll: 5,
+            //vertical: false,
+        }
+    },
+    {
+        breakpoint: 641,
+        settings: {
+            slidesToShow: 5,
+            slidesToScroll: 5,
+            vertical: false,
+        }
+    },
+    {
+        breakpoint: 450,
+        settings: {
+            slidesToShow: 3,
+            slidesToScroll: 3,
+            vertical: false,
+        }
+    },
+        ]
+    });
+</script> 
+
+<script>
+    $('.imageGallery .galleryMain').slick({
+        slidesToShow: 1,
+        slidesToScroll: 1,
+        arrows: false,
+        fade: true,
+        asNavFor: '.galleryNav',
+        adaptiveHeight: true
+    });
+    $('.imageGallery .galleryNav').slick({
+        slidesToShow: 4,
+        slidesToScroll: 1,
+        asNavFor: '.galleryMain',
+        dots: false,
+        centerMode: true,
+        focusOnSelect: true,
+        variableWidth: true,
+        responsive: [
+          {
+              breakpoint: 1022,
+              settings: {
+                  slidesToShow: 3,
+                  slidesToScroll: 3
+              }
+          },
+          {
+              breakpoint: 500,
+              settings: {
+                  slidesToShow: 2,
+                  slidesToScroll: 2
+              }
+          }
+        ]
+    });
+</script> 
+
+<script>
+    $('.lightbox').each(function () {
+        var image = $(this).children('img').attr('src');
+        var text = $(this).find('.galleryMain-caption').text();
+        $(this).magnificPopup({
+            mainClass: 'mfp-fade',
+            items:
+            [{
+                src: image,
+                title: text
+            }],
+            gallery: { enabled: true },
+            type: 'image'
+        });
+    });
+</script>
+
+</div>
+
+        
+        
+        
+        
+        <script type="text/javascript" src="/jsfile/Basepage.js"></script>
+    
+
+
+    
+    <script type="text/javascript">
+        //<![CDATA[
+        var iload100100 = new Image(1, 1); _ugif100100EventPath = 'https://www.ashrae.org/iAppsTracking.axd'; iload100100.src = _ugif100100EventPath + '?EventCode=100100&ObjectId=4be7a59a-1fd9-436e-ac15-928bb0c949ab&ObjectTypeId=8&SiteId=8039ce09-e7da-47e1-bcec-df96b5e411f4&ObjectUrl=error/404-page-not-found&EventSubCode=0'; iload100100.onload = function () { _uEvent100100(); };
+
+        (function () {
+            var iat = document.createElement('script');
+            iat.type = 'text/javascript'; iat.async = true;
+            iat.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'www.ashrae.org/jsfile/Tracking.js'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(iat, s);
+        })(); window.postURL = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'www.ashrae.org/api/tracking/';
+        //]]>
+</script>
+
+    
+</body>
+</html>

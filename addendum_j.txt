@@ -1,0 +1,426 @@
+© ASHRAE. Per international copyright law, additional reproduction, distribution, or transmission in either
+print or digital form is not permitted without ASHRAE's prior written permission.
+
+ANSI/ASHRAE Addendum j to
+ANSI/ASHRAE Standard 62.1-2022
+
+Ventilation and
+Acceptable Indoor
+Air Quality
+Approved by the ASHRAE Standards Committee on March 27, 2024, and by the American National Standards Institute on
+April 22, 2024.
+This addendum was approved by a Standing Standard Project Committee (SSPC) for which the Standards Committee has
+established a documented program for regular publication of addenda or revisions, including procedures for timely, documented, consensus action on requests for change to any part of the standard. Instructions for how to submit a change can
+be found on the ASHRAE® website (www.ashrae.org/continuous-maintenance).
+The latest edition of an ASHRAE Standard may be purchased on the ASHRAE website (www.ashrae.org) or from
+ASHRAE Customer Service, 180 Technology Parkway, Peachtree Corners, GA 30092. E-mail: orders@ashrae.org. Fax:
+678-539-2129. Telephone: 404-636-8400 (worldwide), or toll free 1-800-527-4723 (for orders in US and Canada). For
+reprint permission, go to www.ashrae.org/permissions.
+© 2024 ASHRAE
+
+ISSN 1041-2336
+
+© ASHRAE. Per international copyright law, additional reproduction, distribution, or transmission in either
+print or digital form is not permitted without ASHRAE's prior written permission.
+
+ASHRAE Standing Standard Project Committee 62.1
+Cognizant TC: 4.3, Ventilation Requirements and Infiltration
+SPLS Liaison: Lawrence C. Markel
+
+Brendon J. Burley*, Chair
+Wayne R. Thomann*, Co-Vice-Chair
+Marwa Zaatari, Co-Vice-Chair
+Anthony M. Abate
+Nick H. Agopian
+Hugo Aguilar
+Wane A. Baker
+Elizabeth C. Balke*
+Scott D. Barr*
+Chakradhar Bonam
+Tina M. Brueckner*
+Anthony G. Buschur
+LaToya Carraway
+Abdel K. Darwich*
+
+Mark Davidson
+Darryl W. DeAngelis
+James E. Dennison*
+Taylor Duran*
+E. Curtis Eichelberger, Jr.*
+Henry W. Ernst, Jr.*
+Richard B. Fox
+Fred Grable*
+Brian J. Hafendorfer*
+Roger L. Hedrick
+Benjamin L. Heyser
+Elliott Horner*
+Eli P. Howard, III
+Zalmie Hussein
+
+Ilona Johnson
+Meghan K. McNulty*
+Christopher O. Muller*
+Kashif Nawaz
+Lisa C. Ng
+Brad North
+Faith Patrick
+Andrew K. Persily
+Sara Persily
+Joseph J. Pessa
+Heather Platt Gulledge
+Gary H. Pomerantz
+Stephen Ray
+Daniel J. Rice
+
+Kevin A. Scarlett
+Benjamin C. Seeley
+Steven C. Sill
+Michael S. Sherber*
+Jeffrey K. Smith*
+Drayton P. Stott
+Eric Sturm
+Richard Taft*
+Dean T. Tompkins
+Donald Weekes, Jr.*
+Jeffrey G. Whitelaw
+Scott D. Williams
+Buzz Wright
+
+* Denotes members of voting status when the document was approved for publication
+ASHRAE STANDARDS COMMITTEE 2023–2024
+Douglas D. Fick, Chair
+Kelley P. Cramm
+Abdel K. Darwich
+Drake H. Erbe
+Patricia Graef
+Jaap Hogeling
+Jennifer A. Isenbeck
+Phillip A. Johnson
+
+Gerald J. Kettler
+Jay A. Kohler
+Paul A. Lindahl, Jr.
+James D. Lutz
+Julie Majurin
+Lawrence C. Markel
+Margaret M. Mathison
+Kenneth A. Monroe
+
+Daniel H. Nall
+Philip J. Naughton
+Kathleen Owen
+Gwelen Paliaga
+Karl L. Peterman
+Justin M. Prosser
+David Robin
+Christopher J. Seeton
+
+Paolo M. Tronville
+Douglas Tucker
+William F. Walter
+Susanna S. Hanson, BOD ExO
+Ashish Rakheja, CO
+
+Ryan Shanley, Senior Manager of Standards
+SPECIAL NOTE
+This American National Standard (ANS) is a national voluntary consensus Standard developed under the auspices of ASHRAE. Consensus is defined
+by the American National Standards Institute (ANSI), of which ASHRAE is a member and which has approved this Standard as an ANS, as
+“substantial agreement reached by directly and materially affected interest categories. This signifies the concurrence of more than a simple majority,
+but not necessarily unanimity. Consensus requires that all views and objections be considered, and that an effort be made toward their resolution.”
+Compliance with this Standard is voluntary until and unless a legal jurisdiction makes compliance mandatory through legislation.
+ASHRAE obtains consensus through participation of its national and international members, associated societies, and public review.
+ASHRAE Standards are prepared by a Project Committee appointed specifically for the purpose of writing the Standard. The Project
+Committee Chair and Vice-Chair must be members of ASHRAE; while other committee members may or may not be ASHRAE members, all
+must be technically qualified in the subject area of the Standard. Every effort is made to balance the concerned interests on all Project Committees.
+The Senior Manager of Standards of ASHRAE should be contacted for
+a. interpretation of the contents of this Standard,
+b. participation in the next review of the Standard,
+c. offering constructive criticism for improving the Standard, or
+d. permission to reprint portions of the Standard.
+DISCLAIMER
+ASHRAE uses its best efforts to promulgate Standards and Guidelines for the benefit of the public in light of available information and accepted
+industry practices. However, ASHRAE does not guarantee, certify, or assure the safety or performance of any products, components, or systems
+tested, installed, or operated in accordance with ASHRAE’s Standards or Guidelines or that any tests conducted under its Standards or Guidelines
+will be nonhazardous or free from risk.
+ASHRAE INDUSTRIAL ADVERTISING POLICY ON STANDARDS
+ASHRAE Standards and Guidelines are established to assist industry and the public by offering a uniform method of testing for rating purposes, by
+suggesting safe practices in designing and installing equipment, by providing proper definitions of this equipment, and by providing other information
+that may serve to guide the industry. The creation of ASHRAE Standards and Guidelines is determined by the need for them, and conformance
+to them is completely voluntary.
+In referring to this Standard or Guideline and in marking of equipment and in advertising, no claim shall be made, either stated or implied,
+that the product has been approved by ASHRAE.
+ASHRAE is a registered trademark of the American Society of Heating, Refrigerating and Air-Conditioning Engineers, Inc.
+ANSI is a registered trademark of the American National Standards Institute.
+
+© ASHRAE. Per international copyright law, additional reproduction, distribution, or transmission in either
+print or digital form is not permitted without ASHRAE's prior written permission.
+
+(This foreword is not part of this standard. It is merely informative and does not contain requirements
+necessary for conformance to the standard. It has not been processed according to the ANSI requirements for a standard and may contain material that has not been subject to public review or a consensus process. Unresolved objectors on informative material are not offered the right to appeal at
+ASHRAE or ANSI.)
+FOREWORD
+The underlying principles of dilution are rooted in mass balance, and the rates in the standard are reported
+in standard CFM, as indicated by Section 6.2.1.1.3. The standard presently allows the designer to adjust for
+actual air density, but a survey of actual design practice indicates that this correction is rarely if ever
+applied to the ventilation rates. Therefore, the rates have been adjusted for actual air density, which is primarily driven by the elevation of the outdoor air intake. Adjustments for temperature and humidity play a
+much less significant role in density, so the designer is generally permitted to neglect these considerations,
+although it should be noted that areas of extreme temperature and humidity could consider these effects,
+which may reduce the elevation adjustments for regions with extremely cold temperatures or regions with
+extremely high humidity. The committee recognizes that this change will increase required ventilation rates
+in most areas.
+Informative Note: In this addendum, changes to the current standard are indicated in the text by underlining
+(for additions) and strikethrough (for deletions) unless the instructions specifically mention some other
+means of indicating the changes.
+Addendum j to Standard 62.1-2022
+Delete Section 6.2.1.1.3 as shown and renumber the remaining sections accordingly.
+6.2.1.1.3 Air Density. Volumetric airflow rates are based on dry-air density of 0.075 lbda/ft3 (1.2 kgda/
+3
+m ) at a barometric pressure of 1 atm (101.3 kPa) and an air temperature of 70°F (21°C). Rates shall be permitted to be adjusted for actual density.
+Add Section 6.2.1.3 and renumber the remaining sections accordingly.
+6.2.1.3 Air Density Correction Factor. The air density correction factor (Eρ) shall be determined in
+accordance with Table 6-5 or Normative Appendix D. Outdoor air intake elevation above sea level shall be
+measured to the center of the louver.
+Informative Note: Where multiple louvers or systems are present the designer may utilize the elevation of
+the highest louver in lieu of the elevation at each louver.
+Table 6-5 Air Density Correction Factor
+
+Outdoor Air Intake Elevation
+above Sea Level, ft
+
+Outdoor Air Intake Elevation
+above Sea Level, m
+
+Eρ
+
+≤515
+
+≤158
+
+1.00
+
+515 to 1855
+
+158 to 566
+
+1.05
+
+1855 to 3120
+
+566 to 951
+
+1.10
+
+3120 to 4320
+
+951 to 1317
+
+1.15
+
+4320 to 5460
+
+1317 to 1664
+
+1.20
+
+5460 to 6540
+
+1664 to 1994
+
+1.25
+
+6540 to 7575
+
+1994 to 2309
+
+1.30
+
+7575 to 8560
+
+2309 to 2609
+
+1.35
+
+8560 to 9505
+
+2609 to 2897
+
+1.40
+
+9505 to 10410
+
+2897 to 3173
+
+1.45
+
+10410 to 11275
+
+3173 to 3437
+
+1.50
+
+>11275
+
+>3437
+
+Use Normative
+Appendix D
+
+ANSI/ASHRAE Addendum j to ANSI/ASHRAE Standard 62.1-2022
+
+1
+
+© ASHRAE. Per international copyright law, additional reproduction, distribution, or transmission in either
+print or digital form is not permitted without ASHRAE's prior written permission.
+
+Modify existing Section 6.2.1.3 as shown.
+6.2.1.34 Zone Outdoor Airflow. The zone outdoor airflow (Voz) provided to the ventilation zone by the
+supply air distribution system shall be determined in accordance with Equation 6-2.
+Voz = Vbz/Ez × Eρ
+
+(6-2)
+
+Add new Normative Appendix D as shown and renumber appendices accordingly.
+(This is a normative appendix and is part of the standard.)
+NORMATIVE APPENDIX D
+AIR DENSITY CORRECTION FACTOR
+This appendix presents an alternative procedure for determining the air density correction factor (Eρ). This
+analytical method can be used instead of Table 6-5. The volumetric airflow rates in this standard are based
+on a dry-air density of 0.075 lb/ft3 (1.2 kg/m3) at a barometric pressure of 1 atm (101.3 kPa) and an air temperature of 70°F (21°C).
+D1. AIR DENSITY CORRECTION FACTOR
+The air density correction factor (Eρ) shall be calculated in accordance with Sections D1.1 through D1.5.
+D1.1 Design Condition. The air density correction factor (Eρ) shall be calculated at the design condition
+with the lowest coincident air density.
+D1.2 Elevation Adjustment. The elevation adjustment factor (CZ) shall be calculated in accordance with
+Equation D-1a (I-P) or D-1b (SI).
+C Z = 1   1 – Z  6.8754  10 – 6  5.2559
+
+(D-1a)
+
+C Z = 1   1 – Z  2.25577  10 – 5  5.2559
+
+(D-1b)
+
+where
+Z = outdoor air intake elevation above sea level, ft (m)
+D1.3 Temperature Adjustment. The temperature adjustment factor (CT) shall be calculated in accordance
+with Equation D-2a (I-P) or D-2b (SI).
+C T =  T + 459.67   529.67
+
+(D-2a)
+
+C T =  T + 273.15   294.15
+
+(D-2b)
+
+where
+T = outdoor air temperature at design condition, °F (°C)
+D1.3.1 The temperature adjustment factor (CT) may be taken as 1.0 where the outdoor air temperature at
+design conditions is less than 104°F (40°C).
+D1.4 Moisture Adjustment. The moisture adjustment factor shall be calculated in accordance with Equation D-3.
+C W =  1 + W    1 + 1.6078  W 
+
+(D-3)
+
+where
+W = humidity ratio at design conditions, lb moisture per lb dry air (kg moisture per kg dry air)
+D1.4.1 The moisture adjustment factor may be taken as 1.0 where the outdoor air humidity ratio at design
+conditions is less than 0.024 lbw/lbda (0.024 kgw/kgda).
+D1.5 Air Density Correction. The air density correction factor (Eρ) shall be calculated in accordance with
+Equation D-4.
+E = CZ  CT  CW
+
+(D-4)
+
+D2. ALTERNATIVE CALCULATION METHODS
+The use of other calculation methods, including computer simulation, to determine the air density correction
+factor shall be permitted.
+D2.1 Design Condition. The air density shall be calculated at the design condition with the lowest coincident air density.
+2
+
+ANSI/ASHRAE Addendum j to ANSI/ASHRAE Standard 62.1-2022
+
+© ASHRAE. Per international copyright law, additional reproduction, distribution, or transmission in either
+print or digital form is not permitted without ASHRAE's prior written permission.
+
+D2.2 Calculation Parameters. The calculation method shall include elevation above sea level, design air
+temperature, and design moisture content as factors contributing to the air density.
+D2.2.1 Pressurized Outdoor Air Intakes. Where outdoor air is supplied to the ventilation system under
+pressure and the pressure is maintained at all times that the ventilation system is operating, the air density
+calculation may include the static pressure at the ventilation system outdoor air intake.
+D2.3 Air Density Correction. The air density correction factor (Eρ) shall be calculated in accordance with
+Equation D-5a (I-P) or D-5b (SI).
+E  = 0.075  
+
+(D-5a)
+
+E  = 1.2  
+
+(D-5b)
+
+where
+ρ = minimum outdoor air density at design conditions, lbda/ft3 (kgda/m3)
+D2.3.1 The air density correction factor (Eρ) may be taken as 1.0 where the air density at design conditions is greater than 0.072 lbda/ft3 (1.1 kgda/m3).
+
+ANSI/ASHRAE Addendum j to ANSI/ASHRAE Standard 62.1-2022
+
+3
+
+© ASHRAE. Per international copyright law, additional reproduction, distribution, or transmission in either
+print or digital form is not permitted without ASHRAE's prior written permission.
+
+POLICY STATEMENT DEFINING ASHRAE’S CONCERN
+FOR THE ENVIRONMENTAL IMPACT OF ITS ACTIVITIES
+ASHRAE is concerned with the impact of its members’ activities on both the indoor and outdoor environment.
+ASHRAE’s members will strive to minimize any possible deleterious effect on the indoor and outdoor environment of
+the systems and components in their responsibility while maximizing the beneficial effects these systems provide,
+consistent with accepted Standards and the practical state of the art.
+ASHRAE’s short-range goal is to ensure that the systems and components within its scope do not impact the
+indoor and outdoor environment to a greater extent than specified by the Standards and Guidelines as established by
+itself and other responsible bodies.
+As an ongoing goal, ASHRAE will, through its Standards Committee and extensive Technical Committee structure,
+continue to generate up-to-date Standards and Guidelines where appropriate and adopt, recommend, and promote
+those new and revised Standards developed by other responsible organizations.
+Through its Handbook, appropriate chapters will contain up-to-date Standards and design considerations as the
+material is systematically revised.
+ASHRAE will take the lead with respect to dissemination of environmental information of its primary interest and
+will seek out and disseminate information from other responsible organizations that is pertinent, as guides to updating
+Standards and Guidelines.
+The effects of the design and selection of equipment and systems will be considered within the scope of the
+system’s intended use and expected misuse. The disposal of hazardous materials, if any, will also be considered.
+ASHRAE’s primary concern for environmental impact will be at the site where equipment within ASHRAE’s scope
+operates. However, energy source selection and the possible environmental impact due to the energy source and
+energy transportation will be considered where possible. Recommendations concerning energy source selection
+should be made by its members.
+
+© ASHRAE. Per international copyright law, additional reproduction, distribution, or transmission in either
+print or digital form is not permitted without ASHRAE's prior written permission.
+
+ASHRAE · 180 Technology Parkway · Peachtree Corners, GA 30092 · www.ashrae.org
+
+About ASHRAE
+Founded in 1894, ASHRAE is a global professional society committed to serve humanity by advancing the arts and
+sciences of heating, ventilation, air conditioning, refrigeration, and their allied fields.
+As an industry leader in research, standards writing, publishing, certification, and continuing education, ASHRAE
+and its members are dedicated to promoting a healthy and sustainable built environment for all, through strategic
+partnerships with organizations in the HVAC&R community and across related industries.
+To stay current with this and other ASHRAE Standards and Guidelines, visit www.ashrae.org/standards, and
+connect on LinkedIn, Facebook, Twitter, and YouTube.
+Visit the ASHRAE Bookstore
+ASHRAE offers its Standards and Guidelines in print, as immediately downloadable PDFs, and via ASHRAE Digital
+Collections, which provides online access with automatic updates as well as historical versions of publications.
+Selected Standards and Guidelines are also offered in redline versions that indicate the changes made between the
+active Standard or Guideline and its previous version. For more information, visit the Standards and Guidelines
+section of the ASHRAE Bookstore at www.ashrae.org/bookstore.
+
+IMPORTANT NOTICES ABOUT THIS STANDARD
+To ensure that you have all of the approved addenda, errata, and interpretations for this
+Standard, visit www.ashrae.org/standards to download them free of charge.
+Addenda, errata, and interpretations for ASHRAE Standards and Guidelines are no longer
+distributed with copies of the Standards and Guidelines. ASHRAE provides these addenda,
+errata, and interpretations only in electronic form to promote more sustainable use of
+resources.
+
+4/24
+Includes errata dated May 14, 2024.
+
+
