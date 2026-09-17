@@ -1,4 +1,7 @@
-import { SourceType } from '../types';
+import fs from 'fs';
+const file = 'src/data/ventilation/ashrae621/2022/data.ts';
+
+const content = `import { SourceType } from '../types';
 import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType } from '../types';
 
 export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
@@ -193,3 +196,6 @@ export const ASHRAE_621_2022_AIR_QUALITY_STANDARDS = {
     { class: 4, recirculationAllowed: false, description: "Highly objectionable/harmful" }
   ]
 };
+`;
+
+fs.writeFileSync(file, content);

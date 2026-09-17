@@ -97,7 +97,7 @@ export interface Ashrae621AirQualityStandards {
 }
 
 export interface DataProvenance {
-  value: number
+  value: number | string | boolean
   unit?: string;
   standard: string;
   edition: string;

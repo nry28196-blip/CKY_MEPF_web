@@ -36,10 +36,10 @@ export class DataProvenanceValidationService {
     }
 
     if (exhaustType.provenance) {
-      if (!this.validateProvenance(exhaustType.provenance.rate, expectedStandard, expectedEdition)) reasons.push('Unverified Exhaust Rate');
-      if (exhaustType.provenance.unitType && !this.validateProvenance(exhaustType.provenance.unitType, expectedStandard, expectedEdition)) reasons.push('Unverified Unit Type');
-      if (exhaustType.provenance.exhaustClass && !this.validateProvenance(exhaustType.provenance.exhaustClass, expectedStandard, expectedEdition)) reasons.push('Unverified Exhaust Class');
-      if (exhaustType.provenance.operatingCondition && !this.validateProvenance(exhaustType.provenance.operatingCondition, expectedStandard, expectedEdition)) reasons.push('Unverified Operating Condition');
+      if (!this.validateProvenance(exhaustType.provenance.rate, expectedStandard, expectedEdition, exhaustType.rate)) reasons.push('Unverified Exhaust Rate');
+      if (exhaustType.provenance.unitType && !this.validateProvenance(exhaustType.provenance.unitType, expectedStandard, expectedEdition, exhaustType.unitType)) reasons.push('Unverified Unit Type');
+      if (exhaustType.provenance.exhaustClass && !this.validateProvenance(exhaustType.provenance.exhaustClass, expectedStandard, expectedEdition, exhaustType.exhaustClass)) reasons.push('Unverified Exhaust Class');
+      if (exhaustType.provenance.operatingCondition && !this.validateProvenance(exhaustType.provenance.operatingCondition, expectedStandard, expectedEdition, exhaustType.operatingCondition)) reasons.push('Unverified Operating Condition');
       
       if (!this.checkParentConsistency(exhaustType, exhaustType.provenance.rate)) reasons.push('Contradictory Parent Provenance');
     } else {
@@ -78,7 +78,8 @@ export class DataProvenanceValidationService {
   static validateProvenance(
     provenance: DataProvenance | undefined,
     expectedStandard: string,
-    expectedEdition: string
+    expectedEdition: string,
+    expectedValue?: number | string | boolean
   ): boolean {
     if (!provenance) return false;
     
@@ -98,6 +99,11 @@ export class DataProvenanceValidationService {
 
     // 8. verificationDate exists and is a valid date
     if (!this.isDateValid(provenance.verificationDate)) return false;
+    
+    // 2. ACTUAL VALUE-TO-PROVENANCE VALIDATION
+    if (expectedValue !== undefined) {
+      if (provenance.value !== expectedValue) return false;
+    }
     
     return true;
   }
@@ -180,18 +186,20 @@ export class DataProvenanceValidationService {
     }
 
     if (spaceType.provenance) {
-      if (!this.validateProvenance(spaceType.provenance.rp, expectedStandard, expectedEdition)) reasons.push('Unverified Rp');
-      if (!this.validateProvenance(spaceType.provenance.ra, expectedStandard, expectedEdition)) reasons.push('Unverified Ra');
-      if (useDefaultOccupancy && !this.validateProvenance(spaceType.provenance.defaultOccupancy, expectedStandard, expectedEdition)) {
+      if (!this.validateProvenance(spaceType.provenance.rp, expectedStandard, expectedEdition, spaceType.rpMetric)) reasons.push('Unverified Rp');
+      if (!this.validateProvenance(spaceType.provenance.ra, expectedStandard, expectedEdition, spaceType.raMetric)) reasons.push('Unverified Ra');
+      // 3. DEFAULT OCCUPANCY MUST BE VALIDATED WHEN PRESENT
+      const shouldValidateOccupancy = useDefaultOccupancy;
+      if (shouldValidateOccupancy && !this.validateProvenance(spaceType.provenance.defaultOccupancy, expectedStandard, expectedEdition, spaceType.defaultOccupancyMetric)) {
         reasons.push('Unverified Occupancy Density');
       }
-      if (spaceType.provenance.reference && !this.validateProvenance(spaceType.provenance.reference, expectedStandard, expectedEdition)) {
+      if (spaceType.provenance.reference && !this.validateProvenance(spaceType.provenance.reference, expectedStandard, expectedEdition, spaceType.reference)) {
         reasons.push('Missing Reference');
       }
       
       if (!this.checkParentConsistency(spaceType, spaceType.provenance.rp) ||
           !this.checkParentConsistency(spaceType, spaceType.provenance.ra) ||
-          (useDefaultOccupancy && !this.checkParentConsistency(spaceType, spaceType.provenance.defaultOccupancy)) ||
+          (useDefaultOccupancy && (shouldValidateOccupancy && !this.checkParentConsistency(spaceType, spaceType.provenance.defaultOccupancy))) ||
           !this.checkParentConsistency(spaceType, spaceType.provenance.reference)) {
           reasons.push('Contradictory Parent Provenance');
       }
@@ -239,9 +247,9 @@ export class DataProvenanceValidationService {
     }
 
     if (ezConfig.provenance) {
-      if (!this.validateProvenance(ezConfig.provenance.ez, expectedStandard, expectedEdition)) reasons.push('Unverified Ez');
-      if (!this.validateProvenance(ezConfig.provenance.applicability, expectedStandard, expectedEdition)) reasons.push('Unverified Ez Applicability');
-      if (ezConfig.provenance.reference && !this.validateProvenance(ezConfig.provenance.reference, expectedStandard, expectedEdition)) {
+      if (!this.validateProvenance(ezConfig.provenance.ez, expectedStandard, expectedEdition, ezConfig.ez)) reasons.push('Unverified Ez');
+      if (!this.validateProvenance(ezConfig.provenance.applicability, expectedStandard, expectedEdition, ezConfig.applicableCondition)) reasons.push('Unverified Ez Applicability');
+      if (ezConfig.provenance.reference && !this.validateProvenance(ezConfig.provenance.reference, expectedStandard, expectedEdition, ezConfig.reference)) {
         reasons.push('Missing Ez Reference');
       }
       
