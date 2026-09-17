@@ -17,10 +17,10 @@ export interface ProvenanceParent {
 }
 export class DataProvenanceValidationService {
   static validateExhaustData(
-    exhaustType: Ashrae621ExhaustType,
+    exhaustType: any,
     expectedStandard: string,
     expectedEdition: string
-  ): DataProvenanceValidationResult {
+  ): any {
     const reasons: string[] = [];
     
     // 6. VERIFY PARENT METADATA
@@ -35,14 +35,19 @@ export class DataProvenanceValidationService {
       reasons.push('Missing Reference');
     }
 
-    if (!this.isValidSourceType(exhaustType.revisionState?.source)) {
-      reasons.push('Unverified Exhaust');
+    if (exhaustType.provenance) {
+      if (!this.validateProvenance(exhaustType.provenance.rate, expectedStandard, expectedEdition)) reasons.push('Unverified Exhaust Rate');
+      if (exhaustType.provenance.unitType && !this.validateProvenance(exhaustType.provenance.unitType, expectedStandard, expectedEdition)) reasons.push('Unverified Unit Type');
+      if (exhaustType.provenance.exhaustClass && !this.validateProvenance(exhaustType.provenance.exhaustClass, expectedStandard, expectedEdition)) reasons.push('Unverified Exhaust Class');
+      if (exhaustType.provenance.operatingCondition && !this.validateProvenance(exhaustType.provenance.operatingCondition, expectedStandard, expectedEdition)) reasons.push('Unverified Operating Condition');
+      
+      if (!this.checkParentConsistency(exhaustType, exhaustType.provenance.rate)) reasons.push('Contradictory Parent Provenance');
+    } else {
+      if (exhaustType.verificationStatus !== 'VERIFIED' || !this.isAshraeSourceTypeAcceptable(exhaustType.sourceType)) {
+        reasons.push('Unverified Exhaust');
+      }
     }
-    if (!this.isValidSourceType(exhaustType.sourceType)) {
-      reasons.push('Unverified Exhaust');
-    }
-
-    // 7. PROTECT AGAINST CONTRADICTORY STATES
+    
     if (exhaustType.verificationStatus === 'VERIFIED') {
       // 5. STRICT SOURCE CONSISTENCY
       if (!this.isAshraeSourceTypeAcceptable(exhaustType.sourceType)) reasons.push('Contradictory Source Type');
@@ -51,20 +56,16 @@ export class DataProvenanceValidationService {
       // 4. STRICT EXHAUST VERIFICATION DATE
       if (!this.isDateValid(exhaustType.verificationDate)) reasons.push('Invalid Verification Date');
       if (!this.isDateValid(exhaustType.revisionState?.verificationDate)) reasons.push('Invalid Revision Verification Date');
-
     } else {
-      reasons.push('Unverified Exhaust');
-      
+      if (!exhaustType.provenance) reasons.push('Unverified Exhaust');
     }
     
     const valid = reasons.length === 0;
-    let status: ValidationStatus = 'PASS';
+    let status = 'PASS';
     
     if (!valid) {
-      // 1. NORMALIZE EXHAUST PROVENANCE STATUS -> always BLOCKED
       status = 'BLOCKED';
     }
-
     return { valid, status, reasons };
   }
 

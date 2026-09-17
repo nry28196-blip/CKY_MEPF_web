@@ -114,7 +114,7 @@ export class DensityCorrectionService {
       pv = rhFraction * psat;
     }
     const pd = pressureAtm - pv;
-    const density = (pd / (this.R_DRY_AIR_KJ * tKelvin)) + (pv / (this.R_VAPOR_KJ * tKelvin));
+    const dryAirDensity = pd / (this.R_DRY_AIR_KJ * tKelvin); // Dry-air density per ASHRAE 62.1 Addendum j Appendix D (D-5b)
     if (pd > 0) {
       humidityRatioKgKg = 0.621945 * (pv / pd);
     }
@@ -145,24 +145,24 @@ export class DensityCorrectionService {
           unit: '',
           reference: 'ASHRAE 62.1 Addendum j Table 6-5 Note'
         });
-        eRho = this.STANDARD_DENSITY / density;
+        eRho = this.STANDARD_DENSITY / dryAirDensity;
         auditTrail.push({
           symbol: 'Eρ',
           name: 'Air Density Factor (Analytical)',
-          formula: '1.2 / ρ_actual',
-          inputs: { 'Z (m)': elevation, 'T (°C)': temperature, 'ρ_actual (kg/m³)': density, 'ρ_standard': this.STANDARD_DENSITY },
+          formula: '1.2 / ρ_da',
+          inputs: { 'Z (m)': elevation, 'T (°C)': temperature, 'ρ_da (kg_da/m³)': dryAirDensity, 'ρ_standard': this.STANDARD_DENSITY },
           result: eRho,
           unit: '',
           reference: 'ASHRAE 62.1 Addendum j Normative Appendix D (Eq D-5b)'
         });
       }
     } else {
-      eRho = this.STANDARD_DENSITY / density;
+      eRho = this.STANDARD_DENSITY / dryAirDensity;
       auditTrail.push({
         symbol: 'Eρ',
         name: 'Air Density Factor (Analytical)',
-        formula: '1.2 / ρ_actual',
-        inputs: { 'Z (m)': elevation, 'T (°C)': temperature, 'W (kg/kg)': humidityRatioKgKg, 'ρ_actual (kg/m³)': density, 'ρ_standard': this.STANDARD_DENSITY },
+        formula: '1.2 / ρ_da',
+        inputs: { 'Z (m)': elevation, 'T (°C)': temperature, 'W (kg/kg)': humidityRatioKgKg, 'ρ_da (kg_da/m³)': dryAirDensity, 'ρ_standard': this.STANDARD_DENSITY },
         result: eRho,
         unit: '',
         reference: 'ASHRAE 62.1 Addendum j Normative Appendix D (Eq D-5b)'
@@ -174,7 +174,7 @@ export class DensityCorrectionService {
       temperature,
       relativeHumidity: rh,
       pressureAtm,
-      density,
+      density: dryAirDensity,
       humidityRatioKgKg,
       eRho,
       status,

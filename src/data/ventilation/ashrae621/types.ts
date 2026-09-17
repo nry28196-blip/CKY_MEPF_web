@@ -76,6 +76,7 @@ export interface Ashrae621ExhaustType {
   sourceType: SourceType;
   verificationStatus: VerificationStatus;
   verificationDate?: string;
+  provenance?: ExhaustProvenance;
 }
 
 export interface Ashrae621FiltrationRequirements {
@@ -112,6 +113,14 @@ export interface SpaceTypeProvenance {
   ra?: DataProvenance;
   defaultOccupancy?: DataProvenance;
   airClass?: DataProvenance;
+  reference?: DataProvenance;
+}
+
+export interface ExhaustProvenance {
+  rate?: DataProvenance;
+  unitType?: DataProvenance;
+  exhaustClass?: DataProvenance;
+  operatingCondition?: DataProvenance;
   reference?: DataProvenance;
 }
 
