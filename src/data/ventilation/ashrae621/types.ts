@@ -31,6 +31,7 @@ export interface Ashrae621SpaceType {
   rpMetric: number; // L/s-person
   raMetric: number; // L/s-m2
   defaultOccupancyMetric: number; // persons/100m2
+  airClass?: number; // Air Class per Table 6-1 (1, 2, 3, or 4)
   units: string;
   exhaustRequired: boolean;
   reference: string;

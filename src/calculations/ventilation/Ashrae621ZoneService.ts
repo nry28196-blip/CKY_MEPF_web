@@ -32,11 +32,15 @@ export interface ZoneVentilationInput {
   useDefaultOccupancy: boolean;
   ezConfig: Ashrae621Ez | null;
   eRho?: number;
+  epDensity?: number;
 }
 
 export interface ZoneVentilationResult {
   id?: string;
   reason?: string;
+  spaceTypeId?: string;
+  spaceTypeName?: string;
+  airClass?: number;
   standard: string;
   edition: string;
   revision: string;
@@ -49,6 +53,7 @@ export interface ZoneVentilationResult {
   vba: number | null; // L/s
   vbz: number | null; // L/s
   ez: number | null;
+  epDensity?: number | null;
   voz: number | null; // L/s
   occupancySource: 'design' | 'default' | null;
   occupancyDensityUsed: number | null;
@@ -129,9 +134,11 @@ export class Ashrae621ZoneService {
     const vba = ra * az;
     const vbz = vbp + vba;
     
-    // Addendum j correction
-    const eRho = input.eRho ?? 1.0;
-    const voz = (vbz / ez) * eRho;
+    // Addendum j air-density correction: Voz = (Vbz / Ez) * Ep
+    // Ep is the local air-density correction factor (historically also tracked as eRho in this codebase)
+    const epDensity = input.epDensity ?? input.eRho ?? 1.0;
+    const isDensitySpecified = input.epDensity !== undefined || input.eRho !== undefined;
+    const voz = (vbz / ez) * epDensity;
 
     auditTrail.push({
       symbol: 'Vbz',
@@ -148,12 +155,12 @@ export class Ashrae621ZoneService {
     auditTrail.push({
       symbol: 'Voz',
       name: 'Zone Outdoor Airflow',
-      formula: input.eRho !== undefined ? '(Vbz / Ez) × Eρ' : 'Vbz / Ez',
-      inputs: input.eRho !== undefined ? { 'Vbz': vbz, 'Ez': ez, 'Eρ': eRho } : { 'Vbz': vbz, 'Ez': ez },
+      formula: isDensitySpecified ? '(Vbz / Ez) × Ep (Eρ)' : 'Vbz / Ez',
+      inputs: isDensitySpecified ? { 'Vbz': vbz, 'Ez': ez, 'Ep (Eρ)': epDensity } : { 'Vbz': vbz, 'Ez': ez },
       result: voz,
       unit: 'L/s',
-      reference: input.eRho !== undefined ? 'ASHRAE 62.1-2022 Addendum j (Eq 6-2)' : input.ezConfig.reference,
-      revision: input.eRho !== undefined ? 'Addendum j' : (input.ezConfig.revisionState?.source || ''),
+      reference: isDensitySpecified ? 'ASHRAE 62.1-2022 Addendum j (Eq 6-2)' : input.ezConfig.reference,
+      revision: isDensitySpecified ? 'Addendum j' : (input.ezConfig.revisionState?.source || ''),
       status: AuditStatus.DERIVED
     });
 
@@ -161,7 +168,10 @@ export class Ashrae621ZoneService {
     const finalStatus = VentilationValidationService.aggregateStatus(statuses);
 
     return {
-      az, pz, rp, ra, vbp, vba, vbz, ez, voz,
+      spaceTypeId: input.spaceType.id,
+      spaceTypeName: input.spaceType.name,
+      airClass: input.spaceType.airClass,
+      az, pz, rp, ra, vbp, vba, vbz, ez, epDensity, voz,
       occupancySource,
       occupancyDensityUsed,
       populationBeforeDisplayRounding,
@@ -177,7 +187,10 @@ export class Ashrae621ZoneService {
   private static emptyResult(status: ValidationStatus, reason: string): ZoneVentilationResult {
     return {
       reason,
-      az: null, pz: null, rp: null, ra: null, vbp: null, vba: null, vbz: null, ez: null, voz: null,
+      spaceTypeId: undefined,
+      spaceTypeName: undefined,
+      airClass: undefined,
+      az: null, pz: null, rp: null, ra: null, vbp: null, vba: null, vbz: null, ez: null, epDensity: null, voz: null,
       occupancySource: null,
       occupancyDensityUsed: null,
       populationBeforeDisplayRounding: null,

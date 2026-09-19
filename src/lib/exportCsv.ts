@@ -266,6 +266,26 @@ export function exportVentilationToCsv(params: {
     });
   }
 
+  if (params.result?.vps !== undefined && params.result?.vps !== null) {
+    rows.push({
+      section: 'System Results',
+      parameter: 'System Primary Airflow (Vps)',
+      value: Number(params.result.vps).toFixed(2),
+      unit: params.isMetric ? 'L/s' : 'cfm',
+      notes: params.result.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition'
+    });
+  }
+
+  if (params.result?.xs !== undefined && params.result?.xs !== null) {
+    rows.push({
+      section: 'System Results',
+      parameter: 'System Outdoor Air Fraction (Xs)',
+      value: (Number(params.result.xs) * 100).toFixed(2),
+      unit: '%',
+      notes: 'Vou / Vps'
+    });
+  }
+
   if (params.result?.auditTrail) {
     params.result.auditTrail.forEach((item: any) => {
       rows.push({
@@ -314,6 +334,32 @@ export function exportVentilationToCsv(params: {
           value: zResult.voz === null ? 'BLOCKED' : Number(zResult.voz).toFixed(2),
           unit: params.isMetric ? 'L/s' : 'cfm',
           notes: ''
+        });
+      }
+      if (zone.vpzMin !== undefined && zone.vpzMin !== '' && zone.vpzMin !== null) {
+        rows.push({
+          section: `Zone ${index + 1}: ${zone.name || 'Unnamed'}`,
+          parameter: 'Designed Minimum Primary Airflow (Vpz-min-design)',
+          value: Number(zone.vpzMin).toFixed(2),
+          unit: params.isMetric ? 'L/s' : 'cfm',
+          notes: 'VAV minimum airflow setting'
+        });
+      }
+      const mzZoneRes = params.result?.simplifiedSystem?.zoneResults?.[index] || params.result?.alternativeSystem?.zoneResults?.[index];
+      if (mzZoneRes?.vpzMinRequired !== undefined && mzZoneRes?.vpzMinRequired !== null) {
+        rows.push({
+          section: `Zone ${index + 1}: ${zone.name || 'Unnamed'}`,
+          parameter: 'Required Minimum Primary Airflow (Vpz-min-required)',
+          value: Number(mzZoneRes.vpzMinRequired).toFixed(2),
+          unit: params.isMetric ? 'L/s' : 'cfm',
+          notes: 'ASHRAE 62.1-2022 minimum condition'
+        });
+        rows.push({
+          section: `Zone ${index + 1}: ${zone.name || 'Unnamed'}`,
+          parameter: 'VAV Minimum Compliance Status',
+          value: mzZoneRes.compliance || 'UNKNOWN',
+          unit: '-',
+          notes: mzZoneRes.message || ''
         });
       }
     });

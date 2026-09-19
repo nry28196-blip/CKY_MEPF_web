@@ -220,7 +220,7 @@ const makeVerified = (item: any) => {
       systemType: 'single_supply'
     });
 
-    expect(result.status).toBe("PASS");
+    expect(result.status).toBe("INCOMPLETE");
   });
 
   it('Test L - Missing density input', () => {

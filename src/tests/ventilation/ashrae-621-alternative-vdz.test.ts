@@ -27,7 +27,8 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
     const input = {
       zones: [createBaseZone('Z1', { voz: 40, vpzMinDesign: 80 })],
       ps: 10, edition: '2022' as const,
-      systemType: 'single_supply' as const
+      systemType: 'single_supply' as const,
+      vps: 100
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
     expect(result.status).toBe('PASS');
@@ -41,7 +42,8 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
     const input = {
       zones: [createBaseZone('Z1', { voz: 40, vpzMinDesign: 40, vdzMinDesign: 80, er: 0.5 })],
       ps: 10, edition: '2022' as const,
-      systemType: 'secondary_recirculation' as const
+      systemType: 'secondary_recirculation' as const,
+      vps: 100
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
     expect(result.status).toBe('PASS');
@@ -95,7 +97,8 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
     const input = {
       zones: [createBaseZone('Z1', { voz: 40, vpzMinDesign: 50, vdzMinDesign: 100, er: 0.5 })],
       ps: 10, edition: '2022' as const,
-      systemType: 'secondary_recirculation' as const
+      systemType: 'secondary_recirculation' as const,
+      vps: 100
     };
     const result = Ashrae621AlternativeSystemService.calculate(input);
     expect(result.status).toBe('PASS');

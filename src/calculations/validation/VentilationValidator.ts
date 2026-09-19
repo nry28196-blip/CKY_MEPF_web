@@ -42,6 +42,22 @@ export class VentilationValidator {
       }
     }
 
+    if (zone.dMode === 'VAV') {
+      if (zone.vpzMinDesign === undefined || zone.vpzMinDesign === null || isNaN(zone.vpzMinDesign)) {
+        messages.push({
+          severity: 'error',
+          code: 'Z-04',
+          message: 'VAV minimum primary airflow (Vpz-min-design) is required.'
+        });
+      } else if (zone.vpzMinRequired && zone.vpzMinDesign < zone.vpzMinRequired - 1e-4) {
+        messages.push({
+          severity: 'error',
+          code: 'Z-05',
+          message: `Zone minimum primary airflow (${Math.round(zone.vpzMinDesign)}) is below required minimum (${Math.round(zone.vpzMinRequired)}).`
+        });
+      }
+    }
+
     return messages;
   }
 
@@ -51,11 +67,21 @@ export class VentilationValidator {
   static validateSystem(system: SystemOutdoorAirRequirements): ValidationMessage[] {
     const messages: ValidationMessage[] = [];
 
-    if (system.vps < system.vou) {
+    if (system.airDistributionType === 'VAV') {
+      if (system.vps === undefined || system.vps === null || isNaN(system.vps) || system.vps <= 0) {
+        messages.push({
+          severity: 'error',
+          code: 'S-00',
+          message: 'System primary airflow (Vps) is required for VAV systems.'
+        });
+      }
+    }
+
+    if (system.vps !== undefined && system.vps > 0 && system.vps < system.vou) {
        messages.push({ 
          severity: 'error', 
          code: 'S-01', 
-         message: 'System uncorrected outdoor air (Vou) exceeds total system primary air (Vps). Verify zone airflow minimums.' 
+         message: 'System primary airflow Vps is less than uncorrected outdoor-air intake Vou. Verify the VAV system design airflow.' 
        });
     }
 

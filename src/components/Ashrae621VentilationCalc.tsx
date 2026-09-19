@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Wind, Users, Activity, Settings, Info, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { Wind, Users, Activity, Settings, Info, Plus, Trash2, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 import ValidatedInput from './ValidatedInput';
 import TooltipLabel from './TooltipLabel';
@@ -36,6 +36,8 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
 
   const [systemType, setSystemType] = useState<'single' | 'multi_simplified' | 'multi_alternative'>('single');
   const [isVAV, setIsVAV] = useState<boolean>(true);
+  const [systemVps, setSystemVps] = useState<number | ''>(isMetric ? 1000 : 2000);
+  const [designCondition, setDesignCondition] = useState<string>('Cooling design');
   const [alternativeConfig, setAlternativeConfig] = useState<'single-supply' | 'secondary-recirculation'>('single-supply');
   const [systemPopulation, setSystemPopulation] = useState<number | ''>('');
   
@@ -121,6 +123,9 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       
       return VentilationEngine.runSingleZone(input);
     } else {
+      let vps = (systemVps === '' || systemVps === null) ? null : Number(systemVps);
+      if (vps !== null && !isMetric) vps = UnitConversionService.cfmToLs(vps);
+
       const mzInput: MultiZoneInput = {
         zones: zones.map(z => {
           const spaceType = spaceTypes.find(s => s.id === z.spaceTypeId) || null;
@@ -150,13 +155,17 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         }),
         density: densityInput,
         method: systemType === 'multi_simplified' ? 'Simplified' : 'Alternative',
-        systemPopulation: systemPopulation === '' ? null : systemPopulation,
+        systemPopulation: systemPopulation === '' ? null : Number(systemPopulation),
         systemType: alternativeConfig,
+        airDistributionType: isVAV ? 'VAV' : 'CV',
+        vps: isVAV ? vps : null,
+        vpsDesignBasis: 'Highest expected system primary airflow at analyzed design condition',
+        designCondition: designCondition,
         edition: edition
       };
       return VentilationEngine.runMultiZone(mzInput);
     }
-  }, [zones, systemType, isVAV, alternativeConfig, systemPopulation, altitude, airTemp, isMetric, spaceTypes, ezValues]);
+  }, [zones, systemType, isVAV, systemVps, designCondition, alternativeConfig, systemPopulation, altitude, airTemp, isMetric, spaceTypes, ezValues]);
 
   useEffect(() => {
     if (onVentilationChange) {
@@ -244,6 +253,41 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               </div>
             )}
             
+            {systemType !== 'single' && isVAV && (
+              <div className="space-y-3 pt-2 border-t border-slate-800/80">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <TooltipLabel label={`System Primary Airflow, Vps (${isMetric ? 'L/s' : 'cfm'})`} tooltip="Highest expected system primary airflow at analyzed design condition (ASHRAE 62.1 Section 6.2.5.2)" />
+                    <span className="text-[10px] text-cyan-400 font-mono font-medium">Explicit VAV Input</span>
+                  </div>
+                  <input 
+                    type="number" min="0"
+                    className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
+                    placeholder="e.g. 1200"
+                    value={systemVps}
+                    onChange={(e) => setSystemVps(e.target.value ? Number(e.target.value) : '')}
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Design Basis: <span className="text-slate-300">Highest expected system primary airflow at analyzed design condition</span>
+                  </p>
+                </div>
+
+                <div>
+                  <TooltipLabel label="Documented Design Condition" tooltip="Engineering basis condition being analyzed" />
+                  <select
+                    className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
+                    value={designCondition}
+                    onChange={(e) => setDesignCondition(e.target.value)}
+                  >
+                    <option value="Cooling design">Cooling design (peak summer)</option>
+                    <option value="Heating design">Heating design (winter turndown)</option>
+                    <option value="Occupancy design">Occupancy design (part-load)</option>
+                    <option value="Other engineering design condition">Other engineering design condition</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             {systemType === 'multi_alternative' && (
               <div>
                 <TooltipLabel label="Alternative Topology" tooltip="Appendix A configuration" />
@@ -413,13 +457,36 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
               
               {systemType !== 'single' && isVAV && !(systemType === 'multi_alternative' && alternativeConfig === 'secondary-recirculation') && (
                 <div>
-                  <TooltipLabel label={`Vpz-min (${isMetric ? 'L/s' : 'cfm'})`} tooltip="VAV minimum primary airflow" />
+                  <TooltipLabel label={`Design Vpz-min (${isMetric ? 'L/s' : 'cfm'})`} tooltip="VAV minimum primary airflow setting" />
                   <input 
                     type="number" min="0"
                     className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
+                    placeholder="e.g. 150"
                     value={z.vpzMin}
                     onChange={(e) => updateZone(z.id, 'vpzMin', e.target.value ? Number(e.target.value) : '')}
                   />
+                  {(() => {
+                    const zr = (engineResult as any).simplifiedSystem?.zoneResults?.find((r: any) => r.id === z.id)
+                      || (engineResult as any).alternativeSystem?.zoneResults?.find((r: any) => r.id === z.id);
+                    if (!zr) return null;
+                    const reqVal = zr.vpzMinRequired !== null && zr.vpzMinRequired !== undefined
+                      ? (isMetric ? zr.vpzMinRequired : UnitConversionService.lsToCfm(zr.vpzMinRequired)).toFixed(1)
+                      : null;
+                    return (
+                      <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">Req: <span className="font-mono text-slate-200">{reqVal ? `${reqVal} ${isMetric ? 'L/s' : 'cfm'}` : '--'}</span></span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
+                          zr.compliance === 'PASS' 
+                            ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/80' 
+                            : zr.compliance === 'FAIL'
+                              ? 'bg-rose-950/80 text-rose-400 border border-rose-800/80'
+                              : 'bg-amber-950/80 text-amber-400 border border-amber-800/80'
+                        }`}>
+                          {zr.compliance}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               
@@ -429,7 +496,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                     <p className="text-xs text-slate-400 mb-2 font-medium">VAV Minimum Flow Conditions (Equation A-8)</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <TooltipLabel label="Vpz-min" tooltip="Minimum Primary Airflow" />
+                        <TooltipLabel label={`Vpz-min (${isMetric ? 'L/s' : 'cfm'})`} tooltip="Minimum Primary Airflow" />
                         <input 
                           type="number" step="1"
                           className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
@@ -438,7 +505,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                         />
                       </div>
                       <div>
-                        <TooltipLabel label="Vdz-min" tooltip="Minimum Discharge Airflow" />
+                        <TooltipLabel label={`Vdz-min (${isMetric ? 'L/s' : 'cfm'})`} tooltip="Minimum Discharge Airflow" />
                         <input 
                           type="number" step="1"
                           className="w-full bg-slate-950 text-white rounded-lg px-3 py-2 text-sm border border-slate-800"
@@ -447,6 +514,24 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
                         />
                       </div>
                     </div>
+                    {(() => {
+                      const zr = (engineResult as any).alternativeSystem?.zoneResults?.find((r: any) => r.id === z.id);
+                      if (!zr) return null;
+                      return (
+                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-700/60">
+                          <span className="text-slate-400">Status: <span className="text-slate-300">{zr.message || 'Validated'}</span></span>
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
+                            zr.compliance === 'PASS' 
+                              ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/80' 
+                              : zr.compliance === 'FAIL'
+                                ? 'bg-rose-950/80 text-rose-400 border border-rose-800/80'
+                                : 'bg-amber-950/80 text-amber-400 border border-amber-800/80'
+                          }`}>
+                            {zr.compliance}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div>
                     <TooltipLabel label="Er" tooltip="Secondary Recirculation Fraction" />
@@ -463,6 +548,64 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
           </div>
         ))}
       </div>
+
+      {systemType !== 'single' && (
+        <div className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-3">
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Multi-Zone System Analysis Parameters</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-mono">
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-500 block uppercase">System Primary Airflow (Vps)</span>
+              <span className="text-white font-bold">
+                {(engineResult as any).vps !== null && (engineResult as any).vps !== undefined
+                  ? `${(isMetric ? (engineResult as any).vps : UnitConversionService.lsToCfm((engineResult as any).vps)).toFixed(1)} ${isMetric ? 'L/s' : 'cfm'}`
+                  : '--'}
+              </span>
+              <span className="text-[9px] text-cyan-400 block mt-0.5 font-sans leading-tight">
+                {isVAV ? 'Design condition peak' : 'Constant Volume total'}
+              </span>
+            </div>
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-500 block uppercase">Uncorrected Outdoor Air (Vou)</span>
+              <span className="text-white font-bold">
+                {(engineResult as any).vou !== null && (engineResult as any).vou !== undefined
+                  ? `${(isMetric ? (engineResult as any).vou : UnitConversionService.lsToCfm((engineResult as any).vou)).toFixed(1)} ${isMetric ? 'L/s' : 'cfm'}`
+                  : '--'}
+              </span>
+              <span className="text-[9px] text-slate-400 block mt-0.5 font-sans">
+                Σ(Voz) corrected for D
+              </span>
+            </div>
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-500 block uppercase">System OA Fraction (Xs)</span>
+              <span className="text-white font-bold">
+                {(engineResult as any).xs !== null && (engineResult as any).xs !== undefined
+                  ? `${((engineResult as any).xs * 100).toFixed(1)}%`
+                  : '--'}
+              </span>
+              <span className="text-[9px] text-slate-400 block mt-0.5 font-sans">
+                Xs = Vou / Vps
+              </span>
+            </div>
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span className="text-[10px] text-slate-500 block uppercase">Ventilation Efficiency (Ev)</span>
+              <span className="text-white font-bold">
+                {(engineResult as any).ev !== null && (engineResult as any).ev !== undefined
+                  ? Number((engineResult as any).ev).toFixed(3)
+                  : '--'}
+              </span>
+              <span className="text-[9px] text-slate-400 block mt-0.5 font-sans">
+                {systemType === 'multi_simplified' ? 'Simplified Table/Eq' : 'Appendix A Iterative'}
+              </span>
+            </div>
+          </div>
+          {((engineResult as any).alternativeSystem?.message || (engineResult as any).simplifiedSystem?.message) && (
+            <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{(engineResult as any).alternativeSystem?.message || (engineResult as any).simplifiedSystem?.message}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 flex flex-col items-center text-center">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Final Design Outdoor Air</h2>

@@ -126,7 +126,7 @@ describe('Ventilation Engine Golden Tests (ASHRAE 62.1-2022 & 62.2-2022 Baseline
       systemType: 'single_supply',
       density: { elevation: 0, temperature: 20 },
       zones: [
-        { expectedStandard: 'ASHRAE 62.1', expectedEdition: '2022', id: 'z1', spaceType: spaceType2022, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig2022, dMode: 'VAV', vpz: 100, vpzMinDesign: 30, ep: null, er: null }
+        { expectedStandard: 'ASHRAE 62.1', expectedEdition: '2022', id: 'z1', spaceType: spaceType2022, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: ezConfig2022, dMode: 'VAV', vpz: 100, vpzMinDesign: 70, ep: null, er: null }
       ]
     });
     

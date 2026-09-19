@@ -1,58 +1,65 @@
 import { SourceType } from '../types';
 import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType } from '../types';
 
+export const ASHRAE_621_2022_DATASET_STATUS = 'SUBSET' as const;
+
 export const ASHRAE_621_2022_SPACE_TYPES: Ashrae621SpaceType[] = [
   { 
-    id: 'office', name: 'Office space', standard: 'ASHRAE 62.1', edition: '2022', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 5.0, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
+    id: 'office', name: 'Office space', standard: 'ASHRAE 62.1', edition: '2022', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 5.0, airClass: 1, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
     revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
       rp: { value: 2.5, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       ra: { value: 0.3, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       defaultOccupancy: { value: 5.0, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
+      airClass: { value: 1, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       reference: { value: 'Table 6.2.2.1', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
     },
     sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
   },
   { 
-    id: 'conference', name: 'Conference/meeting', standard: 'ASHRAE 62.1', edition: '2022', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 50, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
+    id: 'conference', name: 'Conference/meeting', standard: 'ASHRAE 62.1', edition: '2022', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 50, airClass: 1, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
     revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
       rp: { value: 2.5, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       ra: { value: 0.3, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       defaultOccupancy: { value: 50, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
+      airClass: { value: 1, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       reference: { value: 'Table 6.2.2.1', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
     },
     sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
   },
   { 
-    id: 'retail', name: 'Retail sales', standard: 'ASHRAE 62.1', edition: '2022', category: 'Retail', rpMetric: 3.8, raMetric: 0.6, defaultOccupancyMetric: 15, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
+    id: 'retail', name: 'Retail sales', standard: 'ASHRAE 62.1', edition: '2022', category: 'Retail', rpMetric: 3.8, raMetric: 0.6, defaultOccupancyMetric: 15, airClass: 2, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
     revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
       rp: { value: 3.8, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       ra: { value: 0.6, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       defaultOccupancy: { value: 15, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
+      airClass: { value: 2, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       reference: { value: 'Table 6.2.2.1', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
     },
     sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
   },
   { 
-    id: 'classroom', name: 'Classroom (ages 9+)', standard: 'ASHRAE 62.1', edition: '2022', category: 'Education', rpMetric: 5.0, raMetric: 0.6, defaultOccupancyMetric: 35, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
+    id: 'classroom', name: 'Classroom (ages 9+)', standard: 'ASHRAE 62.1', edition: '2022', category: 'Education', rpMetric: 5.0, raMetric: 0.6, defaultOccupancyMetric: 35, airClass: 1, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
     revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
       rp: { value: 5.0, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       ra: { value: 0.6, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       defaultOccupancy: { value: 35, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
+      airClass: { value: 1, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       reference: { value: 'Table 6.2.2.1', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
     },
     sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
   },
   { 
-    id: 'corridor', name: 'Corridor', standard: 'ASHRAE 62.1', edition: '2022', category: 'General', rpMetric: 0, raMetric: 0.3, defaultOccupancyMetric: 0, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
+    id: 'corridor', name: 'Corridor', standard: 'ASHRAE 62.1', edition: '2022', category: 'General', rpMetric: 0, raMetric: 0.3, defaultOccupancyMetric: 0, airClass: 1, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Verified', 
     revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
       rp: { value: 0, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       ra: { value: 0.3, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       defaultOccupancy: { value: 0, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
+      airClass: { value: 1, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       reference: { value: 'Table 6.2.2.1', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6.2.2.1', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
     },
     sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'

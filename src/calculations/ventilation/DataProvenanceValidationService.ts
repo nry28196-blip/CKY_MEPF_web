@@ -195,10 +195,15 @@ export class DataProvenanceValidationService {
       if (spaceType.provenance.reference && !this.validateProvenance(spaceType.provenance.reference, expectedStandard, expectedEdition, spaceType.reference)) {
         reasons.push('Missing Reference');
       }
+      const shouldValidateAirClass = spaceType.airClass !== undefined && spaceType.airClass !== null && spaceType.provenance.airClass !== undefined;
+      if (shouldValidateAirClass && !this.validateProvenance(spaceType.provenance.airClass, expectedStandard, expectedEdition, spaceType.airClass)) {
+        reasons.push('Unverified Air Class');
+      }
       
       if (!this.checkParentConsistency(spaceType, spaceType.provenance.rp) ||
           !this.checkParentConsistency(spaceType, spaceType.provenance.ra) ||
           (shouldValidateOccupancy && !this.checkParentConsistency(spaceType, spaceType.provenance.defaultOccupancy)) ||
+          (shouldValidateAirClass && !this.checkParentConsistency(spaceType, spaceType.provenance.airClass)) ||
           !this.checkParentConsistency(spaceType, spaceType.provenance.reference)) {
           reasons.push('Contradictory Parent Provenance');
       }

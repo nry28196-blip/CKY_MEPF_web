@@ -25,6 +25,10 @@ export interface MultiZoneInput {
   method: 'Simplified' | 'Alternative';
   edition?: "2019" | "2022" | "2025";
   systemType: 'single_supply' | 'secondary_recirculation';
+  airDistributionType?: 'CV' | 'VAV';
+  vps?: number | null; // System Primary Airflow at Analyzed Design Condition (explicit for VAV)
+  vpsDesignBasis?: string;
+  designCondition?: string;
   density: DensityInput;
   zones: ZoneVentilationInput[];
   systemPopulation: number | null;
@@ -37,6 +41,11 @@ export interface MultiZoneResult {
   alternativeSystem: AlternativeSystemResult | null;
   vou: number | null; // Uncorrected outdoor air
   ev: number | null; // System ventilation efficiency
+  vps: number | null;
+  vpsDesignBasis?: string;
+  designCondition?: string;
+  airDistributionType?: 'CV' | 'VAV';
+  xs: number | null;
   vot: number | null; // L/s
   finalDesignOutdoorAir: number | null;
   auditTrail: AuditTrailItem[];
@@ -102,12 +111,15 @@ export class VentilationEngine {
     let alternativeSystem: AlternativeSystemResult | null = null;
     let vou: number | null = null;
     let ev: number | null = null;
+    let vps: number | null = null;
+    let xs: number | null = null;
     
     if (zoneAggrStatus !== 'FAIL' && zoneAggrStatus !== 'INCOMPLETE' && zoneAggrStatus !== 'NOT_VERIFIED' && zoneAggrStatus !== 'NOT_EVALUATED') {
       if (input.method === 'Simplified') {
         const simpInput: SimplifiedSystemInput = {
           zones: zoneResults.map((z, i) => ({
             id: z.id || Math.random().toString(),
+            name: input.zones[i].id || `Zone ${i + 1}`,
             pz: z.pz !== null ? z.pz : 0,
             rp: z.rp || 0,
             ra: z.ra || 0,
@@ -117,18 +129,29 @@ export class VentilationEngine {
             vpzMinDesign: input.zones[i].vpzMinDesign || null,
             dMode: input.zones[i].dMode || 'CV'
           })),
-          ps: input.systemPopulation
+          ps: input.systemPopulation,
+          airDistributionType: input.airDistributionType || (input.zones.some(z => z.dMode === 'VAV') ? 'VAV' : 'CV'),
+          vps: input.vps ?? null,
+          vpsDesignBasis: input.vpsDesignBasis,
+          designCondition: input.designCondition
         };
         simplifiedSystem = Ashrae621SimplifiedSystemService.calculate(simpInput);
         statuses.push(simplifiedSystem.status);
         vou = simplifiedSystem.vou;
         ev = simplifiedSystem.ev;
+        vps = simplifiedSystem.vps;
+        xs = simplifiedSystem.xs;
       } else if (input.method === 'Alternative') {
         const altInput: AlternativeSystemInput = {
           edition: input.edition,
           systemType: input.systemType,
+          airDistributionType: input.airDistributionType || (input.zones.some(z => z.dMode === 'VAV') ? 'VAV' : 'CV'),
+          vps: input.vps ?? null,
+          vpsDesignBasis: input.vpsDesignBasis,
+          designCondition: input.designCondition,
           zones: zoneResults.map((z, i) => ({
             id: z.id || Math.random().toString(),
+            name: input.zones[i].id || `Zone ${i + 1}`,
             pz: z.pz !== null ? z.pz : 0,
             rp: z.rp || 0,
             ra: z.ra || 0,
@@ -149,6 +172,8 @@ export class VentilationEngine {
         statuses.push(alternativeSystem.status);
         vou = alternativeSystem.vou;
         ev = alternativeSystem.ev;
+        vps = alternativeSystem.vps;
+        xs = alternativeSystem.xs;
       }
     }
     
@@ -182,6 +207,11 @@ export class VentilationEngine {
       alternativeSystem,
       vou,
       ev,
+      vps,
+      vpsDesignBasis: input.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition',
+      designCondition: input.designCondition || 'Cooling design',
+      airDistributionType: input.airDistributionType || (input.zones.some(z => z.dMode === 'VAV') ? 'VAV' : 'CV'),
+      xs,
       vot,
       finalDesignOutdoorAir: vot,
       auditTrail,

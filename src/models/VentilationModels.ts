@@ -19,8 +19,18 @@ export interface ZoneVentilationData {
   voz: number;
   
   // -- Multi-Zone Specific Parameters --
-  /** Zone primary airflow (Vpz) - required for multi-zone calculations */
+  /** Air volume control mode ('CV' or 'VAV') */
+  dMode?: 'CV' | 'VAV';
+  /** Zone primary airflow (Vpz) at analyzed design condition */
   vpz?: number;
+  /** Designed minimum primary airflow (Vpz-min-design) for VAV */
+  vpzMinDesign?: number;
+  /** Calculated required minimum primary airflow (Vpz-min-required: 1.5*Voz for Simplified, Voz for Alternative single supply) */
+  vpzMinRequired?: number;
+  /** Designed minimum discharge airflow (Vdz-min-design) for secondary recirculation systems */
+  vdzMinDesign?: number;
+  /** Zone minimum airflow compliance status */
+  complianceStatus?: 'PASS' | 'FAIL' | 'INCOMPLETE';
   /** Primary air fraction (Ep) - Default 1.0 for single-duct */
   ep?: number;
   /** Secondary recirculation fraction (Er) - Default 0.0 for single-duct */
@@ -34,11 +44,17 @@ export interface SystemOutdoorAirRequirements {
   systemId: string;
   /** Classification of the system */
   systemType: 'single' | 'multi' | '100_oa';
+  /** Air volume distribution control */
+  airDistributionType?: 'CV' | 'VAV';
   
   // -- Aggregate Parameters --
-  /** System primary airflow (Vps = sum of Vpz) */
+  /** System primary airflow at analyzed design condition (explicit for VAV, sum of Vpz for CV) */
   vps: number;
-  /** Uncorrected outdoor air intake (Vou = sum of Voz) */
+  /** Design basis description for Vps ("Highest expected system primary airflow at analyzed design condition") */
+  vpsDesignBasis?: string;
+  /** Documented design condition (e.g. 'Cooling design', 'Heating design', 'Occupancy design', 'Other engineering design condition') */
+  designCondition?: string;
+  /** Uncorrected outdoor air intake (Vou) */
   vou: number;
   /** System uncorrected outdoor air fraction (Xs = Vou / Vps) */
   xs: number;
