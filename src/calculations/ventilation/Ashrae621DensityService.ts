@@ -35,6 +35,18 @@ export class Ashrae621DensityService {
     }
 
     const { elevation, temperature } = input;
+
+    if (temperature <= -273.15) {
+      return {
+        elevation, temperature, pressureAtm: 0, density: 0, eRho: 1.0,
+        status: 'BLOCKED',
+        auditTrail: [{
+          symbol: 'Eρ', name: 'Air Density Factor', formula: 'Invalid absolute temperature',
+          inputs: { 'T (°C)': temperature }, result: 0, unit: '', reference: '', status: AuditStatus.BLOCKED
+        }]
+      };
+    }
+
     
     // Barometric pressure equation: P = 101.325 * (1 - 2.25577e-5 * Z)^5.2559
     const pressureAtm = 101.325 * Math.pow(1 - 2.25577e-5 * elevation, 5.2559);

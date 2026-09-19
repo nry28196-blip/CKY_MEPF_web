@@ -15,8 +15,28 @@ import { ASHRAE_622_2025_COEFFICIENTS } from './ashrae622/2025/data';
 
 export type AshraeEdition = '2019' | '2022' | '2025';
 
+export const ACTIVE_PRODUCTION_EDITION: AshraeEdition = '2022';
+export const DEFERRED_FUTURE_EDITION: AshraeEdition = '2025';
+
 export class StandardDataProvider {
-  static get621SpaceTypes(edition: AshraeEdition | string): Ashrae621SpaceType[] {
+  // Production methods guaranteed to return 2022 baseline data:
+  static getProduction621SpaceTypes(): Ashrae621SpaceType[] {
+    return ASHRAE_621_2022_SPACE_TYPES;
+  }
+  static getProduction621EzValues(): Ashrae621Ez[] {
+    return ASHRAE_621_2022_EZ_VALUES;
+  }
+  static getProduction621ExhaustRates(): Ashrae621ExhaustType[] {
+    return ASHRAE_621_2022_EXHAUST_RATES;
+  }
+  static getProduction622Coefficients(): Ashrae622Coefficients {
+    return ASHRAE_622_2022_COEFFICIENTS;
+  }
+  static getProduction621AirQualityStandards(): Ashrae621AirQualityStandards {
+    return ASHRAE_621_2022_AIR_QUALITY_STANDARDS as Ashrae621AirQualityStandards;
+  }
+
+  static get621SpaceTypes(edition: AshraeEdition | string = '2022'): Ashrae621SpaceType[] {
     switch (edition) {
       case '2019': return ASHRAE_621_2019_SPACE_TYPES;
       case '2022': return ASHRAE_621_2022_SPACE_TYPES;
@@ -24,7 +44,7 @@ export class StandardDataProvider {
       default: throw new Error('INVALID_STANDARD_EDITION');
     }
   }
-  static get621EzValues(edition: AshraeEdition | string): Ashrae621Ez[] {
+  static get621EzValues(edition: AshraeEdition | string = '2022'): Ashrae621Ez[] {
     switch (edition) {
       case '2019': return ASHRAE_621_2019_EZ_VALUES;
       case '2022': return ASHRAE_621_2022_EZ_VALUES;
@@ -32,7 +52,7 @@ export class StandardDataProvider {
       default: throw new Error('INVALID_STANDARD_EDITION');
     }
   }
-  static get621ExhaustRates(edition: AshraeEdition | string): Ashrae621ExhaustType[] {
+  static get621ExhaustRates(edition: AshraeEdition | string = '2022'): Ashrae621ExhaustType[] {
     switch (edition) {
       case '2019': return ASHRAE_621_2019_EXHAUST_RATES;
       case '2022': return ASHRAE_621_2022_EXHAUST_RATES;
@@ -40,7 +60,7 @@ export class StandardDataProvider {
       default: throw new Error('INVALID_STANDARD_EDITION');
     }
   }
-  static get622Coefficients(edition: AshraeEdition | string): Ashrae622Coefficients {
+  static get622Coefficients(edition: AshraeEdition | string = '2022'): Ashrae622Coefficients {
     switch (edition) {
       case '2019': return ASHRAE_622_2019_COEFFICIENTS;
       case '2022': return ASHRAE_622_2022_COEFFICIENTS;
@@ -49,7 +69,7 @@ export class StandardDataProvider {
     }
   }
 
-  static get621AirQualityStandards(edition: AshraeEdition | string): Ashrae621AirQualityStandards {
+  static get621AirQualityStandards(edition: AshraeEdition | string = '2022'): Ashrae621AirQualityStandards {
     switch (edition) {
       case '2019': return ASHRAE_621_2019_AIR_QUALITY_STANDARDS as Ashrae621AirQualityStandards;
       case '2022': return ASHRAE_621_2022_AIR_QUALITY_STANDARDS as Ashrae621AirQualityStandards;

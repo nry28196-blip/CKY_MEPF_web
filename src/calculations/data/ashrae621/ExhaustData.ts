@@ -26,6 +26,7 @@ export const EXHAUST_2022: ExhaustSpaceType[] = [
   { id: 'locker_room', name: 'Locker/dressing rooms', ashraeCategory: 'Locker/dressing rooms', ashraeRateImp: 0.25, ashraeRateMet: 1.25, ashraeUnit: 'area', ashraeClass: 'Class 2', imcRateImp: 0.25, imcRateMet: 1.25 }
 ];
 
+// [DISABLED / FUTURE - NOT FOR ACTIVE PRODUCTION CALCULATION]
 export const EXHAUST_2025: ExhaustSpaceType[] = [
   { id: 'art_classroom', name: 'Art classroom', ashraeCategory: 'Art classroom', ashraeRateImp: 0.7, ashraeRateMet: 3.5, ashraeUnit: 'area', ashraeClass: 'Class 2', imcRateImp: 0.7, imcRateMet: 3.5 },
   { id: 'bath_public', name: 'Bathrooms (public)', ashraeCategory: 'Bathrooms (public)', ashraeRateImp: 50, ashraeRateMet: 25, ashraeUnit: 'fixture', ashraeClass: 'Class 2', imcRateImp: 50, imcRateMet: 25 },

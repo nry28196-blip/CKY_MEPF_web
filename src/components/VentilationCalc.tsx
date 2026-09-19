@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, Wind, Activity } from 'lucide-react';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
@@ -11,19 +11,42 @@ import AirBalanceCalc from './AirBalanceCalc';
 import SystemPerformanceCalc from './SystemPerformanceCalc';
 
 export default function VentilationCalc({ onVentilationChange, governingStandard = 'ASHRAE 62.1-2022' }: { onVentilationChange?: (flow: number, details?: any) => void, governingStandard?: string }) {
-  const standardParts = governingStandard.split('-');
-  const edition = standardParts.length > 1 ? standardParts[1] : '2022';
+  const isResidentialStandard = governingStandard.includes('62.2');
+  const activeBasis = isResidentialStandard ? 'ASHRAE 62.2-2022' : 'ASHRAE 62.1-2022';
 
   const { t } = useLanguage();
   const { unitSystem } = useUnit();
   
-  const [ventMode, setVentMode] = useState<'standard' | 'exhaust' | 'balance' | 'kitchen' | 'residential'>('standard');
+  const [ventMode, setVentMode] = useState<'standard' | 'exhaust' | 'balance' | 'kitchen' | 'residential'>(
+    isResidentialStandard ? 'residential' : 'standard'
+  );
   const [isRefModalOpen, setIsRefModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (governingStandard.includes('62.2') && ventMode !== 'residential') {
+      setVentMode('residential');
+    } else if (!governingStandard.includes('62.2') && ventMode === 'residential') {
+      setVentMode('standard');
+    }
+  }, [governingStandard]);
 
   return (
     <div className="space-y-6">
       <VentilationReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} />
       
+      {/* Active Standard Basis Banner */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 border border-slate-800 p-3 rounded-xl">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+          <span className="text-xs font-mono font-bold text-cyan-300">
+            Active Baseline: {ventMode === 'residential' ? 'ASHRAE 62.2-2022 (Residential)' : 'ASHRAE 62.1-2022 (Commercial)'}
+          </span>
+        </div>
+        <div className="text-[11px] font-mono text-slate-400">
+          Status: <span className="text-emerald-400 font-semibold">FROZEN TO 2022</span> | 2025: <span className="text-slate-500 font-semibold">DEFERRED</span>
+        </div>
+      </div>
+
       {/* Sub-modes for Ventilation */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-wider">
@@ -37,7 +60,7 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
             <button
               key={mod.id}
               type="button"
-              onClick={() => setVentMode(mod.id)}
+              onClick={() => setVentMode(mod.id as any)}
               className={`px-3 py-1.5 transition-all cursor-pointer ${
                 ventMode === mod.id
                   ? 'bg-cyan-950/30 text-cyan-400 border border-cyan-500/50 rounded-lg'
@@ -61,12 +84,12 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
         <div className="mb-4 bg-amber-950/20 border border-amber-900/50 p-3 rounded-lg flex items-start text-xs text-amber-400">
            <Activity className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
            <p>
-             <strong>Engineering Calculation Aid:</strong> This tool calculates requirements based on the selected standard methodology. 
+             <strong>Engineering Calculation Aid:</strong> Active ventilation engine baseline is strictly ASHRAE 62.1-2022 and ASHRAE 62.2-2022. 
              Final project design must be verified against project-adopted code, AHJ requirements, and manufacturer data.
            </p>
         </div>
         
-        {ventMode === 'standard' && <Ashrae621VentilationCalc onVentilationChange={onVentilationChange} edition={edition as any} />}
+        {ventMode === 'standard' && <Ashrae621VentilationCalc onVentilationChange={onVentilationChange} edition="2022" />}
         {ventMode === 'exhaust' && <Ashrae621ExhaustCalc />}
         {ventMode === 'balance' && <AirBalanceCalc />}
         {ventMode === 'kitchen' && <KitchenVentilationCalc />}

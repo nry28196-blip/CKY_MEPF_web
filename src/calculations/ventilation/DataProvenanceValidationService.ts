@@ -158,8 +158,7 @@ export class DataProvenanceValidationService {
   static validateSpaceTypeData(
     spaceType: Ashrae621SpaceType,
     expectedStandard: string,
-    expectedEdition: string,
-    useDefaultOccupancy: boolean
+    expectedEdition: string
   ): DataProvenanceValidationResult {
     const reasons: string[] = [];
     
@@ -189,7 +188,7 @@ export class DataProvenanceValidationService {
       if (!this.validateProvenance(spaceType.provenance.rp, expectedStandard, expectedEdition, spaceType.rpMetric)) reasons.push('Unverified Rp');
       if (!this.validateProvenance(spaceType.provenance.ra, expectedStandard, expectedEdition, spaceType.raMetric)) reasons.push('Unverified Ra');
       // 3. DEFAULT OCCUPANCY MUST BE VALIDATED WHEN PRESENT
-      const shouldValidateOccupancy = useDefaultOccupancy;
+      const shouldValidateOccupancy = spaceType.defaultOccupancyMetric !== undefined && spaceType.defaultOccupancyMetric !== null;
       if (shouldValidateOccupancy && !this.validateProvenance(spaceType.provenance.defaultOccupancy, expectedStandard, expectedEdition, spaceType.defaultOccupancyMetric)) {
         reasons.push('Unverified Occupancy Density');
       }
@@ -199,7 +198,7 @@ export class DataProvenanceValidationService {
       
       if (!this.checkParentConsistency(spaceType, spaceType.provenance.rp) ||
           !this.checkParentConsistency(spaceType, spaceType.provenance.ra) ||
-          (useDefaultOccupancy && (shouldValidateOccupancy && !this.checkParentConsistency(spaceType, spaceType.provenance.defaultOccupancy))) ||
+          (shouldValidateOccupancy && !this.checkParentConsistency(spaceType, spaceType.provenance.defaultOccupancy)) ||
           !this.checkParentConsistency(spaceType, spaceType.provenance.reference)) {
           reasons.push('Contradictory Parent Provenance');
       }

@@ -606,14 +606,14 @@ if (office.provenance && office.provenance.defaultOccupancy) office.provenance.d
     });
 
     it('C-K. TEST — default occupancy disabled + valid user design occupancy', () => {
-      
-            const office = createSyntheticVerifiedSpaceType(SourceType.ASHRAE_PUBLISHED, 'VERIFIED');
-if (office.provenance && office.provenance.defaultOccupancy) office.provenance.defaultOccupancy.verificationStatus = 'NOT_VERIFIED';
+      const office = createSyntheticVerifiedSpaceType(SourceType.ASHRAE_PUBLISHED, 'VERIFIED');
+      if (office.provenance && office.provenance.defaultOccupancy) office.provenance.defaultOccupancy.verificationStatus = 'NOT_VERIFIED';
       const result = Ashrae621ZoneService.calculateZone({
         expectedStandard: 'ASHRAE 62.1', expectedEdition: '2025',
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: syntheticVerifiedEz
       });
-      expect(result.status).toBe('PASS');
+      // Prompt explicitly requires this to be BLOCKED because production dataset itself must never bypass required validation merely because a calculation path chooses design occupancy.
+      expect(result.status).toBe('BLOCKED');
     });
 
     it('C-L. TEST — contradictory parent and field provenance', () => {
@@ -819,7 +819,7 @@ office.revisionState.source = SourceType.UNKNOWN;
         spaceType: office, area: 100, designOccupancy: 5, useDefaultOccupancy: false, ezConfig: syntheticVerifiedEz
       });
       
-      expect(result.status).toBe('PASS');
+      expect(result.status).toBe('BLOCKED');
     });
   });
 
@@ -875,3 +875,4 @@ office.revisionState.source = SourceType.UNKNOWN;
   });
 
 });
+  

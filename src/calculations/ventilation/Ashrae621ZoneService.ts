@@ -77,7 +77,7 @@ export class Ashrae621ZoneService {
     }
 
     const spaceTypeValidation = DataProvenanceValidationService.validateSpaceTypeData(
-      input.spaceType, input.expectedStandard, input.expectedEdition, input.useDefaultOccupancy
+      input.spaceType, input.expectedStandard, input.expectedEdition
     );
     if (!spaceTypeValidation.valid) {
       let reason = spaceTypeValidation.reasons[0];

@@ -24,6 +24,7 @@ export const ASHRAE_62_2_DATA: Record<'2019' | '2022' | '2025', Ashrae622LocalEx
     toiletRoomIntermittent: null,
     toiletRoomContinuous: null
   },
+  // [DISABLED / FUTURE - NOT FOR ACTIVE PRODUCTION CALCULATION]
   '2025': {
     kitchenIntermittent: 100,
     kitchenContinuousACH: 5,

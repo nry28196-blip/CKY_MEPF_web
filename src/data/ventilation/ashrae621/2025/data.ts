@@ -1,6 +1,13 @@
 import { SourceType } from '../types';
 import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType } from '../types';
 
+/**
+ * [FUTURE / DISABLED / NOT ACTIVE]
+ * ASHRAE 62.1-2025 is deferred until after the 2022 baseline has been fully validated.
+ * This dataset MUST NOT be used in active production calculation paths.
+ */
+export const IS_621_2025_PRODUCTION_ACTIVE = false;
+
 export const ASHRAE_621_2025_SPACE_TYPES: Ashrae621SpaceType[] = [
   { id: 'office', name: 'Office space', standard: 'ASHRAE 62.1', edition: '2025', category: 'Office', rpMetric: 2.5, raMetric: 0.3, defaultOccupancyMetric: 5.4, units: 'L/s-person, L/s-m2', exhaustRequired: false, reference: 'Table 6.2.2.1', notes: 'Not verified against current published source.', revisionState: {
     standard: 'ASHRAE 62.1',

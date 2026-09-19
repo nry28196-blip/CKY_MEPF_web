@@ -162,7 +162,7 @@ describe('Production Provenance Tests', () => {
     let hasInvalidVerifiedStatus = false;
     spaceTypes.forEach(space => {
       if (space.verificationStatus === 'VERIFIED') {
-        const validationResult = DataProvenanceValidationService.validateSpaceTypeData(space, 'ASHRAE 62.1', '2022', space.defaultOccupancyMetric !== undefined);
+        const validationResult = DataProvenanceValidationService.validateSpaceTypeData(space, 'ASHRAE 62.1', '2022');
         if (validationResult.status !== 'PASS') {
           hasInvalidVerifiedStatus = true;
           console.error(`Invalid Space Type: ${space.id}`, validationResult.reasons);

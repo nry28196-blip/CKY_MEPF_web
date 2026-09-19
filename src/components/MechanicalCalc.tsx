@@ -218,12 +218,10 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
             value={governingStandard}
             onChange={(e) => setGoverningStandard(e.target.value)}
           >
-            <option value="ASHRAE 62.1-2025" disabled>ASHRAE 62.1-2025 (Commercial) — Deferred</option>
             <option value="ASHRAE 62.1-2022">ASHRAE 62.1-2022 (Commercial)</option>
-            <option value="ASHRAE 62.1-2019">ASHRAE 62.1-2019 (Commercial)</option>
-            <option value="ASHRAE 62.2-2025" disabled>ASHRAE 62.2-2025 (Residential) — Deferred</option>
             <option value="ASHRAE 62.2-2022">ASHRAE 62.2-2022 (Residential)</option>
-            <option value="ASHRAE 62.2-2019">ASHRAE 62.2-2019 (Residential)</option>
+            <option value="ASHRAE 62.1-2025" disabled>ASHRAE 62.1-2025 [DISABLED / FUTURE]</option>
+            <option value="ASHRAE 62.2-2025" disabled>ASHRAE 62.2-2025 [DISABLED / FUTURE]</option>
           </select>
           {projectType !== 'Commercial' && projectType !== 'Residential' && (
             <span className="text-xs font-bold uppercase tracking-wider text-amber-500 bg-amber-950/30 px-2 py-1 rounded border border-amber-900/50">

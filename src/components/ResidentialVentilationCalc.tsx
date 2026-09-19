@@ -16,7 +16,8 @@ export default function ResidentialVentilationCalc() {
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
   
-  const [edition, setEdition] = useState<'2025' | '2022' | '2019'>('2025');
+  const [standard] = useState<'ASHRAE 62.2-2022'>('ASHRAE 62.2-2022');
+  const edition = '2022';
   const [floorArea, setFloorArea] = useState<number>(isMetric ? 150 : 1500);
   const [bedrooms, setBedrooms] = useState<number>(3);
   
@@ -32,7 +33,7 @@ export default function ResidentialVentilationCalc() {
     let credit = qInf === '' ? null : qInf;
     if (credit !== null && !isMetric) credit = UnitConversionService.cfmToLs(credit);
     
-    const coefficients = StandardDataProvider.get622Coefficients(edition);
+    const coefficients = StandardDataProvider.getProduction622Coefficients();
 
     return Ashrae622Service.calculateWholeDwelling({
       floorArea: areaM2,
@@ -47,28 +48,33 @@ export default function ResidentialVentilationCalc() {
       },
       coefficients
     });
-  }, [floorArea, bedrooms, qInf, infiltrationVerified, isMetric, edition, kitchenRequired, kitchenInstalled, bathRequired, bathInstalled]);
+  }, [floorArea, bedrooms, qInf, infiltrationVerified, isMetric, kitchenRequired, kitchenInstalled, bathRequired, bathInstalled]);
 
   const flowUnit = isMetric ? 'L/s' : 'cfm';
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">Dwelling Unit Ventilation</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-white">Dwelling Unit Ventilation</h2>
+          <div className="mt-1 text-xs font-mono font-semibold text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-2.5 py-1 rounded-md inline-flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+            Calculation Basis: ASHRAE 62.2-2022
+          </div>
+        </div>
         <select 
-          className="bg-slate-900 border border-slate-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          value={edition}
-          onChange={(e) => setEdition(e.target.value as any)}
+          className="bg-slate-900 border border-slate-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
+          value={standard}
+          disabled
         >
-          <option value="2025">ASHRAE 62.2-2025</option>
-          <option value="2022">ASHRAE 62.2-2022</option>
-          <option value="2019">ASHRAE 62.2-2019</option>
+          <option value="ASHRAE 62.2-2022">ASHRAE 62.2-2022 (Residential)</option>
+          <option value="ASHRAE 62.2-2025" disabled>ASHRAE 62.2-2025 [DISABLED / FUTURE]</option>
         </select>
       </div>
 
       <EngineeringStatusHeader 
         status={engineResult.status} 
-        message={`ASHRAE 62.2-${edition} Whole-Dwelling - ${engineResult.status === 'PASS' ? 'Ventilation requirements met' : 'Check requirements'}`} 
+        message={`ASHRAE 62.2-2022 Whole-Dwelling - ${engineResult.status === 'PASS' ? 'Ventilation requirements met' : 'Check requirements'}`} 
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

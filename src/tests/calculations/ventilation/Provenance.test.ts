@@ -10,7 +10,7 @@ describe('Data Provenance Validation', () => {
         reference: 'Table 6.2.2.1',
         revisionState: { source: 'UNKNOWN', verificationDate: '2026-09-08', standard: 'ASHRAE 62.1', edition: '2022' }
     };
-    const res = DataProvenanceValidationService.validateSpaceTypeData(invalidSpaceType as any, 'ASHRAE 62.1', '2022', false);
+    const res = DataProvenanceValidationService.validateSpaceTypeData(invalidSpaceType as any, 'ASHRAE 62.1', '2022');
     expect(res.valid).toBe(false);
     expect(res.reasons).toContain('Invalid Source Type for VERIFIED data');
   });
@@ -23,7 +23,7 @@ describe('Data Provenance Validation', () => {
         reference: 'Table 6.2.2.1',
         revisionState: { source: 'ASHRAE_PUBLISHED', verificationDate: '2026-09-08', standard: 'ASHRAE 62.1', edition: '2022', publishedErrataApplied: [] }
     };
-    const res = DataProvenanceValidationService.validateSpaceTypeData(validSpaceType as any, 'ASHRAE 62.1', '2022', false);
+    const res = DataProvenanceValidationService.validateSpaceTypeData(validSpaceType as any, 'ASHRAE 62.1', '2022');
     expect(res.valid).toBe(true);
   });
 });

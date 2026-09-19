@@ -20,7 +20,7 @@ const MERV_DATA = [
 
 export default function IAQCalc() {
 
-  const aqs = StandardDataProvider.get621AirQualityStandards('2025');
+  const aqs = StandardDataProvider.getProduction621AirQualityStandards();
   const minMerv = aqs.filtrationRequirements.minimumMERV;
   const pm25Threshold = aqs.filtrationRequirements.pm25DesignThreshold;
   const exhaustClasses = aqs.exhaustClasses;
@@ -185,7 +185,7 @@ export default function IAQCalc() {
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-xs uppercase tracking-wider font-bold bg-slate-800 text-slate-300 px-2 py-1 rounded">
-                ASHRAE 2025 Min: MERV {minMerv}
+                ASHRAE 62.1-2022 Min: MERV {minMerv}
               </span>
               <span className="text-xs uppercase tracking-wider font-bold bg-amber-950/30 text-amber-400 border border-amber-900/50 px-2 py-1 rounded">
                 PM2.5 Threshold: {pm25Threshold} μg/m³
@@ -259,7 +259,7 @@ export default function IAQCalc() {
               if (!ec) return null;
               return (
                 <div className="mt-2 bg-slate-950 p-3 rounded-lg border border-slate-800/50">
-                   <h5 className="text-xs font-bold text-amber-500/70 uppercase tracking-wider mb-1">Recirculation Rule (2025 Std)</h5>
+                   <h5 className="text-xs font-bold text-amber-500/70 uppercase tracking-wider mb-1">Recirculation Rule (ASHRAE 62.1-2022)</h5>
                    <p className="text-xs text-slate-300">
                      {ec.recirculationAllowed === true && "Full recirculation allowed to any space."}
                      {ec.recirculationAllowed === 'limited' && "Limited recirculation allowed (only to Class 2/3/4 spaces, never to Class 1)."}

@@ -15,6 +15,8 @@ export interface Ashrae622WholeDwellingInput {
   infiltrationVerified: boolean;
   localExhaust: LocalExhaustInput | null;
   coefficients: Ashrae622Coefficients;
+  expectedStandard?: string;
+  expectedEdition?: string;
 }
 
 export interface Ashrae622WholeDwellingResult {
@@ -23,10 +25,43 @@ export interface Ashrae622WholeDwellingResult {
   qDeficit: number | null; // L/s
   qFan: number | null; // L/s
   status: ValidationStatus;
+  message?: string;
 }
 
 export class Ashrae622Service {
   static calculateWholeDwelling(input: Ashrae622WholeDwellingInput): Ashrae622WholeDwellingResult {
+    // Standard Basis Isolation Check (Requirement 5)
+    if (input.expectedEdition && input.expectedEdition !== '2022') {
+      return {
+        qTot: null,
+        qInf: null,
+        qDeficit: null,
+        qFan: null,
+        status: 'BLOCKED',
+        message: `Calculation blocked: ASHRAE 62.2-${input.expectedEdition} is deferred. Active production standard is ASHRAE 62.2-2022.`
+      };
+    }
+    if (input.expectedStandard && input.expectedStandard !== 'ASHRAE 62.2') {
+      return {
+        qTot: null,
+        qInf: null,
+        qDeficit: null,
+        qFan: null,
+        status: 'BLOCKED',
+        message: `Calculation blocked: Invalid standard ${input.expectedStandard}. Expected ASHRAE 62.2.`
+      };
+    }
+    if (input.coefficients?.edition && input.coefficients.edition !== '2022') {
+      return {
+        qTot: null,
+        qInf: null,
+        qDeficit: null,
+        qFan: null,
+        status: 'BLOCKED',
+        message: `Calculation blocked: ASHRAE 62.2-${input.coefficients.edition} coefficients are deferred. Active production standard is ASHRAE 62.2-2022.`
+      };
+    }
+
     if (input.floorArea < 0 || isNaN(input.floorArea) || input.bedrooms < 0 || isNaN(input.bedrooms)) {
       return { qTot: null, qInf: null, qDeficit: null, qFan: null, status: 'FAIL' };
     }
