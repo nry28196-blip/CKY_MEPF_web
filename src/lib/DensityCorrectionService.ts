@@ -2,22 +2,55 @@ import { ValidationStatus } from '../calculations/ventilation/VentilationValidat
 import { AuditTrailItem } from '../calculations/ventilation/Ashrae621ZoneService';
 
 export interface DensityInput {
-  elevation: number | null; // meters
-  temperature: number | null; // °C
-  relativeHumidity?: number; // %, defaults to 0 (dry air) if omitted
+  /**
+   * Outdoor-air intake elevation above sea level at the center of the outdoor-air intake louver (m)
+   */
+  elevation: number | null;
+  elevationDescription?: string;
+  /**
+   * Outdoor-air design temperature (°C)
+   */
+  temperature: number | null;
+  /**
+   * Outdoor-air design humidity ratio (kg water / kg dry air)
+   */
+  humidityRatio?: number | null;
+  /**
+   * Relative humidity (%, 0-100). Used to derive humidity ratio if humidityRatio is omitted.
+   */
+  relativeHumidity?: number | null;
   edition?: '2019' | '2022' | '2025';
+  /**
+   * Explicit method selection: 'TABLE' (Table 6-5) or 'ANALYTICAL' (Normative Appendix D)
+   */
   method?: 'TABLE' | 'ANALYTICAL';
+  /**
+   * Whether to apply standard-permitted simplifications:
+   * CT = 1.0 when T <= 40°C
+   * CW = 1.0 when W <= 0.015 kg/kg
+   */
+  applyStandardSimplifications?: boolean;
 }
 
 export interface DensityResult {
   elevation: number;
   temperature: number;
   relativeHumidity: number;
+  humidityRatioKgKg: number;
   pressureAtm: number; // kPa
   density: number; // kg/m³
-  humidityRatioKgKg: number;
-  eRho: number;
+  cz: number;
+  ct: number;
+  cw: number;
+  eRho: number; // Ep factor
+  methodUsed: 'TABLE' | 'ANALYTICAL';
+  simplificationsApplied?: {
+    ctSimplified: boolean;
+    cwSimplified: boolean;
+  };
+  tableReference: string;
   status: ValidationStatus;
+  message?: string;
   auditTrail: AuditTrailItem[];
 }
 
@@ -25,9 +58,12 @@ export class DensityCorrectionService {
   static STANDARD_PRESSURE_KPA = 101.3;
   static STANDARD_TEMP_C = 21.0;
   static R_DRY_AIR_KJ = 0.287058;
-  static R_VAPOR_KJ = 0.461495;
   static STANDARD_DENSITY = 1.2; // kg/m³, dry air at 21°C, 101.3 kPa per ASHRAE 62.1 Addendum j
 
+  /**
+   * Table 6-5 Air-Density Factor (Ep) Mapping
+   * Outdoor-air intake elevation ranges and factors.
+   */
   static getTableERho(elevation: number): number | null {
     if (elevation <= 158) return 1.00;
     if (elevation <= 566) return 1.05;
@@ -40,9 +76,43 @@ export class DensityCorrectionService {
     if (elevation <= 2897) return 1.40;
     if (elevation <= 3173) return 1.45;
     if (elevation <= 3437) return 1.50;
-    return null; // Above 3437m requires Appendix D
+    return null; // Above 3437 m requires Normative Appendix D analytical method
   }
 
+  /**
+   * Calculates outdoor air pressure in kPa at elevation Z (m) using ISA standard atmosphere.
+   */
+  static calculatePressure(elevationM: number): number {
+    return this.STANDARD_PRESSURE_KPA * Math.pow(1 - 2.25577e-5 * elevationM, 5.2559);
+  }
+
+  /**
+   * Calculates saturation vapor pressure in kPa at temperature T (°C).
+   */
+  static calculatePsat(temperatureC: number): number {
+    if (temperatureC >= 0) {
+      return 0.61078 * Math.exp((17.27 * temperatureC) / (temperatureC + 237.3));
+    } else {
+      return 0.61078 * Math.exp((21.875 * temperatureC) / (temperatureC + 265.5));
+    }
+  }
+
+  /**
+   * Calculates moisture ratio W (kg_water / kg_dry_air) from temperature and relative humidity.
+   */
+  static calculateHumidityRatio(temperatureC: number, rhPercent: number, pressureKpa: number): number {
+    if (rhPercent <= 0) return 0;
+    const psat = this.calculatePsat(temperatureC);
+    const rhFraction = Math.max(0, Math.min(100, rhPercent)) / 100;
+    const pv = rhFraction * psat;
+    const pd = pressureKpa - pv;
+    if (pd <= 0) return 0;
+    return 0.621945 * (pv / pd);
+  }
+
+  /**
+   * Main calculation entry point for ASHRAE 62.1-2022 Air Density Correction Factor (Ep).
+   */
   static calculate(input: DensityInput | null): DensityResult {
     const auditTrail: AuditTrailItem[] = [];
     
@@ -50,20 +120,23 @@ export class DensityCorrectionService {
     let temperature = 21.0;
     let rh = 0;
     let status: ValidationStatus = 'PASS';
+    let message: string | undefined = undefined;
 
-    if (!input || input.elevation === null || input.temperature === null) {
+    if (!input || input.elevation === null || input.elevation === undefined || input.temperature === null || input.temperature === undefined) {
       status = 'INCOMPLETE';
+      message = 'Missing outdoor-air intake elevation or design temperature';
       auditTrail.push({
         symbol: 'Assumed Data',
         name: 'Missing Density Inputs',
-        formula: 'Default to Sea Level, 21°C',
+        formula: 'Default to Sea Level (0 m), 21°C',
         inputs: {},
-        result: 'ASSUMED',
+        result: 'INCOMPLETE',
         unit: '',
-        reference: 'Missing site elevation or design temperature'
+        reference: 'Missing site intake elevation or design temperature'
       });
     } else if (isNaN(input.elevation) || isNaN(input.temperature) || !isFinite(input.temperature) || input.temperature <= -273.15) {
       status = 'FAIL';
+      message = 'Invalid outdoor-air temperature or elevation';
       auditTrail.push({
         symbol: 'T',
         name: 'Invalid Temperature or Elevation',
@@ -73,9 +146,26 @@ export class DensityCorrectionService {
         unit: '',
         reference: 'Invalid numeric input'
       });
-      return { elevation: input.elevation || 0, temperature: input.temperature || 0, relativeHumidity: 0, pressureAtm: 0, density: 0, humidityRatioKgKg: 0, eRho: 1.0, status, auditTrail };
+      return {
+        elevation: input.elevation || 0,
+        temperature: input.temperature || 0,
+        relativeHumidity: 0,
+        pressureAtm: 0,
+        density: 0,
+        humidityRatioKgKg: 0,
+        cz: 1.0,
+        ct: 1.0,
+        cw: 1.0,
+        eRho: 1.0,
+        methodUsed: input.method || 'TABLE',
+        tableReference: 'ASHRAE 62.1-2022 Table 6-5',
+        status,
+        message,
+        auditTrail
+      };
     } else if (!isFinite(input.elevation)) {
       status = 'FAIL';
+      message = 'Invalid outdoor-air intake elevation';
       auditTrail.push({
         symbol: 'Z',
         name: 'Invalid Elevation',
@@ -85,7 +175,23 @@ export class DensityCorrectionService {
         unit: '',
         reference: 'Validation'
       });
-      return { elevation: input.elevation, temperature: input.temperature, relativeHumidity: 0, pressureAtm: 0, density: 0, humidityRatioKgKg: 0, eRho: 1.0, status, auditTrail };
+      return {
+        elevation: input.elevation,
+        temperature: input.temperature,
+        relativeHumidity: 0,
+        pressureAtm: 0,
+        density: 0,
+        humidityRatioKgKg: 0,
+        cz: 1.0,
+        ct: 1.0,
+        cw: 1.0,
+        eRho: 1.0,
+        methodUsed: input.method || 'TABLE',
+        tableReference: 'ASHRAE 62.1-2022 Table 6-5',
+        status,
+        message,
+        auditTrail
+      };
     } else {
       elevation = input.elevation;
       temperature = input.temperature;
@@ -93,31 +199,51 @@ export class DensityCorrectionService {
     }
 
     const method = input?.method || 'TABLE';
+    const applySimplifications = input?.applyStandardSimplifications === true;
 
-    // Barometric pressure calculation
-    // Note: ASHRAE 62.1-2022 Addendum j Erratum (May 14, 2024) corrected the Eq D-1b CZ formula.
-    // Our pressure reduction uses the standard ISA model which aligns with the corrected 1 / (1 - Z*2.25577e-5)^5.2559 ratio.
-    const pressureAtm = this.STANDARD_PRESSURE_KPA * Math.pow(1 - 2.25577e-5 * elevation, 5.2559);
-    
-    // Humidity ratio W calculation
+    // Atmospheric barometric pressure
+    const pressureAtm = this.calculatePressure(elevation);
+
+    // Vapor and dry air pressure
     const tKelvin = temperature + 273.15;
-    let pv = 0;
+    const psat = this.calculatePsat(temperature);
+    const rhFraction = Math.max(0, Math.min(100, rh)) / 100;
+    const pv = rhFraction * psat;
+    const pd = Math.max(0, pressureAtm - pv);
+    const rDryAir = 0.287058; // kJ/(kg·K)
+    const dryAirDensity = pd / (rDryAir * tKelvin);
+
+    // Determine design humidity ratio W
     let humidityRatioKgKg = 0;
-    if (rh > 0) {
-      let psat = 0;
-      if (temperature >= 0) {
-        psat = 0.61078 * Math.exp((17.27 * temperature) / (temperature + 237.3)); // kPa
-      } else {
-        psat = 0.61078 * Math.exp((21.875 * temperature) / (temperature + 265.5)); // kPa
-      }
-      const rhFraction = Math.max(0, Math.min(100, rh)) / 100;
-      pv = rhFraction * psat;
+    if (input?.humidityRatio !== undefined && input?.humidityRatio !== null && !isNaN(input.humidityRatio)) {
+      humidityRatioKgKg = input.humidityRatio;
+    } else {
+      humidityRatioKgKg = this.calculateHumidityRatio(temperature, rh, pressureAtm);
     }
-    const pd = pressureAtm - pv;
-    const dryAirDensity = pd / (this.R_DRY_AIR_KJ * tKelvin); // Dry-air density per ASHRAE 62.1 Addendum j Appendix D (D-5b)
-    if (pd > 0) {
-      humidityRatioKgKg = 0.621945 * (pv / pd);
+
+    // Analytical factors (Normative Appendix D)
+    // Eq D-1b (SI units): Cz = 1 / (1 - Z * 2.25577 * 10^-5)^5.2559
+    const cz = 1 / Math.pow(1 - elevation * 2.25577e-5, 5.2559);
+
+    // Eq D-2: CT = (T + 273.15) / 294.15
+    let ct = (temperature + 273.15) / 294.15;
+    let ctSimplified = false;
+    if (applySimplifications && temperature <= 40.0) {
+      ct = 1.0;
+      ctSimplified = true;
     }
+
+    // Eq D-3: CW = (1 + W) / (1 + 1.6078 * W)
+    let cw = (1 + humidityRatioKgKg) / (1 + 1.6078 * humidityRatioKgKg);
+    let cwSimplified = false;
+    if (applySimplifications && humidityRatioKgKg <= 0.015) {
+      cw = 1.0;
+      cwSimplified = true;
+    }
+
+    const simplifiedEp = cz * ct * cw;
+    const directEp = dryAirDensity > 0 ? this.STANDARD_DENSITY / dryAirDensity : 1.0;
+    const analyticalEp = applySimplifications ? simplifiedEp : directEp;
 
     let eRho = 1.0;
 
@@ -126,46 +252,79 @@ export class DensityCorrectionService {
       if (tableERho !== null) {
         eRho = tableERho;
         auditTrail.push({
-          symbol: 'Eρ',
-          name: 'Air Density Factor (Table)',
-          formula: 'Table 6-5 Lookup',
-          inputs: { 'Z (m)': elevation },
+          symbol: 'Z',
+          name: 'Outdoor-Air Intake Elevation',
+          formula: 'Intake louver center above sea level',
+          inputs: { 'Z': elevation },
+          result: elevation,
+          unit: 'm',
+          reference: 'ASHRAE 62.1-2022 Table 6-5'
+        });
+        auditTrail.push({
+          symbol: 'Ep',
+          name: 'Air-Density Factor (Table 6-5)',
+          formula: 'Table 6-5 Lookup by Intake Elevation',
+          inputs: { 'Outdoor-air intake elevation (m)': elevation },
           result: eRho,
           unit: '',
-          reference: 'ASHRAE 62.1 Addendum j Table 6-5'
+          reference: 'ASHRAE 62.1-2022 Table 6-5'
         });
       } else {
-        // Fallback to Analytical if above 3437m
+        // Elevations above 3437 m require Normative Appendix D analytical method
+        // In TABLE mode, record Table Limit fallback and use Normative Appendix D analytical value
+        eRho = analyticalEp;
         auditTrail.push({
           symbol: 'Table Limit',
-          name: 'Elevation above Table 6-5',
-          formula: 'Z > 3437m, fallback to Appendix D',
+          name: 'Elevation above Table 6-5 (Z > 3437 m)',
+          formula: 'Z > 3437 m requires Normative Appendix D (Fallback to Analytical)',
           inputs: { 'Z (m)': elevation },
-          result: 'FALLBACK',
-          unit: '',
-          reference: 'ASHRAE 62.1 Addendum j Table 6-5 Note'
-        });
-        eRho = this.STANDARD_DENSITY / dryAirDensity;
-        auditTrail.push({
-          symbol: 'Eρ',
-          name: 'Air Density Factor (Analytical)',
-          formula: '1.2 / ρ_da',
-          inputs: { 'Z (m)': elevation, 'T (°C)': temperature, 'ρ_da (kg_da/m³)': dryAirDensity, 'ρ_standard': this.STANDARD_DENSITY },
           result: eRho,
           unit: '',
-          reference: 'ASHRAE 62.1 Addendum j Normative Appendix D (Eq D-5b)'
+          reference: 'ASHRAE 62.1-2022 Table 6-5 Footnote / Normative Appendix D'
         });
       }
     } else {
-      eRho = this.STANDARD_DENSITY / dryAirDensity;
+      // Normative Appendix D Analytical Method
+      eRho = analyticalEp;
+
       auditTrail.push({
-        symbol: 'Eρ',
-        name: 'Air Density Factor (Analytical)',
-        formula: '1.2 / ρ_da',
-        inputs: { 'Z (m)': elevation, 'T (°C)': temperature, 'W (kg/kg)': humidityRatioKgKg, 'ρ_da (kg_da/m³)': dryAirDensity, 'ρ_standard': this.STANDARD_DENSITY },
+        symbol: 'Cz',
+        name: 'Altitude Factor (Eq D-1b)',
+        formula: '1 / (1 - Z × 2.25577×10⁻⁵)⁵·²⁵⁵⁹',
+        inputs: { 'Z (m)': elevation },
+        result: cz,
+        unit: '',
+        reference: 'ASHRAE 62.1-2022 Normative Appendix D (Eq D-1b)'
+      });
+
+      auditTrail.push({
+        symbol: 'CT',
+        name: 'Temperature Factor (Eq D-2)',
+        formula: ctSimplified ? '1.0 (Permitted simplification for T ≤ 40°C)' : '(T + 273.15) / 294.15',
+        inputs: { 'T (°C)': temperature },
+        result: ct,
+        unit: '',
+        reference: 'ASHRAE 62.1-2022 Normative Appendix D (Eq D-2 / Section D.1)'
+      });
+
+      auditTrail.push({
+        symbol: 'CW',
+        name: 'Moisture Factor (Eq D-3)',
+        formula: cwSimplified ? '1.0 (Permitted simplification for W ≤ 0.015 kg/kg)' : '(1 + W) / (1 + 1.6078 × W)',
+        inputs: { 'W (kg/kg)': humidityRatioKgKg },
+        result: cw,
+        unit: '',
+        reference: 'ASHRAE 62.1-2022 Normative Appendix D (Eq D-3 / Section D.1)'
+      });
+
+      auditTrail.push({
+        symbol: 'Ep',
+        name: 'Air-Density Factor (Analytical)',
+        formula: 'Cz × CT × CW',
+        inputs: { 'Cz': cz, 'CT': ct, 'CW': cw },
         result: eRho,
         unit: '',
-        reference: 'ASHRAE 62.1 Addendum j Normative Appendix D (Eq D-5b)'
+        reference: 'ASHRAE 62.1-2022 Normative Appendix D (Eq D-4)'
       });
     }
 
@@ -173,32 +332,43 @@ export class DensityCorrectionService {
       elevation,
       temperature,
       relativeHumidity: rh,
+      humidityRatioKgKg,
       pressureAtm,
       density: dryAirDensity,
-      humidityRatioKgKg,
+      cz,
+      ct,
+      cw,
       eRho,
+      methodUsed: method,
+      simplificationsApplied: {
+        ctSimplified,
+        cwSimplified
+      },
+      tableReference: method === 'TABLE' ? 'ASHRAE 62.1-2022 Table 6-5' : 'ASHRAE 62.1-2022 Normative Appendix D',
       status,
+      message,
       auditTrail
     };
   }
 
   static getAirProperties(elevationM: number, temperatureC: number, relativeHumidity: number = 0) {
     const res = this.calculate({
-        elevation: elevationM,
-        temperature: temperatureC,
-        relativeHumidity: relativeHumidity,
-        method: 'ANALYTICAL'
+      elevation: elevationM,
+      temperature: temperatureC,
+      relativeHumidity: relativeHumidity,
+      method: 'ANALYTICAL',
+      applyStandardSimplifications: false
     });
     
     return {
-        elevationM: res.elevation,
-        temperatureC: res.temperature,
-        relativeHumidity: res.relativeHumidity,
-        pressurePa: res.pressureAtm * 1000,
-        densityKgM3: res.density,
-        densityRatio: res.eRho,
-        standardDensityKgM3: this.STANDARD_DENSITY,
-        humidityRatioKgKg: res.humidityRatioKgKg
+      elevationM: res.elevation,
+      temperatureC: res.temperature,
+      relativeHumidity: res.relativeHumidity,
+      humidityRatioKgKg: res.humidityRatioKgKg,
+      pressurePa: res.pressureAtm * 1000,
+      densityKgM3: res.density,
+      densityRatio: res.eRho,
+      standardDensityKgM3: this.STANDARD_DENSITY
     };
   }
 }

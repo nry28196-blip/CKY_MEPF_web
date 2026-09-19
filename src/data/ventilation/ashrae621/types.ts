@@ -1,7 +1,7 @@
 
 export type AshraeEdition = '2019' | '2022' | '2025';
 
-export type VerificationStatus = 'VERIFIED' | 'NOT_VERIFIED' | 'INVALID';
+export type VerificationStatus = 'VERIFIED' | 'NOT_VERIFIED' | 'INVALID' | 'UNIMPLEMENTED';
 export enum SourceType {
   ASHRAE_PUBLISHED = 'ASHRAE_PUBLISHED',
   ASHRAE_PUBLISHED_ADDENDUM = 'ASHRAE_PUBLISHED_ADDENDUM',
@@ -9,6 +9,7 @@ export enum SourceType {
   PROJECT_SPECIFICATION = 'PROJECT_SPECIFICATION',
   ADOPTED_CODE = 'ADOPTED_CODE',
   PUBLIC_REVIEW_DRAFT = 'PUBLIC_REVIEW_DRAFT',
+  USER_OVERRIDE = 'USER_OVERRIDE',
   UNKNOWN = 'UNKNOWN'
 }
 
@@ -59,6 +60,23 @@ export interface Ashrae621Ez {
   verificationStatus: VerificationStatus;
   verificationDate?: string;
   provenance?: EzProvenance;
+
+  // ASHRAE 62.1-2022 Table 6-4 configuration attributes
+  distributionCategory?: 'ceiling' | 'floor' | 'makeup' | 'personalized' | 'unidirectional' | 'override';
+  supplyLocation?: 'ceiling' | 'floor' | 'breathing_zone' | 'other';
+  supplyAirCondition?: 'cool' | 'warm' | 'isothermal' | 'any';
+  returnLocation?: 'ceiling' | 'floor' | 'other';
+  spaceTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none';
+  supplyJetVelocityCondition?: string;
+  verticalThrowCondition?: string;
+  returnAirHeightCondition?: string;
+  isWellMixed?: boolean;
+  isStratified?: boolean;
+  isPersonalized?: boolean;
+  additionalQualifyingConditions?: string;
+  isManualOverride?: boolean;
+  manualOverrideBasis?: string;
+  manualJustification?: string;
 }
 
 export interface Ashrae621ExhaustType {
