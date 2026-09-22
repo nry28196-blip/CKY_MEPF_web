@@ -1,21 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { Wind, Plus, Trash2, Database } from 'lucide-react';
+import { Wind, Plus, Trash2, Info, AlertTriangle } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 import TooltipLabel from './TooltipLabel';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
-import { Ashrae621ExhaustService, ExhaustInput } from '../calculations/ventilation/Ashrae621ExhaustService';
+import { Ashrae621ExhaustService, ExhaustOperationMode } from '../calculations/ventilation/Ashrae621ExhaustService';
 import { StandardDataProvider } from '../data/ventilation/StandardDataProvider';
-
-
 import { VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
-import { UnitConversionService, ft2ToM2 } from "../lib/UnitConversionService";
 
 interface ExhaustRow {
   id: string;
   name: string;
   categoryId: string;
-  quantity: number | ''; 
+  quantity: number | '';
   designExhaust: number | '';
+  operationMode?: ExhaustOperationMode;
 }
 
 export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: string }) {
@@ -29,12 +27,23 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
       name: 'Public Restroom 1',
       categoryId: 'toilet_public',
       quantity: 2,
-      designExhaust: 50
+      designExhaust: isMetric ? 50 : 100,
+      operationMode: 'continuous'
     }
   ]);
 
   const addRow = () => {
-    setRows([...rows, { id: Math.random().toString(), name: `Space ${rows.length + 1}`, categoryId: 'toilet_public', quantity: 1, designExhaust: 25 }]);
+    setRows([
+      ...rows,
+      {
+        id: Math.random().toString(),
+        name: `Space ${rows.length + 1}`,
+        categoryId: 'toilet_public',
+        quantity: 1,
+        designExhaust: isMetric ? 25 : 50,
+        operationMode: 'continuous'
+      }
+    ]);
   };
 
   const removeRow = (id: string) => {
@@ -50,86 +59,214 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
   const results = useMemo(() => {
     const calcRows = rows.map(r => {
       const exhaustType = exhaustRates.find(e => e.id === r.categoryId) || null;
-      
-      let qty = r.quantity === '' ? null : r.quantity;
-      if (qty !== null && exhaustType?.unitType === 'm2' && !isMetric) {
-        qty = ft2ToM2(qty);
-      }
-      
-      let dExhaust = r.designExhaust === '' ? null : r.designExhaust;
-      if (dExhaust !== null && !isMetric) {
-        dExhaust = UnitConversionService.cfmToLs(dExhaust);
-      }
-      
-      const res = Ashrae621ExhaustService.calculate({ expectedStandard: 'ASHRAE 62.1', expectedEdition: edition, exhaustType, qty, designExhaust: dExhaust });
-      
-      return { row: r, result: res };
+      const qty = r.quantity === '' ? null : Number(r.quantity);
+      const dExhaust = r.designExhaust === '' ? null : Number(r.designExhaust);
+
+      const res = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: edition,
+        exhaustType,
+        qty,
+        designExhaust: dExhaust,
+        operationMode: r.operationMode || 'continuous',
+        unitSystem: isMetric ? 'metric' : 'ip'
+      });
+
+      return { row: r, result: res, exhaustType };
     });
-    
+
     const status = VentilationValidationService.aggregateStatus(calcRows.map(r => r.result.status));
-    
+
     return { calcRows, status };
-  }, [rows, isMetric, exhaustRates]);
+  }, [rows, isMetric, exhaustRates, edition]);
 
   return (
     <div className="space-y-6">
-      <EngineeringStatusHeader 
-        status={results.status} 
-        message={`ASHRAE 62.1-${edition} Exhaust - ${results.status === 'PASS' ? 'All exhaust requirements met' : 'Check requirements'}`}
+      <EngineeringStatusHeader
+        status={results.status}
+        message={`ASHRAE 62.1-${edition} Exhaust (Section 6.5.1, Table 6-2) - ${results.status === 'PASS' ? 'All exhaust requirements met' : 'Check prescriptive requirements'}`}
       />
-      
+
       <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-rose-400">
             <Wind className="w-5 h-5" />
-            <h3 className="font-semibold text-white">Space Exhaust Rates</h3>
+            <h3 className="font-semibold text-white">Prescriptive Space Exhaust Rates</h3>
           </div>
-          <button onClick={addRow} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm transition-colors">
+          <button
+            id="add-exhaust-space-btn"
+            onClick={addRow}
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm transition-colors"
+          >
             <Plus className="w-4 h-4" /> Add Space
           </button>
         </div>
 
         <div className="space-y-4">
-          {results.calcRows.map(({ row, result }) => (
-            <div key={row.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-slate-950/50 p-4 rounded-lg border border-slate-800 relative">
-              {rows.length > 1 && (
-                <button onClick={() => removeRow(row.id)} className="absolute top-2 right-2 text-slate-500 hover:text-red-400">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-              
-              <div className="col-span-3">
-                <TooltipLabel label="Space Name" tooltip="Identifier" />
-                <input type="text" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.name} onChange={(e) => updateRow(row.id, 'name', e.target.value)} />
-              </div>
-              
-              <div className="col-span-3">
-                <TooltipLabel label="Category" tooltip="ASHRAE 62.1 Exhaust Space" />
-                <select className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.categoryId} onChange={(e) => updateRow(row.id, 'categoryId', e.target.value)}>
-                  {exhaustRates.map(e => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="col-span-2">
-                <TooltipLabel label={`Quantity (${result.unitType === 'm2' ? (isMetric ? 'm²' : 'ft²') : result.unitType})`} tooltip="Multiplier" />
-                <input type="number" min="0" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.quantity ?? ""} onChange={(e) => updateRow(row.id, 'quantity', e.target.value ? Number(e.target.value) : '')} />
-              </div>
-              
-              <div className="col-span-2">
-                <TooltipLabel label={`Design (${isMetric ? 'L/s' : 'cfm'})`} tooltip="Proposed actual exhaust" />
-                <input type="number" min="0" className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700" value={row.designExhaust ?? ""} onChange={(e) => updateRow(row.id, 'designExhaust', e.target.value ? Number(e.target.value) : '')} />
-              </div>
-              
-              <div className="col-span-2 flex flex-col justify-center">
-                <div className="text-[10px] text-slate-400 mb-1">Required: {result.requiredExhaust === null ? 'N/A' : (isMetric ? result.requiredExhaust.toFixed(1) : UnitConversionService.lsToCfm(result.requiredExhaust).toFixed(1))} {isMetric ? 'L/s' : 'cfm'}</div>
-                <div className={`px-2 py-1 rounded text-xs font-bold text-center ${result.status === 'PASS' ? 'bg-emerald-500/20 text-emerald-400' : result.status === 'FAIL' ? 'bg-red-500/20 text-red-400' : result.status === 'BLOCKED' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                  {result.status === 'BLOCKED' ? 'NOT VERIFIED' : result.status} {result.exhaustClass !== null ? `(Class ${result.exhaustClass})` : ''}
+          {results.calcRows.map(({ row, result, exhaustType }) => {
+            const allowsIntermittent = exhaustType?.intermittentRate !== null && exhaustType?.intermittentRate !== undefined;
+
+            return (
+              <div
+                key={row.id}
+                id={`exhaust-row-${row.id}`}
+                className="bg-slate-950/50 p-4 rounded-lg border border-slate-800 relative space-y-3"
+              >
+                {rows.length > 1 && (
+                  <button
+                    id={`remove-exhaust-row-${row.id}`}
+                    onClick={() => removeRow(row.id)}
+                    className="absolute top-2 right-2 text-slate-500 hover:text-red-400"
+                    title="Remove space"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                  <div className="col-span-12 md:col-span-3">
+                    <TooltipLabel label="Space Name" tooltip="Identifier" />
+                    <input
+                      id={`exhaust-space-name-${row.id}`}
+                      type="text"
+                      className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700"
+                      value={row.name}
+                      onChange={(e) => updateRow(row.id, 'name', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-span-12 md:col-span-3">
+                    <TooltipLabel label="Table 6-2 Space Category" tooltip="ASHRAE 62.1-2022 Table 6-2 Space Type" />
+                    <select
+                      id={`exhaust-category-${row.id}`}
+                      className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700"
+                      value={row.categoryId}
+                      onChange={(e) => updateRow(row.id, 'categoryId', e.target.value)}
+                    >
+                      {exhaustRates.map(e => (
+                        <option key={e.id} value={e.id}>
+                          {e.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="col-span-6 md:col-span-2">
+                    <TooltipLabel
+                      label={`Qty (${result.unitType === 'm2' ? (isMetric ? 'm²' : 'ft²') : result.unitType})`}
+                      tooltip="Multiplier for prescriptive exhaust requirement"
+                    />
+                    <input
+                      id={`exhaust-qty-${row.id}`}
+                      type="number"
+                      min="0"
+                      className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700"
+                      value={row.quantity ?? ''}
+                      onChange={(e) => updateRow(row.id, 'quantity', e.target.value ? Number(e.target.value) : '')}
+                    />
+                  </div>
+
+                  <div className="col-span-6 md:col-span-2">
+                    <TooltipLabel
+                      label={`Design (${isMetric ? 'L/s' : 'cfm'})`}
+                      tooltip="Proposed actual engineering exhaust airflow"
+                    />
+                    <input
+                      id={`exhaust-design-${row.id}`}
+                      type="number"
+                      min="0"
+                      className="w-full bg-slate-900 text-white rounded px-3 py-2 text-sm border border-slate-700"
+                      value={row.designExhaust ?? ''}
+                      onChange={(e) => updateRow(row.id, 'designExhaust', e.target.value ? Number(e.target.value) : '')}
+                    />
+                  </div>
+
+                  <div className="col-span-12 md:col-span-2 flex flex-col justify-center">
+                    <div className="text-[10px] text-slate-400 mb-1">
+                      Req: {result.requiredExhaust === null ? (result.isSpecialStandard ? 'Per Std' : 'N/A') : `${result.requiredExhaust.toFixed(1)} ${isMetric ? 'L/s' : 'cfm'}`}
+                    </div>
+                    <div
+                      id={`exhaust-status-${row.id}`}
+                      className={`px-2 py-1 rounded text-xs font-bold text-center ${
+                        result.status === 'PASS'
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : result.status === 'FAIL'
+                          ? 'bg-red-500/20 text-red-400'
+                          : result.status === 'BLOCKED'
+                          ? 'bg-rose-500/20 text-rose-400'
+                          : 'bg-amber-500/20 text-amber-400'
+                      }`}
+                    >
+                      {result.status === 'BLOCKED' ? 'NOT VERIFIED' : result.status}{' '}
+                      {result.airClass !== null ? `(Class ${result.airClass})` : ''}
+                    </div>
+                  </div>
                 </div>
+
+                {/* Sub-bar: Operation Mode & Prescriptive Metadata */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-900 text-xs text-slate-400">
+                  <div className="flex items-center gap-3">
+                    <span className="text-slate-500">Operation:</span>
+                    <label className="inline-flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`mode-${row.id}`}
+                        value="continuous"
+                        checked={(row.operationMode || 'continuous') === 'continuous'}
+                        onChange={() => updateRow(row.id, 'operationMode', 'continuous')}
+                        className="text-cyan-500 focus:ring-0 bg-slate-900 border-slate-700"
+                      />
+                      <span>Continuous</span>
+                    </label>
+
+                    {allowsIntermittent && (
+                      <label className="inline-flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`mode-${row.id}`}
+                          value="intermittent"
+                          checked={row.operationMode === 'intermittent'}
+                          onChange={() => updateRow(row.id, 'operationMode', 'intermittent')}
+                          className="text-cyan-500 focus:ring-0 bg-slate-900 border-slate-700"
+                        />
+                        <span>Intermittent</span>
+                      </label>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300">
+                      Air Class {result.airClass ?? 'N/A'}
+                    </span>
+                    {result.isSpecialStandard && (
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px]">
+                        {result.specialStandardReference}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recirculation note & compliance notes */}
+                {result.recirculationClassification && (
+                  <div className="text-[11px] text-slate-400 flex items-start gap-1.5 bg-slate-900/40 p-2 rounded">
+                    <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                    <span>{result.recirculationClassification}</span>
+                  </div>
+                )}
+
+                {result.complianceNotes.length > 0 && result.status === 'FAIL' && (
+                  <div className="text-[11px] text-rose-400 flex items-start gap-1.5 bg-rose-950/30 border border-rose-900/50 p-2 rounded">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      {result.complianceNotes.map((note, idx) => (
+                        <div key={idx}>{note}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

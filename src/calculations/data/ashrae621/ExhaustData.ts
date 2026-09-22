@@ -3,7 +3,7 @@ export type AshraeEdition = '2019' | '2022' | '2025';
 export interface ExhaustSpaceType {
   id: string;
   name: string;
-  ashraeCategory: string; // From Table 6.5
+  ashraeCategory: string; // From Table 6-2
   ashraeRateImp: number; // cfm/ft2 or cfm/unit
   ashraeRateMet: number; // L/s-m2 or L/s-unit
   ashraeUnit: 'area' | 'fixture' | 'equipment' | 'room' | 'custom';

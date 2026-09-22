@@ -122,17 +122,32 @@ export interface Ashrae621Ez {
 }
 
 export interface Ashrae621ExhaustType {
-  notes?: string;
-  standard: string;
   id: string;
   name: string;
   category: string;
-  rate: number;
-  unitType: 'fixture' | 'm2' | 'room' | 'equipment';
+  rate: number | null;
+  rateIp?: number | null;
+  continuousRate?: number | null;
+  continuousRateIp?: number | null;
+  intermittentRate?: number | null;
+  intermittentRateIp?: number | null;
+  unitType: 'fixture' | 'm2' | 'room' | 'equipment' | 'showerhead' | 'special';
   operatingCondition: string;
-  exhaustClass: number;
-  reference: string;
+  airClass?: number;
+  exhaustClass: number; // Retained as alias for airClass
+  standard: string;
   edition: string;
+  reference: string;
+  referenceSection?: string;
+  referenceTable?: string;
+  referenceBasis?: string;
+  isSpecialStandard?: boolean;
+  specialStandardReference?: string;
+  rateStatus?: 'PRESCRIPTIVE' | 'SPECIAL_REQUIREMENT';
+  notes?: string;
+  exceptions?: string;
+  combustionCondition?: string;
+  applicableAddenda?: string[];
   revisionState: StandardRevision;
   sourceType: SourceType;
   verificationStatus: VerificationStatus;
@@ -183,10 +198,14 @@ export interface SpaceTypeProvenance {
 
 export interface ExhaustProvenance {
   rate?: DataProvenance;
+  rateIp?: DataProvenance;
   unitType?: DataProvenance;
+  airClass?: DataProvenance;
   exhaustClass?: DataProvenance;
   operatingCondition?: DataProvenance;
   reference?: DataProvenance;
+  referenceSection?: DataProvenance;
+  referenceTable?: DataProvenance;
 }
 
 export interface EzProvenance {
