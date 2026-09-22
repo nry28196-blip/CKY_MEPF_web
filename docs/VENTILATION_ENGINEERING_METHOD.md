@@ -33,10 +33,10 @@ To account for varying air densities across different site elevations and temper
 The engine ensures that density conversions ($E_{\rho}$) are only applied directly at the Zone Outdoor Air ($V_{oz}$) derivation layer (Equation 6-2) and are strictly omitted from multiplying $V_{ou}$ within the Simplified or Alternative Multi-Zone Procedures. 
 
 ## 4. Primary Engineering Assumptions & Safeguards
-When specific variables are omitted by the user, the calculation engine applies the following conservative engineering assumptions to maintain compliance:
+When specific variables are omitted by the user, the calculation engine applies the following engineering rules to maintain integrity:
 *   **Peak System Population ($P_s$)**: If omitted, $P_s$ defaults to the sum of the individual peak zone populations ($\sum P_z$). This forces the Diversity Ratio ($D$) to $1.0$.
-*   **System Primary Airflow ($V_{ps}$)**: If omitted, the engine assumes $V_{ps}$ equals the sum of the minimum expected primary airflows to all zones ($\sum V_{pz-min}$).
-*   **Zone Minimum Primary Airflow ($V_{pz-min}$)**: If omitted in a VAV multi-zone setup, the engine conservatively derives it as $\max(0.3 \times V_{pz}, V_{oz})$ to guarantee system compliance for minimum VAV damper positions.
+*   **System Primary Airflow ($V_{ps}$)**: For VAV multi-zone systems, $V_{ps}$ must be explicitly specified by the engineer at the analyzed operating condition (along with the design basis and condition, e.g. cooling design). The calculation engine strictly does **not** assume an automated fallback to $\sum V_{pz}$ or $\sum V_{pz-min}$; if $V_{ps}$ is missing in a VAV system, the calculation returns `INCOMPLETE` requiring explicit engineer input.
+*   **Zone Minimum Primary Airflow ($V_{pz-min}$)**: For VAV systems, the design minimum primary airflow ($V_{pz-min,design}$) must be explicitly specified for each zone. The engine performs strict validation against the required minimum ventilation airflow ($V_{pz-min,required}$), flagging non-compliance if the design minimum airflow is inadequate to deliver required outdoor air. The engine does **not** apply an unverified automatic synthetic fallback.
 *   **Mathematical Clamping**: To prevent calculation crashes (e.g., division by zero if $V_{pz-min} = 0$), System Ventilation Efficiency ($E_v$) is constrained to a minimum theoretical floor of $0.1$. It is mathematically capped at $1.0$ (100% efficient).
 
 ## 5. Subsystem Recovery Note

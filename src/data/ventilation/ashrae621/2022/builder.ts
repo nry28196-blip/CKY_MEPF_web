@@ -14,6 +14,7 @@ export interface Table61SpaceTypeSpec {
   defaultOccupancyIp: number; // #/1000 ft2
   isDensityNotApplicable?: boolean;
   airClass: number; // 1, 2, 3, or 4
+  osPermitted?: boolean; // Occupant Sensitivity (OS) permitted per Table 6-1 / 6.2.6.1.4
   notes?: string;
   applicableNotes?: string[];
   sourceNoteCondition?: string;
@@ -51,6 +52,8 @@ export function createTable61SpaceType(spec: Table61SpaceTypeSpec): Ashrae621Spa
     densityStatus: spec.isDensityNotApplicable ? 'NOT_APPLICABLE' : 'APPLICABLE',
     isDensityNotApplicable: !!spec.isDensityNotApplicable,
     airClass: spec.airClass,
+    osPermitted: !!spec.osPermitted,
+    osStatus: spec.osPermitted ? 'PERMITTED' : 'NOT_PERMITTED',
     units: 'L/s-person, L/s-m2',
     exhaustRequired: false,
     reference: 'Table 6-1',
@@ -115,6 +118,16 @@ export function createTable61SpaceType(spec: Table61SpaceTypeSpec): Ashrae621Spa
         standard: 'ASHRAE 62.1',
         edition: '2022',
         reference: 'Table 6-1',
+        sourceType,
+        verificationStatus: status,
+        revision: '2022',
+        verificationDate
+      },
+      osPermitted: {
+        value: !!spec.osPermitted,
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Table 6-1 / 6.2.6.1.4',
         sourceType,
         verificationStatus: status,
         revision: '2022',

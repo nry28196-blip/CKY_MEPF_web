@@ -7,7 +7,8 @@
 import { ASHRAE_621_2022_ALL_SPACE_TYPES } from './ventilation/ashrae621/2022/table61Data';
 import {
   Ashrae621SpaceType,
-  ProvenanceRecord,
+  DataProvenance,
+  SpaceTypeProvenance,
   StandardRevision,
   SourceType,
   ACTIVE_REFERENCE_BASIS,
@@ -15,24 +16,10 @@ import {
   APPLICABLE_ADDENDA
 } from './ventilation/ashrae621/types';
 
-export interface Table61RecordProvenanceItem {
-  value: number | string;
-  standard: string;
-  edition: string;
-  reference: string;
-  sourceType: SourceType | string;
-  verificationStatus: 'VERIFIED' | 'NOT_VERIFIED' | 'INVALID' | 'UNIMPLEMENTED';
-  revision: string;
-  verificationDate: string;
-}
+export type Table61RecordProvenanceItem = DataProvenance;
 
-export interface Table61RecordProvenance {
-  rp?: Table61RecordProvenanceItem | ProvenanceRecord;
-  ra?: Table61RecordProvenanceItem | ProvenanceRecord;
-  defaultOccupancy?: Table61RecordProvenanceItem | ProvenanceRecord;
-  airClass?: Table61RecordProvenanceItem | ProvenanceRecord;
-  reference?: Table61RecordProvenanceItem | ProvenanceRecord;
-  [key: string]: Table61RecordProvenanceItem | ProvenanceRecord | undefined;
+export interface Table61RecordProvenance extends SpaceTypeProvenance {
+  [key: string]: DataProvenance | undefined;
 }
 
 export interface Table61RecordVersionMetadata {
@@ -44,7 +31,7 @@ export interface Table61RecordVersionMetadata {
   publishedErrataApplied: string[];
   verificationStatus: 'VERIFIED' | 'NOT_VERIFIED' | 'INVALID' | 'UNIMPLEMENTED';
   verificationDate: string; // '2026-09-22'
-  sourceType: SourceType | string; // 'ASHRAE_PUBLISHED'
+  sourceType: SourceType; // 'ASHRAE_PUBLISHED'
 }
 
 export interface Table61Record extends Ashrae621SpaceType {
@@ -73,6 +60,10 @@ export interface Table61Record extends Ashrae621SpaceType {
   
   // Air Class
   airClass: number; // 1, 2, 3, or 4
+  
+  // Occupant Sensitivity (OS) Section 6.2.6.1.4
+  osPermitted: boolean;
+  osStatus: 'PERMITTED' | 'NOT_PERMITTED';
   
   // Units & Reference
   unitsMetric: string; // 'L/s-person, L/s-m²'
@@ -129,6 +120,8 @@ function toTable61Record(space: Ashrae621SpaceType): Table61Record {
     isDensityNotApplicable: Boolean(space.isDensityNotApplicable),
     densityStatus: space.isDensityNotApplicable ? 'NOT_APPLICABLE' : 'APPLICABLE',
     airClass: space.airClass ?? 1,
+    osPermitted: Boolean(space.osPermitted),
+    osStatus: space.osPermitted ? 'PERMITTED' : 'NOT_PERMITTED',
     units: space.units || 'L/s-person, L/s-m2',
     unitsMetric: 'L/s-person, L/s-m²',
     unitsIp: 'cfm/person, cfm/ft²',
@@ -148,7 +141,7 @@ function toTable61Record(space: Ashrae621SpaceType): Table61Record {
 }
 
 /**
- * Complete, authoritative ASHRAE 62.1-2022 Table 6-1 occupancy records (78 categories).
+ * Complete, authoritative ASHRAE 62.1-2022 Table 6-1 occupancy records (81 categories across 13 groups).
  */
 export const TABLE_6_1_RECORDS: Table61Record[] =
   ASHRAE_621_2022_ALL_SPACE_TYPES.map(toTable61Record);
@@ -192,7 +185,7 @@ export const TABLE_6_1_METADATA = {
   referenceBasis: ACTIVE_REFERENCE_BASIS,
   applicableAddenda: APPLICABLE_ADDENDA,
   totalRecords: TABLE_6_1_RECORDS.length,
-  totalGroups: 11,
+  totalGroups: 13,
   completenessStatus: 'COMPLETE' as const,
   verificationDate: '2026-09-22',
   sourceType: SourceType.ASHRAE_PUBLISHED

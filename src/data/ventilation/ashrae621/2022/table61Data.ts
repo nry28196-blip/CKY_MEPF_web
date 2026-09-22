@@ -2,7 +2,35 @@ import { Table61SpaceTypeSpec, createTable61SpaceType } from './builder';
 import { Ashrae621SpaceType } from '../types';
 
 export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
-  // 1. Correctional Facilities
+  // 1. Animal Facilities (2 records)
+  {
+    id: 'animal_kennel',
+    name: 'Kennel (kennel room)',
+    group: 'Animal Facilities',
+    rpMetric: 2.5,
+    rpIp: 5,
+    raMetric: 0.3,
+    raIp: 0.06,
+    defaultOccupancyMetric: 10,
+    defaultOccupancyIp: 10,
+    airClass: 2,
+    osPermitted: false
+  },
+  {
+    id: 'animal_pet_shop',
+    name: 'Pet shop (animal room)',
+    group: 'Animal Facilities',
+    rpMetric: 3.8,
+    rpIp: 7.5,
+    raMetric: 0.9,
+    raIp: 0.18,
+    defaultOccupancyMetric: 10,
+    defaultOccupancyIp: 10,
+    airClass: 2,
+    osPermitted: false
+  },
+
+  // 2. Correctional Facilities (4 records)
   {
     id: 'correctional_cell',
     name: 'Cell',
@@ -13,7 +41,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'correctional_dayroom',
@@ -25,7 +54,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 30,
     defaultOccupancyIp: 30,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'correctional_guard_station',
@@ -37,7 +67,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 15,
     defaultOccupancyIp: 15,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'correctional_booking_waiting',
@@ -49,10 +80,11 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 50,
     defaultOccupancyIp: 50,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
 
-  // 2. Dry Cleaning and Laundry
+  // 3. Dry Cleaning and Laundry (5 records)
   {
     id: 'dry_cleaning_coin_operated',
     name: 'Coin-operated dry cleaner',
@@ -65,8 +97,10 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyMetric: 20,
     defaultOccupancyIp: 20,
     airClass: 2,
+    osPermitted: false,
     applicableNotes: ['Note B'],
-    sourceNoteCondition: 'Note B'
+    sourceNoteCondition: 'Note B',
+    notes: 'Exhaust not required if only using self-contained and closed-loop equipment. Note B applies.'
   },
   {
     id: 'dry_cleaning_coin_operated_laundromat',
@@ -78,7 +112,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 20,
     defaultOccupancyIp: 20,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'dry_cleaning_commercial',
@@ -92,8 +127,10 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyMetric: 30,
     defaultOccupancyIp: 30,
     airClass: 2,
+    osPermitted: false,
     applicableNotes: ['Note B'],
-    sourceNoteCondition: 'Note B'
+    sourceNoteCondition: 'Note B',
+    notes: 'Commercial dry cleaner ventilation rate. Note B applies.'
   },
   {
     id: 'dry_cleaning_commercial_laundry',
@@ -105,7 +142,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'dry_cleaning_storage_pickup',
@@ -117,10 +155,11 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 30,
     defaultOccupancyIp: 30,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
 
-  // 3. Educational Facilities
+  // 4. Educational Facilities (12 records)
   {
     id: 'education_classroom_ages_5_8',
     name: 'Classroom (ages 5–8)',
@@ -131,10 +170,11 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
-    id: 'classroom', // Preserved canonical ID for regression safety
+    id: 'classroom',
     name: 'Classroom (ages 9+)',
     group: 'Educational Facilities',
     rpMetric: 5.0,
@@ -143,7 +183,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 35,
     defaultOccupancyIp: 35,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'education_computer_lab',
@@ -155,7 +196,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'education_daycare_through_age_4',
@@ -167,7 +209,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'education_lecture_classroom',
@@ -179,7 +222,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 65,
     defaultOccupancyIp: 65,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'education_lecture_hall_fixed_seats',
@@ -191,7 +235,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 150,
     defaultOccupancyIp: 150,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'education_media_center',
@@ -203,7 +248,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'education_music_theater_dance',
@@ -215,7 +261,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 35,
     defaultOccupancyIp: 35,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'education_multiuse_assembly',
@@ -227,7 +274,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 100,
     defaultOccupancyIp: 100,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'education_science_laboratories',
@@ -239,7 +287,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'education_university_laboratories',
@@ -251,7 +300,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'education_wood_metal_shops',
@@ -263,13 +313,14 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 20,
     defaultOccupancyIp: 20,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
 
-  // 4. Food and Beverage Service
+  // 5. Food and Beverage Service (4 records)
   {
     id: 'food_bar_cocktail_lounge',
-    name: 'Bar, cocktail lounge',
+    name: 'Bars, cocktail lounges',
     group: 'Food and Beverage Service',
     rpMetric: 3.8,
     rpIp: 7.5,
@@ -277,7 +328,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 100,
     defaultOccupancyIp: 100,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'food_cafeteria_fast_food',
@@ -289,11 +341,12 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 100,
     defaultOccupancyIp: 100,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'food_dining_room',
-    name: 'Dining room',
+    name: 'Restaurant dining rooms',
     group: 'Food and Beverage Service',
     rpMetric: 3.8,
     rpIp: 7.5,
@@ -301,24 +354,27 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 70,
     defaultOccupancyIp: 70,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
+    // CORRECTED RECORD per Prompt 5: Rp = 3.8 L/s·person (7.5 cfm/person), Ra = 0.6 L/s·m² (0.12 cfm/ft²), density = 20, Air Class = 2
     id: 'food_kitchen_cooking',
     name: 'Kitchen (cooking)',
     group: 'Food and Beverage Service',
-    rpMetric: 5.0,
-    rpIp: 10,
+    rpMetric: 3.8,
+    rpIp: 7.5,
     raMetric: 0.6,
     raIp: 0.12,
     defaultOccupancyMetric: 20,
     defaultOccupancyIp: 20,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
 
-  // 5. General
+  // 6. General (2 records)
   {
-    id: 'corridor', // Preserved canonical ID
+    id: 'corridor',
     name: 'Corridors',
     group: 'General',
     rpMetric: 0,
@@ -330,7 +386,7 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyIp: 0,
     isDensityNotApplicable: true,
     airClass: 1,
-    notes: 'Ventilation airflow is based on area only. People rate Rp is not applicable.'
+    osPermitted: false
   },
   {
     id: 'general_storage_rooms',
@@ -345,12 +401,13 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyIp: 0,
     isDensityNotApplicable: true,
     airClass: 1,
+    osPermitted: false,
     applicableNotes: ['Note B'],
     sourceNoteCondition: 'Note B',
-    notes: 'Ventilation airflow is based on area only. Note B applies.'
+    notes: 'Storage rooms ventilation based on floor area only. Note B applies.'
   },
 
-  // 6. Hotels, Motels, Resorts, and Dormitories
+  // 7. Hotels, Motels, Resorts, and Dormitories (6 records)
   {
     id: 'hotel_barracks_sleeping',
     name: 'Barracks sleeping areas',
@@ -361,7 +418,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 20,
     defaultOccupancyIp: 20,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'hotel_bedroom_living',
@@ -373,7 +431,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'hotel_laundry_rooms_central',
@@ -385,7 +444,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'hotel_laundry_areas_living_units',
@@ -397,7 +457,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'hotel_lobbies_prefunction',
@@ -409,7 +470,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 30,
     defaultOccupancyIp: 30,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'hotel_multipurpose_assembly',
@@ -421,10 +483,11 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 120,
     defaultOccupancyIp: 120,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
 
-  // 7. Office Buildings
+  // 8. Office Buildings (9 records)
   {
     id: 'office_break_rooms',
     name: 'Break rooms',
@@ -435,7 +498,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'office_coffee_stations',
@@ -447,10 +511,11 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 20,
     defaultOccupancyIp: 20,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
-    id: 'conference', // Preserved canonical ID
+    id: 'conference',
     name: 'Conference/meeting',
     group: 'Office Buildings',
     rpMetric: 2.5,
@@ -459,7 +524,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 50,
     defaultOccupancyIp: 50,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'office_emergency_operator',
@@ -471,7 +537,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'office_main_entry_lobbies',
@@ -483,7 +550,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'office_occupied_storage_rooms_liquids',
@@ -497,10 +565,11 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyMetric: 0,
     defaultOccupancyIp: 0,
     isDensityNotApplicable: true,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
-    id: 'office', // Preserved canonical ID
+    id: 'office',
     name: 'Office space',
     group: 'Office Buildings',
     rpMetric: 2.5,
@@ -509,7 +578,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 5,
     defaultOccupancyIp: 5,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'office_reception_areas',
@@ -521,7 +591,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 30,
     defaultOccupancyIp: 30,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'office_telephone_data_entry',
@@ -533,10 +604,11 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 60,
     defaultOccupancyIp: 60,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
 
-  // 8. Miscellaneous Spaces
+  // 9. Miscellaneous Spaces (13 records)
   {
     id: 'misc_bank_vaults_safe_deposit',
     name: 'Bank vaults/safe deposit',
@@ -547,7 +619,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 5,
     defaultOccupancyIp: 5,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'misc_banks_financial_institutions',
@@ -559,11 +632,12 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 15,
     defaultOccupancyIp: 15,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'misc_computer_personal',
-    name: 'Computer (personal)',
+    name: 'Computer (not printing)',
     group: 'Miscellaneous Spaces',
     rpMetric: 2.5,
     rpIp: 5,
@@ -571,7 +645,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 60,
     defaultOccupancyIp: 60,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'misc_electrical_equipment_rooms',
@@ -586,8 +661,10 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyIp: 0,
     isDensityNotApplicable: true,
     airClass: 1,
+    osPermitted: false,
     applicableNotes: ['Note B'],
-    sourceNoteCondition: 'Note B'
+    sourceNoteCondition: 'Note B',
+    notes: 'Electrical equipment rooms ventilation based on floor area only. Note B applies.'
   },
   {
     id: 'misc_elevator_machine_rooms',
@@ -602,8 +679,10 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyIp: 0,
     isDensityNotApplicable: true,
     airClass: 2,
+    osPermitted: false,
     applicableNotes: ['Note B'],
-    sourceNoteCondition: 'Note B'
+    sourceNoteCondition: 'Note B',
+    notes: 'Elevator machine rooms ventilation based on floor area only. Note B applies.'
   },
   {
     id: 'misc_general_manufacturing',
@@ -615,7 +694,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 7,
     defaultOccupancyIp: 7,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'misc_pharmacy_prep_area',
@@ -627,7 +707,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'misc_photo_studios',
@@ -639,7 +720,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'misc_shipping_receiving',
@@ -654,8 +736,10 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyIp: 0,
     isDensityNotApplicable: true,
     airClass: 2,
+    osPermitted: false,
     applicableNotes: ['Note B'],
-    sourceNoteCondition: 'Note B'
+    sourceNoteCondition: 'Note B',
+    notes: 'Shipping and receiving ventilation based on floor area only. Note B applies.'
   },
   {
     id: 'misc_sorting_packing_assembly',
@@ -667,7 +751,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 7,
     defaultOccupancyIp: 7,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'misc_telephone_closets',
@@ -683,8 +768,10 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyIp: 0,
     isDensityNotApplicable: true,
     airClass: 1,
+    osPermitted: false,
     applicableNotes: ['Note B'],
-    sourceNoteCondition: 'Note B'
+    sourceNoteCondition: 'Note B',
+    notes: 'Telephone closets require no ventilation airflow unless heat dissipation requires it. Note B applies.'
   },
   {
     id: 'misc_transportation_waiting',
@@ -696,7 +783,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 100,
     defaultOccupancyIp: 100,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'misc_warehouses',
@@ -711,11 +799,13 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyIp: 0,
     isDensityNotApplicable: true,
     airClass: 2,
+    osPermitted: false,
     applicableNotes: ['Note B'],
-    sourceNoteCondition: 'Note B'
+    sourceNoteCondition: 'Note B',
+    notes: 'Warehouse ventilation based on floor area only. Note B applies.'
   },
 
-  // 9. Public Assembly Spaces
+  // 10. Public Assembly Spaces (8 records)
   {
     id: 'public_auditoriums',
     name: 'Auditoriums',
@@ -726,7 +816,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 150,
     defaultOccupancyIp: 150,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'public_courtrooms',
@@ -738,7 +829,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 70,
     defaultOccupancyIp: 70,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'public_legislative_chambers',
@@ -750,7 +842,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 50,
     defaultOccupancyIp: 50,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'public_libraries',
@@ -762,7 +855,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'public_lobbies',
@@ -774,7 +868,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 150,
     defaultOccupancyIp: 150,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'public_museums_childrens',
@@ -786,7 +881,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 40,
     defaultOccupancyIp: 40,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'public_museums_galleries',
@@ -798,7 +894,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 40,
     defaultOccupancyIp: 40,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'public_places_of_religious_worship',
@@ -810,10 +907,28 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 120,
     defaultOccupancyIp: 120,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
 
-  // 10. Retail
+  // 11. Residential (1 record)
+  {
+    id: 'residential_common_corridors',
+    name: 'Common corridors',
+    group: 'Residential',
+    rpMetric: 0,
+    rpIp: 0,
+    isRpNotApplicable: true,
+    raMetric: 0.3,
+    raIp: 0.06,
+    defaultOccupancyMetric: 0,
+    defaultOccupancyIp: 0,
+    isDensityNotApplicable: true,
+    airClass: 1,
+    osPermitted: false
+  },
+
+  // 12. Retail (6 records)
   {
     id: 'retail_barbershop',
     name: 'Barbershop',
@@ -824,7 +939,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'retail_beauty_nail_salons',
@@ -836,7 +952,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 25,
     defaultOccupancyIp: 25,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'retail_coin_operated_laundries',
@@ -848,7 +965,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 20,
     defaultOccupancyIp: 20,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'retail_mall_common_areas',
@@ -860,10 +978,11 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 40,
     defaultOccupancyIp: 40,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
-    id: 'retail', // Preserved canonical ID
+    id: 'retail',
     name: 'Retail sales',
     group: 'Retail',
     rpMetric: 3.8,
@@ -872,7 +991,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 15,
     defaultOccupancyIp: 15,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'retail_supermarket',
@@ -884,10 +1004,11 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 8,
     defaultOccupancyIp: 8,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
 
-  // 11. Sports and Entertainment
+  // 13. Sports and Entertainment (9 records)
   {
     id: 'sports_bowling_alley_seating',
     name: 'Bowling alley (seating)',
@@ -898,7 +1019,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.12,
     defaultOccupancyMetric: 40,
     defaultOccupancyIp: 40,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'sports_club_disco_dance',
@@ -910,7 +1032,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 100,
     defaultOccupancyIp: 100,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'sports_gambling_casinos',
@@ -922,7 +1045,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 120,
     defaultOccupancyIp: 120,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'sports_game_arcades',
@@ -934,7 +1058,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.18,
     defaultOccupancyMetric: 20,
     defaultOccupancyIp: 20,
-    airClass: 1
+    airClass: 1,
+    osPermitted: false
   },
   {
     id: 'sports_health_club_aerobics',
@@ -946,7 +1071,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 40,
     defaultOccupancyIp: 40,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'sports_health_club_weight_rooms',
@@ -958,7 +1084,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 10,
     defaultOccupancyIp: 10,
-    airClass: 2
+    airClass: 2,
+    osPermitted: false
   },
   {
     id: 'sports_spectator_areas',
@@ -970,7 +1097,8 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     raIp: 0.06,
     defaultOccupancyMetric: 150,
     defaultOccupancyIp: 150,
-    airClass: 1
+    airClass: 1,
+    osPermitted: true
   },
   {
     id: 'sports_stages_studios',
@@ -983,8 +1111,10 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyMetric: 70,
     defaultOccupancyIp: 70,
     airClass: 1,
+    osPermitted: false,
     applicableNotes: ['Note B'],
-    sourceNoteCondition: 'Note B'
+    sourceNoteCondition: 'Note B',
+    notes: 'Stages and studios ventilation rate. Note B applies.'
   },
   {
     id: 'sports_swimming_pools',
@@ -999,6 +1129,7 @@ export const ASHRAE_621_2022_TABLE_6_1_SPECS: Table61SpaceTypeSpec[] = [
     defaultOccupancyIp: 0,
     isDensityNotApplicable: true,
     airClass: 2,
+    osPermitted: false,
     applicableNotes: ['Note C'],
     sourceNoteCondition: 'Note C',
     notes: 'Ventilation airflow rate for swimming pool and deck area is based on floor area only. Note C applies.'

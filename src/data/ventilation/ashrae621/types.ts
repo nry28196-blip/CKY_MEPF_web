@@ -61,6 +61,8 @@ export interface Ashrae621SpaceType {
   isDensityNotApplicable?: boolean;
 
   airClass?: number; // Air Class per Table 6-1 (1, 2, 3, or 4)
+  osPermitted?: boolean; // Occupant Sensitivity (OS) permitted per Table 6-1 / Section 6.2.6.1.4
+  osStatus?: 'PERMITTED' | 'NOT_PERMITTED';
   units: string;
   exhaustRequired: boolean;
   reference: string;
@@ -173,6 +175,7 @@ export interface SpaceTypeProvenance {
   defaultOccupancy?: DataProvenance;
   airClass?: DataProvenance;
   reference?: DataProvenance;
+  osPermitted?: DataProvenance;
   rpIp?: DataProvenance;
   raIp?: DataProvenance;
   defaultOccupancyIp?: DataProvenance;
