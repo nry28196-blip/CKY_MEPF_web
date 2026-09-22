@@ -158,9 +158,14 @@ export class DataProvenanceValidationService {
   static validateSpaceTypeData(
     spaceType: Ashrae621SpaceType,
     expectedStandard: string,
-    expectedEdition: string
+    expectedEdition: string,
+    expectedReferenceBasis?: string
   ): DataProvenanceValidationResult {
     const reasons: string[] = [];
+    
+    if (expectedReferenceBasis && spaceType.referenceBasis && spaceType.referenceBasis !== expectedReferenceBasis) {
+      reasons.push('Reference Basis Mismatch');
+    }
     
         if (spaceType.verificationStatus === 'VERIFIED') {
       if (!this.isAshraeSourceTypeAcceptable(spaceType.sourceType) || !this.isAshraeSourceTypeAcceptable(spaceType.revisionState?.source)) {

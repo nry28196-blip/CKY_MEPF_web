@@ -4,7 +4,7 @@
  * 2025 data and calculations are not approved for production use.
  * Future 2025 activation requires a controlled verification of the published standard, applicable addenda/errata, formulas, and data tables.
  */
-import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, Ashrae621AirQualityStandards } from './ashrae621/types';
+import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, Ashrae621AirQualityStandards, DatasetCompletenessStatus } from './ashrae621/types';
 import { ASHRAE_621_2019_SPACE_TYPES, ASHRAE_621_2019_EZ_VALUES, ASHRAE_621_2019_EXHAUST_RATES, ASHRAE_621_2019_AIR_QUALITY_STANDARDS } from './ashrae621/2019/data';
 import { ASHRAE_621_2022_SPACE_TYPES, ASHRAE_621_2022_EZ_VALUES, ASHRAE_621_2022_EXHAUST_RATES, ASHRAE_621_2022_AIR_QUALITY_STANDARDS, ASHRAE_621_2022_DATASET_STATUS } from './ashrae621/2022/data';
 import { ASHRAE_621_2025_SPACE_TYPES, ASHRAE_621_2025_EZ_VALUES, ASHRAE_621_2025_EXHAUST_RATES, ASHRAE_621_2025_AIR_QUALITY_STANDARDS } from './ashrae621/2025/data';
@@ -78,8 +78,37 @@ export class StandardDataProvider {
     }
   }
 
-  static get621DatasetStatus(edition: AshraeEdition | string = '2022'): 'SUBSET' | 'COMPLETE' | 'NOT_VERIFIED' {
+  static get621DatasetStatus(edition: AshraeEdition | string = '2022'): DatasetCompletenessStatus {
     if (edition === '2022') return ASHRAE_621_2022_DATASET_STATUS;
+    if (edition === '2019') return 'SUBSET';
+    if (edition === '2025') return 'NOT_VERIFIED';
     return 'SUBSET';
+  }
+
+  static validateSpaceTypeCompleteness(spaceTypeId: string, edition: AshraeEdition | string = '2022'): {
+    valid: boolean;
+    status: DatasetCompletenessStatus;
+    reason?: string;
+  } {
+    const spaces = this.get621SpaceTypes(edition);
+    const space = spaces.find(s => s.id === spaceTypeId);
+    if (!space) {
+      return {
+        valid: false,
+        status: 'INCOMPLETE',
+        reason: `Space type ${spaceTypeId} not found in ${edition} dataset`
+      };
+    }
+    if (space.verificationStatus !== 'VERIFIED') {
+      return {
+        valid: false,
+        status: 'NOT_VERIFIED',
+        reason: `Space type ${spaceTypeId} is not verified against published standard`
+      };
+    }
+    return {
+      valid: true,
+      status: this.get621DatasetStatus(edition)
+    };
   }
 }

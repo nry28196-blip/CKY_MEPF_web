@@ -2,6 +2,14 @@
 export type AshraeEdition = '2019' | '2022' | '2025';
 
 export type VerificationStatus = 'VERIFIED' | 'NOT_VERIFIED' | 'INVALID' | 'UNIMPLEMENTED';
+
+export type DatasetCompletenessStatus = 'COMPLETE' | 'SUBSET' | 'INCOMPLETE' | 'NOT_VERIFIED';
+
+// Reference Basis constants per Section 1
+export const STANDARD_BASELINE = "ASHRAE 62.1-2022";
+export const APPLICABLE_ADDENDA: string[] = ["j"];
+export const ACTIVE_REFERENCE_BASIS = "ASHRAE 62.1-2022 + Addendum j";
+
 export enum SourceType {
   ASHRAE_PUBLISHED = 'ASHRAE_PUBLISHED',
   ASHRAE_PUBLISHED_ADDENDUM = 'ASHRAE_PUBLISHED_ADDENDUM',
@@ -25,18 +33,50 @@ export interface StandardRevision {
 
 export interface Ashrae621SpaceType {
   id: string;
-  name: string;
+  name: string; // Occupancy Category
   standard: string;
   edition: string;
-  category: string;
+  category: string; // Occupancy Group (retained for backward compatibility)
+  occupancyGroup?: string; // Explicit group name
+  occupancyCategory?: string; // Explicit category name
+
+  // Rp - People Outdoor Air Rate
   rpMetric: number; // L/s-person
+  rpIp?: number; // cfm/person
+  rpStatus?: 'APPLICABLE' | 'NOT_APPLICABLE';
+  isRpNotApplicable?: boolean;
+
+  // Ra - Area Outdoor Air Rate
   raMetric: number; // L/s-m2
-  defaultOccupancyMetric: number; // persons/100m2
+  raIp?: number; // cfm/ft2
+  raStatus?: 'APPLICABLE' | 'NOT_APPLICABLE';
+  isRaNotApplicable?: boolean;
+
+  // Default Occupant Density
+  defaultOccupancyMetric: number; // persons/100 m2
+  defaultOccupancyIp?: number; // persons/1000 ft2
+  densityUnitMetric?: string; // e.g. '#/100 m²'
+  densityUnitIp?: string; // e.g. '#/1000 ft²'
+  densityStatus?: 'APPLICABLE' | 'NOT_APPLICABLE';
+  isDensityNotApplicable?: boolean;
+
   airClass?: number; // Air Class per Table 6-1 (1, 2, 3, or 4)
   units: string;
   exhaustRequired: boolean;
   reference: string;
   notes: string;
+
+  // Table 6-1 Audit & Metadata fields
+  applicableNotes?: string[];
+  sourceStandard?: string;
+  sourceTable?: string;
+  sourceNoteCondition?: string;
+  expectedOccupancyIndicator?: string;
+  co2DeltaC?: number | string | null;
+  datasetVersion?: string;
+  referenceBasis?: string;
+  addenda?: string[];
+
   revisionState: StandardRevision;
   sourceType: SourceType;
   verificationStatus: VerificationStatus;
@@ -133,6 +173,9 @@ export interface SpaceTypeProvenance {
   defaultOccupancy?: DataProvenance;
   airClass?: DataProvenance;
   reference?: DataProvenance;
+  rpIp?: DataProvenance;
+  raIp?: DataProvenance;
+  defaultOccupancyIp?: DataProvenance;
 }
 
 export interface ExhaustProvenance {
