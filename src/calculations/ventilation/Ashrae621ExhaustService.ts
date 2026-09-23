@@ -13,6 +13,7 @@ export interface ExhaustInput {
   designExhaust: number | null; // User's design value in active unitSystem (L/s or cfm)
   operationMode?: ExhaustOperationMode; // 'continuous' (default) or 'intermittent'
   unitSystem?: ExhaustUnitSystem; // 'metric' (default, L/s) or 'ip' (cfm)
+  parkingGarageOpenSides50PercentOrMore?: boolean; // Section 6.5.1 Exception 1
 }
 
 export interface ExhaustResult {
@@ -37,6 +38,7 @@ export interface ExhaustResult {
   referenceSection: string;
   referenceTable: string;
   complianceNotes: string[];
+  parkingGarageOpenSides50PercentOrMore?: boolean;
 }
 
 function getRecirculationClassification(airClass: number | null | undefined): string {
@@ -85,10 +87,39 @@ export class Ashrae621ExhaustService {
     const exhaustType = input.exhaustType;
     const airClass = exhaustType.airClass ?? exhaustType.exhaustClass ?? null;
     const exhaustClass = exhaustType.exhaustClass ?? exhaustType.airClass ?? null;
-    const isSpecialStandard = Boolean(exhaustType.isSpecialStandard || exhaustType.unitType === 'special');
+    const isSpecialStandard = Boolean(
+      exhaustType.isSpecialStandard ||
+      exhaustType.unitType === 'special' ||
+      exhaustType.rateStatus === 'SPECIAL_REQUIREMENT' ||
+      exhaustType.rate === null
+    );
     const referenceSection = exhaustType.referenceSection || '6.5.1';
     const referenceTable = exhaustType.referenceTable || 'Table 6-2';
     const recirculationClassification = getRecirculationClassification(airClass);
+
+    // Air Class vs Exhaust Class consistency guard
+    if (exhaustType.airClass !== undefined && exhaustType.exhaustClass !== undefined && exhaustType.airClass !== exhaustType.exhaustClass) {
+      return {
+        requiredExhaust: null,
+        requiredExhaustMetric: null,
+        requiredExhaustIp: null,
+        designExhaust: null,
+        unitType: exhaustType.unitType,
+        exhaustClass,
+        airClass,
+        operationMode,
+        rateApplied: null,
+        rateAppliedMetric: null,
+        rateAppliedIp: null,
+        status: 'BLOCKED',
+        isSpecialStandard,
+        specialStandardReference: exhaustType.specialStandardReference,
+        recirculationClassification,
+        referenceSection,
+        referenceTable,
+        complianceNotes: [`Record invalid: airClass (${exhaustType.airClass}) diverges from exhaustClass (${exhaustType.exhaustClass}).`]
+      };
+    }
 
     // 2. Provenance validation
     const provResult = DataProvenanceValidationService.validateExhaustData(
@@ -134,6 +165,14 @@ export class Ashrae621ExhaustService {
     }
     if (exhaustType.exceptions) {
       complianceNotes.push(`Exception: ${exhaustType.exceptions}`);
+    }
+
+    // Space-specific authoritative guidance notes
+    if (exhaustType.id === 'auto_repair') {
+      complianceNotes.push('Direct engine exhaust connection requirement: Where vehicle engine stands or running engines are present, direct source capture connection to vehicle exhaust pipes is required in addition to general room exhaust.');
+    }
+    if (exhaustType.id === 'kitchen_commercial') {
+      complianceNotes.push('Commercial cooking exhaust safety: Prescriptive Table 6-2 rate (3.5 L/s·m², Air Class 2) provides minimum general room exhaust only. Dedicated commercial cooking hoods (Type I/Type II) designed per NFPA 96 / Section 5.10 are additionally required.');
     }
 
     // 3. Quantity validation
@@ -241,11 +280,13 @@ export class Ashrae621ExhaustService {
       };
     }
 
-    // 5. Special Standard handling (NFPA 33, ASHRAE 15, etc.)
-    if (isSpecialStandard || exhaustType.rate === null) {
+    // 5. Special Standard handling (NFPA 33, ASHRAE 15, etc.) - CRITICAL RESULT SAFETY FIX
+    // Table 6-2 row does not provide a numeric prescriptive rate. Calculation MUST NOT return PASS simply because positive design exhaust was entered.
+    if (isSpecialStandard || exhaustType.rate === null || exhaustType.rateStatus === 'SPECIAL_REQUIREMENT') {
       const specialRef = exhaustType.specialStandardReference || 'Referenced Standard';
-      complianceNotes.push(`Prescriptive rate is governed by ${specialRef}. Verify airflow against specific standard requirements.`);
-      const status: ValidationStatus = input.designExhaust > 0 ? 'PASS' : 'FAIL';
+      complianceNotes.push(
+        `Numeric prescriptive exhaust rate is not defined by ASHRAE 62.1-2022 Table 6-2. Verify the applicable referenced standard (${specialRef}) before accepting the design airflow.`
+      );
       return {
         requiredExhaust: null,
         requiredExhaustMetric: null,
@@ -258,7 +299,7 @@ export class Ashrae621ExhaustService {
         rateApplied: null,
         rateAppliedMetric: null,
         rateAppliedIp: null,
-        status,
+        status: 'BLOCKED',
         isSpecialStandard: true,
         specialStandardReference: specialRef,
         recirculationClassification,
@@ -303,7 +344,43 @@ export class Ashrae621ExhaustService {
       }
     }
 
-    // 7. Rate determination
+    // 7. Parking Garage Exception 1 handling (Section 6.5.1 Exception 1 / Table 6-2 Note b)
+    const isParkingGarage = exhaustType.id === 'parking_garages' || exhaustType.id === 'parking_garage';
+    if (isParkingGarage && input.parkingGarageOpenSides50PercentOrMore === true) {
+      complianceNotes.push(
+        'Naturally ventilated parking garage exception applied: >=50% open area on 2+ sides. Mechanical exhaust is exempt under ASHRAE 62.1-2022 Section 6.5.1 Exception 1.'
+      );
+      return {
+        requiredExhaust: 0,
+        requiredExhaustMetric: 0,
+        requiredExhaustIp: 0,
+        designExhaust: input.designExhaust,
+        unitType: exhaustType.unitType,
+        exhaustClass,
+        airClass,
+        operationMode,
+        rateApplied: 0,
+        rateAppliedMetric: 0,
+        rateAppliedIp: 0,
+        status: 'PASS',
+        isSpecialStandard: false,
+        specialStandardReference: exhaustType.specialStandardReference,
+        recirculationClassification,
+        combustionCondition: exhaustType.combustionCondition,
+        notes: exhaustType.notes,
+        exceptions: exhaustType.exceptions,
+        referenceSection,
+        referenceTable,
+        complianceNotes,
+        parkingGarageOpenSides50PercentOrMore: true
+      };
+    } else if (isParkingGarage) {
+      complianceNotes.push(
+        'Enclosed parking garage prescriptive exhaust rate applied: 3.7 L/s·m² (0.75 cfm/ft²). Exception 1 applies if two or more sides have >=50% open wall area.'
+      );
+    }
+
+    // 8. Rate determination
     let rateMetric: number;
     let rateIp: number;
 
@@ -332,7 +409,7 @@ export class Ashrae621ExhaustService {
       requiredExhaustIp = rateIp * input.qty;
     }
 
-    // 8. Result status determination
+    // 9. Result status determination
     let status: ValidationStatus = 'PASS';
     if (input.designExhaust < requiredExhaust) {
       status = 'FAIL';
@@ -366,8 +443,8 @@ export class Ashrae621ExhaustService {
       exceptions: exhaustType.exceptions,
       referenceSection,
       referenceTable,
-      complianceNotes
+      complianceNotes,
+      parkingGarageOpenSides50PercentOrMore: input.parkingGarageOpenSides50PercentOrMore
     };
   }
 }
-

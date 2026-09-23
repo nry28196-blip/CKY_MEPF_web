@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ASHRAE_621_2019_SPACE_TYPES } from '../../data/ventilation/ashrae621/2019/data';
-import { ASHRAE_621_2022_SPACE_TYPES } from '../../data/ventilation/ashrae621/2022/data';
+import { ASHRAE_621_2019_SPACE_TYPES, ASHRAE_621_2019_EXHAUST_RATES } from '../../data/ventilation/ashrae621/2019/data';
+import { ASHRAE_621_2022_SPACE_TYPES, ASHRAE_621_2022_EXHAUST_RATES } from '../../data/ventilation/ashrae621/2022/data';
 import { ASHRAE_621_2025_SPACE_TYPES, ASHRAE_621_2025_EXHAUST_RATES } from '../../data/ventilation/ashrae621/2025/data';
 import { ASHRAE_621_2019_EZ_VALUES } from '../../data/ventilation/ashrae621/2019/data';
 import { ASHRAE_621_2022_EZ_VALUES } from '../../data/ventilation/ashrae621/2022/data';
@@ -21,6 +21,8 @@ describe('Dataset Sanity Test (Prompt 5C)', () => {
   ];
 
   const allExhaustRates = [
+    ...ASHRAE_621_2019_EXHAUST_RATES,
+    ...ASHRAE_621_2022_EXHAUST_RATES,
     ...ASHRAE_621_2025_EXHAUST_RATES
   ];
 

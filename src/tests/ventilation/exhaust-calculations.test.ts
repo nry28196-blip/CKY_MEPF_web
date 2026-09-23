@@ -163,12 +163,13 @@ describe('ASHRAE 62.1-2022 Prescriptive Exhaust Calculations (Table 6-2 & Sectio
     expect(res.recirculationClassification).toContain('Air Class 2');
   });
 
-  it('G. Special Standard Spaces (Paint Spray Booths & Refrigerating Machinery)', () => {
+  it('G. Special Standard Spaces (Paint Spray Booths & Refrigerating Machinery) MUST RETURN BLOCKED', () => {
     const paintBooth = exhaustRates2022.find(e => e.id === 'paint_spray_booths')!;
     expect(paintBooth.isSpecialStandard).toBe(true);
     expect(paintBooth.specialStandardReference).toBe('OSHA 1910.107 / NFPA 33');
     expect(paintBooth.airClass).toBe(4);
 
+    // TEST 1: Design exhaust = 1000 L/s MUST RETURN BLOCKED, NOT PASS
     const resPaint = Ashrae621ExhaustService.calculate({
       expectedStandard: 'ASHRAE 62.1',
       expectedEdition: '2022',
@@ -176,11 +177,14 @@ describe('ASHRAE 62.1-2022 Prescriptive Exhaust Calculations (Table 6-2 & Sectio
       qty: 1,
       designExhaust: 1000
     });
-    expect(resPaint.status).toBe('PASS');
+    expect(resPaint.status).toBe('BLOCKED');
+    expect(resPaint.status).not.toBe('PASS');
     expect(resPaint.isSpecialStandard).toBe(true);
     expect(resPaint.specialStandardReference).toBe('OSHA 1910.107 / NFPA 33');
     expect(resPaint.recirculationClassification).toContain('Air Class 4');
+    expect(resPaint.complianceNotes.some(n => n.includes('Numeric prescriptive exhaust rate is not defined'))).toBe(true);
 
+    // TEST 2: Refrigerating machinery room, design exhaust = 800 L/s MUST RETURN BLOCKED, NOT PASS
     const refMachinery = exhaustRates2022.find(e => e.id === 'refrigerating_machinery')!;
     expect(refMachinery.isSpecialStandard).toBe(true);
     expect(refMachinery.specialStandardReference).toBe('ANSI/ASHRAE Standard 15');
@@ -193,9 +197,35 @@ describe('ASHRAE 62.1-2022 Prescriptive Exhaust Calculations (Table 6-2 & Sectio
       qty: 1,
       designExhaust: 800
     });
-    expect(resRef.status).toBe('PASS');
+    expect(resRef.status).toBe('BLOCKED');
+    expect(resRef.status).not.toBe('PASS');
     expect(resRef.specialStandardReference).toBe('ANSI/ASHRAE Standard 15');
     expect(resRef.recirculationClassification).toContain('Air Class 3');
+
+    // TEST 3: Paint spray booth with zero design exhaust MUST NEVER return PASS
+    const resPaintZero = Ashrae621ExhaustService.calculate({
+      expectedStandard: 'ASHRAE 62.1',
+      expectedEdition: '2022',
+      exhaustType: paintBooth,
+      qty: 1,
+      designExhaust: 0
+    });
+    expect(resPaintZero.status).toBe('BLOCKED');
+    expect(resPaintZero.status).not.toBe('PASS');
+
+    // TEST 4: Unverified special-standard source MUST RETURN BLOCKED
+    const unverifiedPaint = {
+      ...paintBooth,
+      verificationStatus: 'NOT_VERIFIED' as const
+    };
+    const resUnverified = Ashrae621ExhaustService.calculate({
+      expectedStandard: 'ASHRAE 62.1',
+      expectedEdition: '2022',
+      exhaustType: unverifiedPaint,
+      qty: 1,
+      designExhaust: 1000
+    });
+    expect(resUnverified.status).toBe('BLOCKED');
   });
 
   it('H. IP Unit System Calculations', () => {
@@ -268,5 +298,63 @@ describe('ASHRAE 62.1-2022 Prescriptive Exhaust Calculations (Table 6-2 & Sectio
       designExhaust: 300 // < 350
     });
     expect(insufficientExhaust.status).toBe('FAIL');
+  });
+
+  it('J. Parking Garage Exception 1 (Natural Ventilation >=50% open on 2+ sides)', () => {
+    const garage = exhaustRates2022.find(e => e.id === 'parking_garage')!;
+    
+    // Case 1: Standard enclosed parking garage (parkingGarageOpenSides50PercentOrMore = false or undefined)
+    const enclosedRes = Ashrae621ExhaustService.calculate({
+      expectedStandard: 'ASHRAE 62.1',
+      expectedEdition: '2022',
+      exhaustType: garage,
+      qty: 1000, // 1000 m²
+      designExhaust: 3700, // 3.7 * 1000 = 3700 L/s
+      parkingGarageOpenSides50PercentOrMore: false
+    });
+    expect(enclosedRes.status).toBe('PASS');
+    expect(enclosedRes.requiredExhaust).toBe(3700);
+    expect(enclosedRes.complianceNotes.some(n => n.includes('Enclosed parking garage prescriptive exhaust rate applied'))).toBe(true);
+
+    // Case 2: Naturally ventilated parking garage (parkingGarageOpenSides50PercentOrMore = true)
+    const openRes = Ashrae621ExhaustService.calculate({
+      expectedStandard: 'ASHRAE 62.1',
+      expectedEdition: '2022',
+      exhaustType: garage,
+      qty: 1000,
+      designExhaust: 0, // Exempt from mechanical exhaust
+      parkingGarageOpenSides50PercentOrMore: true
+    });
+    expect(openRes.status).toBe('PASS');
+    expect(openRes.requiredExhaust).toBe(0);
+    expect(openRes.rateApplied).toBe(0);
+    expect(openRes.parkingGarageOpenSides50PercentOrMore).toBe(true);
+    expect(openRes.complianceNotes.some(n => n.includes('Naturally ventilated parking garage exception applied'))).toBe(true);
+  });
+
+  it('K. Auto Repair & Commercial Kitchen Dedicated Source Capture / Hood Notes', () => {
+    // Auto Repair direct engine connection note
+    const autoRepair = exhaustRates2022.find(e => e.id === 'auto_repair')!;
+    const resAuto = Ashrae621ExhaustService.calculate({
+      expectedStandard: 'ASHRAE 62.1',
+      expectedEdition: '2022',
+      exhaustType: autoRepair,
+      qty: 100,
+      designExhaust: 750
+    });
+    expect(resAuto.status).toBe('PASS');
+    expect(resAuto.complianceNotes.some(n => n.includes('Direct engine exhaust connection requirement'))).toBe(true);
+
+    // Commercial Kitchen dedicated hood note
+    const kitchen = exhaustRates2022.find(e => e.id === 'kitchen_commercial')!;
+    const resKitchen = Ashrae621ExhaustService.calculate({
+      expectedStandard: 'ASHRAE 62.1',
+      expectedEdition: '2022',
+      exhaustType: kitchen,
+      qty: 100,
+      designExhaust: 350
+    });
+    expect(resKitchen.status).toBe('PASS');
+    expect(resKitchen.complianceNotes.some(n => n.includes('Commercial cooking exhaust safety'))).toBe(true);
   });
 });

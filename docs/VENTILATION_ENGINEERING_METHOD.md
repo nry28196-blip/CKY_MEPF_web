@@ -55,3 +55,21 @@ The `MechanicalCoolingEngine` was successfully restored from repository history 
 
 **OUTSIDE CURRENT VERIFIED SCOPE:**
 - Any 62.1-2022 addenda not explicitly implemented and verified.
+
+## 7. Exhaust Airflow Engineering Scope
+The exhaust airflow computation module operates strictly within the prescriptive bounds defined below:
+
+**ACTIVE:**
+- ASHRAE 62.1-2022 prescriptive exhaust (Section 6.5.1 / Table 6-2) with the selected Addendum x basis.
+
+**NOT ACTIVE:**
+- ASHRAE 62.1-2025 exhaust.
+
+**NOT IMPLEMENTED:**
+- ASHRAE 62.1 performance exhaust path / Section 6.5.2.
+
+**SPECIAL REQUIREMENT:**
+- Rows whose prescriptive rate is governed by another referenced standard (e.g., OSHA 1910.107 / NFPA 33 for paint spray booths; ANSI/ASHRAE Standard 15 for refrigerating machinery rooms). These records yield calculation status `BLOCKED` until verified against the specific referenced standard.
+
+*(Note: The term "complete exhaust compliance" is intentionally avoided as the Section 6.5.2 performance exhaust path remains outside active implementation).*
+

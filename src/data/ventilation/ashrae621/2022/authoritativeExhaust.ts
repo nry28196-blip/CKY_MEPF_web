@@ -467,17 +467,17 @@ export const AUTHORITATIVE_EXHAUST_TABLE_6_2: readonly AuthoritativeExhaustRecor
     id: 'residential_kitchens',
     name: 'Residential dwelling-unit kitchens',
     category: 'Residential',
-    rate: 12.5,
-    rateIp: 25,
-    continuousRate: 12.5,
-    continuousRateIp: 25,
+    rate: 25,
+    rateIp: 50,
+    continuousRate: 25,
+    continuousRateIp: 50,
     intermittentRate: 50,
     intermittentRateIp: 100,
     unitType: 'room',
     operatingCondition: 'Continuous or Intermittent',
     airClass: 2,
     exhaustClass: 2,
-    notes: 'Rate is 12.5 L/s (25 cfm) continuous or 50 L/s (100 cfm) intermittent per kitchen room or local mechanical exhaust hood.',
+    notes: 'Rate is 25 L/s (50 cfm) continuous or 50 L/s (100 cfm) intermittent per kitchen room or local mechanical exhaust hood.',
     isSpecialStandard: false,
     rateStatus: 'PRESCRIPTIVE',
     standard: 'ASHRAE 62.1',
@@ -630,3 +630,8 @@ export const AUTHORITATIVE_EXHAUST_TABLE_6_2: readonly AuthoritativeExhaustRecor
     referenceBasis: 'ASHRAE 62.1-2022 + Addendum x'
   }
 ];
+
+export const AUTHORITATIVE_EXHAUST_COUNT = AUTHORITATIVE_EXHAUST_TABLE_6_2.length;
+export const AUTHORITATIVE_EXHAUST_CATEGORIES = AUTHORITATIVE_EXHAUST_TABLE_6_2.map(r => r.id);
+export const AUTHORITATIVE_EXHAUST_REFERENCE_BASIS = 'ASHRAE 62.1-2022 + Addendum x';
+

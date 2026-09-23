@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { Wind, Plus, Trash2, Info, AlertTriangle } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import { useUnit } from '../lib/UnitContext';
-import TooltipLabel from './TooltipLabel';
-import EngineeringStatusHeader from './common/EngineeringStatusHeader';
-import { Ashrae621ExhaustService, ExhaustOperationMode } from '../calculations/ventilation/Ashrae621ExhaustService';
 import { StandardDataProvider } from '../data/ventilation/StandardDataProvider';
+import { Ashrae621ExhaustService, ExhaustOperationMode } from '../calculations/ventilation/Ashrae621ExhaustService';
 import { VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
+import TooltipLabel from './TooltipLabel';
+import EngineeringStatusHeader, { EngineeringStatus } from './common/EngineeringStatusHeader';
+import { Wind, Plus, Trash2, Info, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 interface ExhaustRow {
   id: string;
@@ -14,6 +14,7 @@ interface ExhaustRow {
   quantity: number | '';
   designExhaust: number | '';
   operationMode?: ExhaustOperationMode;
+  parkingGarageOpenSides50PercentOrMore?: boolean;
 }
 
 export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: string }) {
@@ -69,7 +70,8 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
         qty,
         designExhaust: dExhaust,
         operationMode: r.operationMode || 'continuous',
-        unitSystem: isMetric ? 'metric' : 'ip'
+        unitSystem: isMetric ? 'metric' : 'ip',
+        parkingGarageOpenSides50PercentOrMore: r.parkingGarageOpenSides50PercentOrMore
       });
 
       return { row: r, result: res, exhaustType };
@@ -80,11 +82,18 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
     return { calcRows, status };
   }, [rows, isMetric, exhaustRates, edition]);
 
+  const headerStatus: EngineeringStatus =
+    results.status === 'PASS' ? 'PASS' :
+    results.status === 'FAIL' ? 'FAIL' :
+    results.status === 'BLOCKED' ? 'NOT_VERIFIED' :
+    results.status === 'INCOMPLETE' ? 'INCOMPLETE' :
+    results.status === 'NOT_VERIFIED' ? 'NOT_VERIFIED' : 'NOT_READY_FOR_ENGINEERING_USE';
+
   return (
     <div className="space-y-6">
       <EngineeringStatusHeader
-        status={results.status}
-        message={`ASHRAE 62.1-${edition} Exhaust (Section 6.5.1, Table 6-2) - ${results.status === 'PASS' ? 'All exhaust requirements met' : 'Check prescriptive requirements'}`}
+        status={headerStatus}
+        message={`ASHRAE 62.1-${edition} Prescriptive Exhaust (Section 6.5.1, Table 6-2) - ${results.status === 'PASS' ? 'All exhaust requirements met' : 'Check prescriptive requirements'}`}
       />
 
       <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
@@ -105,6 +114,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
         <div className="space-y-4">
           {results.calcRows.map(({ row, result, exhaustType }) => {
             const allowsIntermittent = exhaustType?.intermittentRate !== null && exhaustType?.intermittentRate !== undefined;
+            const isParkingGarage = exhaustType?.id === 'parking_garages' || exhaustType?.id === 'parking_garage';
 
             return (
               <div
@@ -124,7 +134,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                  <div className="col-span-12 md:col-span-3">
+                  <div className="col-span-12 md:span-3 md:col-span-3">
                     <TooltipLabel label="Space Name" tooltip="Identifier" />
                     <input
                       id={`exhaust-space-name-${row.id}`}
@@ -135,7 +145,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                     />
                   </div>
 
-                  <div className="col-span-12 md:col-span-3">
+                  <div className="col-span-12 md:span-3 md:col-span-3">
                     <TooltipLabel label="Table 6-2 Space Category" tooltip="ASHRAE 62.1-2022 Table 6-2 Space Type" />
                     <select
                       id={`exhaust-category-${row.id}`}
@@ -151,7 +161,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                     </select>
                   </div>
 
-                  <div className="col-span-6 md:col-span-2">
+                  <div className="col-span-6 md:span-2 md:col-span-2">
                     <TooltipLabel
                       label={`Qty (${result.unitType === 'm2' ? (isMetric ? 'm²' : 'ft²') : result.unitType})`}
                       tooltip="Multiplier for prescriptive exhaust requirement"
@@ -166,7 +176,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                     />
                   </div>
 
-                  <div className="col-span-6 md:col-span-2">
+                  <div className="col-span-6 md:span-2 md:col-span-2">
                     <TooltipLabel
                       label={`Design (${isMetric ? 'L/s' : 'cfm'})`}
                       tooltip="Proposed actual engineering exhaust airflow"
@@ -181,14 +191,18 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                     />
                   </div>
 
-                  <div className="col-span-12 md:col-span-2 flex flex-col justify-center">
+                  <div className="col-span-12 md:span-2 md:col-span-2 flex flex-col justify-center">
                     <div className="text-[10px] text-slate-400 mb-1">
-                      Req: {result.requiredExhaust === null ? (result.isSpecialStandard ? 'Per Std' : 'N/A') : `${result.requiredExhaust.toFixed(1)} ${isMetric ? 'L/s' : 'cfm'}`}
+                      Min: {result.requiredExhaust === null 
+                        ? (result.isSpecialStandard ? 'Special Std' : 'N/A') 
+                        : `${result.requiredExhaust.toFixed(1)} ${isMetric ? 'L/s' : 'cfm'}`}
                     </div>
                     <div
                       id={`exhaust-status-${row.id}`}
                       className={`px-2 py-1 rounded text-xs font-bold text-center ${
-                        result.status === 'PASS'
+                        result.isSpecialStandard
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          : result.status === 'PASS'
                           ? 'bg-emerald-500/20 text-emerald-400'
                           : result.status === 'FAIL'
                           ? 'bg-red-500/20 text-red-400'
@@ -197,16 +211,31 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                           : 'bg-amber-500/20 text-amber-400'
                       }`}
                     >
-                      {result.status === 'BLOCKED' ? 'NOT VERIFIED' : result.status}{' '}
-                      {result.airClass !== null ? `(Class ${result.airClass})` : ''}
+                      {result.isSpecialStandard ? 'SPECIAL REQUIREMENT' : result.status}
                     </div>
                   </div>
                 </div>
 
+                {/* Parking Garage Exception 1 Toggle */}
+                {isParkingGarage && (
+                  <div className="flex items-center gap-2 p-2 bg-slate-900/60 rounded border border-slate-800 text-xs text-slate-300">
+                    <input
+                      id={`exhaust-pg-open-sides-${row.id}`}
+                      type="checkbox"
+                      checked={Boolean(row.parkingGarageOpenSides50PercentOrMore)}
+                      onChange={(e) => updateRow(row.id, 'parkingGarageOpenSides50PercentOrMore', e.target.checked)}
+                      className="rounded bg-slate-800 border-slate-700 text-cyan-600 focus:ring-0"
+                    />
+                    <label htmlFor={`exhaust-pg-open-sides-${row.id}`} className="cursor-pointer">
+                      <strong>Section 6.5.1 Exception 1:</strong> Naturally ventilated parking garage (two or more sides having ≥50% open wall area). Mechanical exhaust exempt.
+                    </label>
+                  </div>
+                )}
+
                 {/* Sub-bar: Operation Mode & Prescriptive Metadata */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-900 text-xs text-slate-400">
                   <div className="flex items-center gap-3">
-                    <span className="text-slate-500">Operation:</span>
+                    <span className="text-slate-500">Operation Mode:</span>
                     <label className="inline-flex items-center gap-1 cursor-pointer">
                       <input
                         type="radio"
@@ -239,8 +268,8 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                       Air Class {result.airClass ?? 'N/A'}
                     </span>
                     {result.isSpecialStandard && (
-                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px]">
-                        {result.specialStandardReference}
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-semibold">
+                        Governed by {result.specialStandardReference}
                       </span>
                     )}
                   </div>
@@ -254,6 +283,16 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                   </div>
                 )}
 
+                {/* Special standard blocked notice */}
+                {result.isSpecialStandard && (
+                  <div className="text-[11px] text-amber-300 flex items-start gap-1.5 bg-amber-950/20 border border-amber-800/40 p-2 rounded">
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong>SPECIAL REQUIREMENT (Status: BLOCKED):</strong> Table 6-2 does not prescribe a numeric exhaust rate. Design exhaust must be engineered and verified per <em>{result.specialStandardReference}</em>.
+                    </div>
+                  </div>
+                )}
+
                 {result.complianceNotes.length > 0 && result.status === 'FAIL' && (
                   <div className="text-[11px] text-rose-400 flex items-start gap-1.5 bg-rose-950/30 border border-rose-900/50 p-2 rounded">
                     <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
@@ -262,6 +301,13 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                         <div key={idx}>{note}</div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {result.parkingGarageOpenSides50PercentOrMore && (
+                  <div className="text-[11px] text-emerald-400 flex items-start gap-1.5 bg-emerald-950/20 border border-emerald-800/40 p-2 rounded">
+                    <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>Naturally ventilated parking garage: minimum mechanical exhaust rate is 0 under Section 6.5.1 Exception 1.</div>
                   </div>
                 )}
               </div>

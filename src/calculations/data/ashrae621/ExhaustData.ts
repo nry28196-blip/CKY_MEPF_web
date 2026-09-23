@@ -1,3 +1,17 @@
+/**
+ * @deprecated - LEGACY COMPATIBILITY ADAPTER ONLY
+ * 
+ * CRITICAL SAFETY NOTICE:
+ * This file is NOT the active production source for ASHRAE 62.1 exhaust rates.
+ * The authoritative active production dataset is ASHRAE_621_2022_EXHAUST_RATES
+ * in src/data/ventilation/ashrae621/2022/data.ts.
+ * 
+ * This legacy file must NEVER be imported by production calculation engines or UI.
+ * It is maintained strictly as a read-only compatibility adapter for legacy consumers,
+ * adapting from the single authoritative production dataset.
+ */
+import { ASHRAE_621_2022_EXHAUST_RATES } from '../../../data/ventilation/ashrae621/2022/data';
+
 export type AshraeEdition = '2019' | '2022' | '2025';
 
 export interface ExhaustSpaceType {
@@ -11,26 +25,51 @@ export interface ExhaustSpaceType {
   imcRateImp: number; // cfm/ft2 or cfm/unit
   imcRateMet: number; // L/s-m2 or L/s-unit
   notes?: string;
+  isLegacy?: boolean;
 }
 
-export const EXHAUST_2019: ExhaustSpaceType[] = [
-  { id: 'art_classroom', name: 'Art classroom', ashraeCategory: 'Art classroom', ashraeRateImp: 0.7, ashraeRateMet: 3.5, ashraeUnit: 'area', ashraeClass: 'Class 2', imcRateImp: 0.7, imcRateMet: 3.5 },
-  { id: 'bath_public', name: 'Bathrooms (public)', ashraeCategory: 'Bathrooms (public)', ashraeRateImp: 50, ashraeRateMet: 25, ashraeUnit: 'fixture', ashraeClass: 'Class 2', imcRateImp: 50, imcRateMet: 25 },
-  { id: 'janitor_closet', name: 'Janitor closet, trash room', ashraeCategory: 'Janitor closet, trash room', ashraeRateImp: 1.0, ashraeRateMet: 5.0, ashraeUnit: 'area', ashraeClass: 'Class 3', imcRateImp: 1.0, imcRateMet: 5.0 }
-];
+export const IS_LEGACY_DATASET = true;
 
-export const EXHAUST_2022: ExhaustSpaceType[] = [
-  { id: 'art_classroom', name: 'Art classroom', ashraeCategory: 'Art classroom', ashraeRateImp: 0.7, ashraeRateMet: 3.5, ashraeUnit: 'area', ashraeClass: 'Class 2', imcRateImp: 0.7, imcRateMet: 3.5 },
-  { id: 'bath_public', name: 'Bathrooms (public)', ashraeCategory: 'Bathrooms (public)', ashraeRateImp: 50, ashraeRateMet: 25, ashraeUnit: 'fixture', ashraeClass: 'Class 2', imcRateImp: 50, imcRateMet: 25 },
-  { id: 'janitor_closet', name: 'Janitor closet, trash room', ashraeCategory: 'Janitor closet, trash room', ashraeRateImp: 1.0, ashraeRateMet: 5.0, ashraeUnit: 'area', ashraeClass: 'Class 3', imcRateImp: 1.0, imcRateMet: 5.0 },
-  { id: 'locker_room', name: 'Locker/dressing rooms', ashraeCategory: 'Locker/dressing rooms', ashraeRateImp: 0.25, ashraeRateMet: 1.25, ashraeUnit: 'area', ashraeClass: 'Class 2', imcRateImp: 0.25, imcRateMet: 1.25 }
-];
+/**
+ * Adapter mapping 2022 production exhaust rates into legacy ExhaustSpaceType shape.
+ */
+function adaptProductionRate(prod: typeof ASHRAE_621_2022_EXHAUST_RATES[number]): ExhaustSpaceType {
+  const classMap: Record<number, 'Class 1' | 'Class 2' | 'Class 3' | 'Class 4'> = {
+    1: 'Class 1',
+    2: 'Class 2',
+    3: 'Class 3',
+    4: 'Class 4'
+  };
+  const unitMap: Record<string, 'area' | 'fixture' | 'equipment' | 'room' | 'custom'> = {
+    m2: 'area',
+    fixture: 'fixture',
+    room: 'room',
+    equipment: 'equipment',
+    showerhead: 'fixture',
+    special: 'custom'
+  };
 
-// [DISABLED / FUTURE - NOT FOR ACTIVE PRODUCTION CALCULATION]
-export const EXHAUST_2025: ExhaustSpaceType[] = [
-  { id: 'art_classroom', name: 'Art classroom', ashraeCategory: 'Art classroom', ashraeRateImp: 0.7, ashraeRateMet: 3.5, ashraeUnit: 'area', ashraeClass: 'Class 2', imcRateImp: 0.7, imcRateMet: 3.5 },
-  { id: 'bath_public', name: 'Bathrooms (public)', ashraeCategory: 'Bathrooms (public)', ashraeRateImp: 50, ashraeRateMet: 25, ashraeUnit: 'fixture', ashraeClass: 'Class 2', imcRateImp: 50, imcRateMet: 25 },
-  { id: 'janitor_closet', name: 'Janitor closet, trash room', ashraeCategory: 'Janitor closet, trash room', ashraeRateImp: 1.0, ashraeRateMet: 5.0, ashraeUnit: 'area', ashraeClass: 'Class 3', imcRateImp: 1.0, imcRateMet: 5.0 },
-  { id: 'locker_room', name: 'Locker/dressing rooms', ashraeCategory: 'Locker/dressing rooms', ashraeRateImp: 0.25, ashraeRateMet: 1.25, ashraeUnit: 'area', ashraeClass: 'Class 2', imcRateImp: 0.25, imcRateMet: 1.25 },
-  { id: 'edu_corridor', name: 'Educational corridors', ashraeCategory: 'Educational corridors', ashraeRateImp: 0.5, ashraeRateMet: 2.5, ashraeUnit: 'area', ashraeClass: 'Class 1', imcRateImp: 0.5, imcRateMet: 2.5 }
-];
+  const metRate = prod.rate ?? 0;
+  const impRate = prod.rateIp ?? (metRate * 0.2);
+
+  return {
+    id: prod.id,
+    name: prod.name,
+    ashraeCategory: prod.category,
+    ashraeRateImp: impRate,
+    ashraeRateMet: metRate,
+    ashraeUnit: unitMap[prod.unitType] || 'custom',
+    ashraeClass: classMap[prod.airClass ?? prod.exhaustClass] || 'Class 2',
+    imcRateImp: impRate,
+    imcRateMet: metRate,
+    notes: prod.notes,
+    isLegacy: true
+  };
+}
+
+// Derived from active production dataset - no independent duplicate hard-coded tables!
+export const EXHAUST_2022: ExhaustSpaceType[] = ASHRAE_621_2022_EXHAUST_RATES.map(adaptProductionRate);
+
+// Deprecated legacy stubs
+export const EXHAUST_2019: ExhaustSpaceType[] = EXHAUST_2022;
+export const EXHAUST_2025: ExhaustSpaceType[] = EXHAUST_2022;
