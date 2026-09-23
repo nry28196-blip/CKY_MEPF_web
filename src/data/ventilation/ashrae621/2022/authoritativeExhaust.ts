@@ -309,7 +309,7 @@ export const AUTHORITATIVE_EXHAUST_TABLE_6_2: readonly AuthoritativeExhaustRecor
     operatingCondition: 'Continuous',
     airClass: 2,
     exhaustClass: 2,
-    notes: 'Commercial cooking exhaust: additional kitchen exhaust design requirements apply (e.g. ASHRAE Standard 154 / NFPA 96). Prescriptive Table 6-2 rate provides minimum room exhaust.',
+    notes: 'Commercial cooking exhaust: per Section 6.5.1.2.3 (Addendum x), kitchen exhaust hoods shall comply with ANSI/ASHRAE Standard 154 (external/local codes such as NFPA 96 may apply separately). Prescriptive Table 6-2 rate provides minimum room exhaust.',
     isSpecialStandard: false,
     rateStatus: 'PRESCRIPTIVE',
     standard: 'ASHRAE 62.1',

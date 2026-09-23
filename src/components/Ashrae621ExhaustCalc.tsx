@@ -5,7 +5,7 @@ import { Ashrae621ExhaustService, ExhaustOperationMode } from '../calculations/v
 import { VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
 import TooltipLabel from './TooltipLabel';
 import EngineeringStatusHeader, { EngineeringStatus } from './common/EngineeringStatusHeader';
-import { Wind, Plus, Trash2, Info, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Wind, Plus, Trash2, Info, AlertTriangle, ShieldAlert, Layers } from 'lucide-react';
 
 interface ExhaustRow {
   id: string;
@@ -315,6 +315,75 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
           })}
         </div>
       </div>
+
+      {/* ASHRAE 62.1-2022 Table 6-3 Airstreams or Sources Reference */}
+      {edition === '2022' && (
+        <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-4">
+            <div className="flex items-center gap-2 text-indigo-400">
+              <Layers className="w-5 h-5" />
+              <h3 className="font-semibold text-white">Airstreams or Sources — Air Classification (Table 6-3)</h3>
+            </div>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-950 text-indigo-300 border border-indigo-800/60">
+              Air Class Layer Only • No Prescriptive Numeric Airflow Rates
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Per ASHRAE 62.1-2022 Section 6.5.1 and Addendum x, design exhaust airflow is determined in accordance with Tables 6-2 and 6-3. Table 6-3 designates mandatory Air Class classifications for specialized airstreams and hood discharges. Table 6-3 prescribes <strong className="text-slate-200">no numeric exhaust airflow rates</strong>; required exhaust airflows must be engineered in accordance with the referenced governing standards.
+          </p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-950/60 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                <tr>
+                  <th className="py-2.5 px-3">Airstream or Source</th>
+                  <th className="py-2.5 px-3">Required Air Class</th>
+                  <th className="py-2.5 px-3">Governing Equipment Standard</th>
+                  <th className="py-2.5 px-3">Recirculation Limitations</th>
+                  <th className="py-2.5 px-3 text-right">Prescriptive Rate</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+                {StandardDataProvider.getProduction621Table63Sources().map(src => {
+                  const airClassBadge =
+                    src.airClass === 4 ? 'bg-red-950/60 text-red-300 border-red-800/60' :
+                    src.airClass === 3 ? 'bg-amber-950/60 text-amber-300 border-amber-800/60' :
+                    'bg-yellow-950/60 text-yellow-300 border-yellow-800/60';
+
+                  const recirculationNote =
+                    src.airClass === 4 ? 'Prohibited (100% direct outdoor exhaust)' :
+                    src.airClass === 3 ? 'Permitted only within originating space' :
+                    'Permitted to other Class 2/3 spaces; prohibited to Class 1';
+
+                  return (
+                    <tr key={src.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="py-2 px-3 font-sans font-medium text-slate-200">
+                        {src.name}
+                        <div className="text-[10px] text-slate-400 font-normal mt-0.5">{src.description}</div>
+                      </td>
+                      <td className="py-2 px-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${airClassBadge}`}>
+                          Class {src.airClass}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-slate-300 whitespace-nowrap">
+                        {src.specialStandardReference || 'Project EHS / Standard'}
+                      </td>
+                      <td className="py-2 px-3 text-slate-400 font-sans">
+                        {recirculationNote}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400 whitespace-nowrap">
+                        <span className="text-amber-400 font-medium">N/A</span> (Governing Std)
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

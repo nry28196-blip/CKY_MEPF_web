@@ -172,7 +172,7 @@ export class Ashrae621ExhaustService {
       complianceNotes.push('Direct engine exhaust connection requirement: Where vehicle engine stands or running engines are present, direct source capture connection to vehicle exhaust pipes is required in addition to general room exhaust.');
     }
     if (exhaustType.id === 'kitchen_commercial') {
-      complianceNotes.push('Commercial cooking exhaust safety: Prescriptive Table 6-2 rate (3.5 L/s·m², Air Class 2) provides minimum general room exhaust only. Dedicated commercial cooking hoods (Type I/Type II) designed per NFPA 96 / Section 5.10 are additionally required.');
+      complianceNotes.push('Commercial cooking exhaust safety: Prescriptive Table 6-2 rate (3.5 L/s·m², Air Class 2) provides minimum general room exhaust only. Per ASHRAE 62.1-2022 Section 6.5.1.2.3 (Addendum x), kitchen exhaust hoods shall comply with ANSI/ASHRAE Standard 154 (external/local code requirements such as NFPA 96 may apply separately as project requirements).');
     }
 
     // 3. Quantity validation

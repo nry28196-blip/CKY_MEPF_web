@@ -4,9 +4,10 @@
  * 2025 data and calculations are not approved for production use.
  * Future 2025 activation requires a controlled verification of the published standard, applicable addenda/errata, formulas, and data tables.
  */
-import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, Ashrae621AirQualityStandards, DatasetCompletenessStatus } from './ashrae621/types';
+import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, Ashrae621Table63Source, Ashrae621AirQualityStandards, DatasetCompletenessStatus } from './ashrae621/types';
 import { ASHRAE_621_2019_SPACE_TYPES, ASHRAE_621_2019_EZ_VALUES, ASHRAE_621_2019_EXHAUST_RATES, ASHRAE_621_2019_AIR_QUALITY_STANDARDS } from './ashrae621/2019/data';
 import { ASHRAE_621_2022_SPACE_TYPES, ASHRAE_621_2022_EZ_VALUES, ASHRAE_621_2022_EXHAUST_RATES, ASHRAE_621_2022_AIR_QUALITY_STANDARDS, ASHRAE_621_2022_DATASET_STATUS } from './ashrae621/2022/data';
+import { ASHRAE_621_2022_TABLE_6_3_SOURCES } from './ashrae621/2022/table63Data';
 import { ASHRAE_621_2025_SPACE_TYPES, ASHRAE_621_2025_EZ_VALUES, ASHRAE_621_2025_EXHAUST_RATES, ASHRAE_621_2025_AIR_QUALITY_STANDARDS } from './ashrae621/2025/data';
 import { Ashrae622Coefficients } from './ashrae622/types'; 
 import { ASHRAE_622_2019_COEFFICIENTS } from './ashrae622/2019/data';
@@ -28,6 +29,9 @@ export class StandardDataProvider {
   }
   static getProduction621ExhaustRates(): Ashrae621ExhaustType[] {
     return ASHRAE_621_2022_EXHAUST_RATES;
+  }
+  static getProduction621Table63Sources(): Ashrae621Table63Source[] {
+    return ASHRAE_621_2022_TABLE_6_3_SOURCES;
   }
   static getProduction622Coefficients(): Ashrae622Coefficients {
     return ASHRAE_622_2022_COEFFICIENTS;
@@ -58,6 +62,15 @@ export class StandardDataProvider {
       case '2022': return ASHRAE_621_2022_EXHAUST_RATES;
       case '2025': return ASHRAE_621_2025_EXHAUST_RATES;
       default: throw new Error('INVALID_STANDARD_EDITION');
+    }
+  }
+  static get621Table63Sources(edition: AshraeEdition | string = '2022'): Ashrae621Table63Source[] {
+    switch (edition) {
+      case '2022': return ASHRAE_621_2022_TABLE_6_3_SOURCES;
+      case '2019':
+      case '2025':
+      default:
+        throw new Error('INVALID_STANDARD_EDITION');
     }
   }
   static get622Coefficients(edition: AshraeEdition | string = '2022'): Ashrae622Coefficients {

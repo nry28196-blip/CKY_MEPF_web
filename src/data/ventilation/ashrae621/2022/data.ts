@@ -555,7 +555,7 @@ export const ASHRAE_621_2022_EXHAUST_RATES: Ashrae621ExhaustType[] = [
     referenceBasis: 'ASHRAE 62.1-2022 + Addendum x',
     rateStatus: 'PRESCRIPTIVE',
     isSpecialStandard: false,
-    notes: 'Commercial cooking exhaust: additional kitchen exhaust design requirements apply (e.g. ASHRAE Standard 154 / NFPA 96). Prescriptive Table 6-2 rate provides minimum room exhaust.',
+    notes: 'Commercial cooking exhaust: per Section 6.5.1.2.3 (Addendum x), kitchen exhaust hoods shall comply with ANSI/ASHRAE Standard 154 (external/local codes such as NFPA 96 may apply separately). Prescriptive Table 6-2 rate provides minimum room exhaust.',
     revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: ['Addendum x'], publishedErrataApplied: [], verificationDate: '2026-09-22', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
       rate: { value: 3.5, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Section 6.5.1, Table 6-2', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-22' },

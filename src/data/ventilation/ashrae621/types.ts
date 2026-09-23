@@ -155,6 +155,26 @@ export interface Ashrae621ExhaustType {
   provenance?: ExhaustProvenance;
 }
 
+export interface Ashrae621Table63Source {
+  id: string;
+  name: string;
+  description: string;
+  airClass: 1 | 2 | 3 | 4;
+  standard: 'ASHRAE 62.1';
+  edition: string;
+  reference: string;
+  referenceSection: string;
+  referenceTable: string;
+  referenceBasis: string;
+  sourceType: SourceType;
+  verificationStatus: VerificationStatus;
+  verificationDate?: string;
+  applicableAddenda: string[];
+  notes?: string;
+  specialStandardReference?: string;
+  revisionState?: StandardRevision;
+}
+
 export interface Ashrae621FiltrationRequirements {
   minimumMERV: number;
   pm25DesignThreshold: number;
