@@ -3,16 +3,16 @@
  * Standard: ANSI/ASHRAE Standard 62.1-2022 Section 6.5.1 and Table 6-3
  * Reference Basis: ANSI/ASHRAE Standard 62.1-2022 + Addendum x
  * 
- * Tests independent verification, corruption detection, Air Class safety,
- * Table 6-2 / Table 6-3 overlap, and 2025 isolation.
+ * Tests independent verification, exhaustive field corruption detection,
+ * standard validation, Air Class input validation, downgrade prevention,
+ * override documentation integrity, Table 6-2 / Table 6-3 overlap, and 2025 isolation.
  */
 
 import { describe, it, expect } from 'vitest';
 import {
   AUTHORITATIVE_TABLE_6_3,
   AUTHORITATIVE_TABLE_6_3_COUNT,
-  AUTHORITATIVE_TABLE_6_3_REFERENCE_BASIS,
-  AuthoritativeTable63Record
+  AUTHORITATIVE_TABLE_6_3_REFERENCE_BASIS
 } from '../../data/ventilation/ashrae621/2022/authoritativeTable63';
 import { ASHRAE_621_2022_TABLE_6_3_SOURCES } from '../../data/ventilation/ashrae621/2022/table63Data';
 import { Ashrae621Table63CrossCheckService } from '../../calculations/ventilation/Ashrae621Table63CrossCheckService';
@@ -31,13 +31,15 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
   // 1. BASELINE AUDIT AND PRODUCTION / AUTHORITATIVE CROSS-CHECK
   // =========================================================================
   describe('1. Production vs Authoritative Fixture Audit', () => {
-    it('A. Authoritative fixture contains exactly 7 records', () => {
+    it('A. Authoritative count derives from fixture length', () => {
+      expect(AUTHORITATIVE_TABLE_6_3_COUNT).toBe(AUTHORITATIVE_TABLE_6_3.length);
+      expect(Ashrae621Table63CrossCheckService.EXPECTED_TOTAL_RECORDS).toBe(AUTHORITATIVE_TABLE_6_3.length);
       expect(AUTHORITATIVE_TABLE_6_3.length).toBe(7);
-      expect(AUTHORITATIVE_TABLE_6_3_COUNT).toBe(7);
     });
 
-    it('B. Production dataset contains exactly 7 records', () => {
+    it('B. Production dataset contains exactly 7 records matching fixture count', () => {
       const prod = StandardDataProvider.getProduction621Table63Sources();
+      expect(prod.length).toBe(AUTHORITATIVE_TABLE_6_3.length);
       expect(prod.length).toBe(7);
     });
 
@@ -54,6 +56,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(report.isCompliant).toBe(true);
       expect(report.recordsVerified).toBe(7);
       expect(report.referenceBasis).toBe(AUTHORITATIVE_TABLE_6_3_REFERENCE_BASIS);
+      expect(report.auditSummary).toBe('0 discrepancies across all audited fields.');
     });
 
     it('D. Architectural separation: Production and Authoritative datasets are independent object instances', () => {
@@ -65,10 +68,10 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
   });
 
   // =========================================================================
-  // 2. NEGATIVE AUDIT TESTS (DELIBERATE CORRUPTIONS)
+  // 2. NEGATIVE AUDIT TESTS (DELIBERATE FIELD CORRUPTIONS)
   // =========================================================================
-  describe('2. Negative Audit Corruption Tests', () => {
-    it('Negative Test 1: Air Class corruption (Class 4 -> Class 3) is detected', () => {
+  describe('2. Negative Audit Corruption Tests (Field Coverage)', () => {
+    it('Negative: Air Class corruption (Class 4 -> Class 3) is detected', () => {
       const corrupted = cloneProduction();
       const hood = corrupted.find(s => s.id === 'kitchen_grease_hoods')!;
       hood.airClass = 3 as any;
@@ -82,7 +85,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(airClassDisc?.actualValue).toBe(3);
     });
 
-    it('Negative Test 2: Removing one source is detected as missing record and SUBSET', () => {
+    it('Negative: Removing one source is detected as missing record and SUBSET', () => {
       const corrupted = cloneProduction().filter(s => s.id !== 'laboratory_hoods');
 
       const report = Ashrae621Table63CrossCheckService.auditDataset(corrupted);
@@ -91,7 +94,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(report.completenessStatus).toBe('SUBSET');
     });
 
-    it('Negative Test 3: Adding an unrecognized fake source is detected as extra record and INCOMPLETE', () => {
+    it('Negative: Adding an unrecognized fake source is detected as extra record and INCOMPLETE', () => {
       const corrupted = cloneProduction();
       corrupted.push({
         id: 'residential_bathroom_exhaust',
@@ -116,7 +119,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(report.completenessStatus).toBe('INCOMPLETE');
     });
 
-    it('Negative Test 4: Duplicate source ID is detected', () => {
+    it('Negative: Duplicate source ID is detected', () => {
       const corrupted = cloneProduction();
       corrupted.push({ ...corrupted[0] });
 
@@ -125,7 +128,72 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(report.duplicateRecords).toContain(corrupted[0].id);
     });
 
-    it('Negative Test 5: Corrupt edition (2022 -> 2025) is detected', () => {
+    it('Negative: Corrupt description is detected', () => {
+      const corrupted = cloneProduction();
+      corrupted[0].description = 'Tampered description text';
+
+      const report = Ashrae621Table63CrossCheckService.auditDataset(corrupted);
+      expect(report.isCompliant).toBe(false);
+      const disc = report.discrepancies.find(d => d.id === corrupted[0].id && d.field === 'description');
+      expect(disc).toBeDefined();
+    });
+
+    it('Negative: Corrupt sourceType is detected', () => {
+      const corrupted = cloneProduction();
+      corrupted[1].sourceType = 'MANUAL_OVERRIDE' as any;
+
+      const report = Ashrae621Table63CrossCheckService.auditDataset(corrupted);
+      expect(report.isCompliant).toBe(false);
+      const disc = report.discrepancies.find(d => d.id === corrupted[1].id && d.field === 'sourceType');
+      expect(disc).toBeDefined();
+    });
+
+    it('Negative: Corrupt applicableAddenda is detected', () => {
+      const corrupted = cloneProduction();
+      corrupted[2].applicableAddenda = ['Addendum a', 'Addendum b'];
+
+      const report = Ashrae621Table63CrossCheckService.auditDataset(corrupted);
+      expect(report.isCompliant).toBe(false);
+      const disc = report.discrepancies.find(d => d.id === corrupted[2].id && d.field === 'applicableAddenda');
+      expect(disc).toBeDefined();
+    });
+
+    it('Negative: Corrupt notes is detected', () => {
+      const corrupted = cloneProduction();
+      corrupted[3].notes = 'Corrupted unauthorized engineering note';
+
+      const report = Ashrae621Table63CrossCheckService.auditDataset(corrupted);
+      expect(report.isCompliant).toBe(false);
+      const disc = report.discrepancies.find(d => d.id === corrupted[3].id && d.field === 'notes');
+      expect(disc).toBeDefined();
+    });
+
+    it('Negative: Corrupt specialStandardReference is detected', () => {
+      const corrupted = cloneProduction();
+      corrupted[4].specialStandardReference = 'NFPA 9999 (Invalid)';
+
+      const report = Ashrae621Table63CrossCheckService.auditDataset(corrupted);
+      expect(report.isCompliant).toBe(false);
+      const disc = report.discrepancies.find(d => d.id === corrupted[4].id && d.field === 'specialStandardReference');
+      expect(disc).toBeDefined();
+    });
+
+    it('Negative: Corrupt revisionState is detected', () => {
+      const corrupted = cloneProduction();
+      if (corrupted[0].revisionState) {
+        corrupted[0].revisionState = {
+          ...corrupted[0].revisionState,
+          edition: '2025' as any
+        };
+      }
+
+      const report = Ashrae621Table63CrossCheckService.auditDataset(corrupted);
+      expect(report.isCompliant).toBe(false);
+      const disc = report.discrepancies.find(d => d.id === corrupted[0].id && d.field === 'revisionState.edition');
+      expect(disc).toBeDefined();
+    });
+
+    it('Negative: Corrupt edition (2022 -> 2025) is detected', () => {
       const corrupted = cloneProduction();
       corrupted[0].edition = '2025';
 
@@ -136,7 +204,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(editionDisc?.actualValue).toBe('2025');
     });
 
-    it('Negative Test 6: Corrupt reference table (Table 6-3 -> Table 6-2) is detected', () => {
+    it('Negative: Corrupt reference table (Table 6-3 -> Table 6-2) is detected', () => {
       const corrupted = cloneProduction();
       corrupted[1].referenceTable = 'Table 6-2';
 
@@ -147,7 +215,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(tableDisc?.actualValue).toBe('Table 6-2');
     });
 
-    it('Negative Test 7: Corrupt verificationStatus (VERIFIED -> NOT_VERIFIED) is detected', () => {
+    it('Negative: Corrupt verificationStatus (VERIFIED -> NOT_VERIFIED) is detected', () => {
       const corrupted = cloneProduction();
       corrupted[2].verificationStatus = 'NOT_VERIFIED';
 
@@ -158,7 +226,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(verDisc?.actualValue).toBe('NOT_VERIFIED');
     });
 
-    it('Negative Test 8: Corrupt source name is detected', () => {
+    it('Negative: Corrupt source name is detected', () => {
       const corrupted = cloneProduction();
       corrupted[3].name = 'Corrupted Elevator Room Name';
 
@@ -168,7 +236,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(nameDisc).toBeDefined();
     });
 
-    it('Negative Test 9: Corrupt referenceBasis is detected', () => {
+    it('Negative: Corrupt referenceBasis is detected', () => {
       const corrupted = cloneProduction();
       corrupted[4].referenceBasis = 'Unverified Draft Basis';
 
@@ -182,7 +250,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
   // =========================================================================
   // 3. EXACT AIR CLASS VERIFICATION FOR ALL 7 TABLE 6-3 SOURCES
   // =========================================================================
-  describe('3. Exact Air Class Requirements per Table 6-3', () => {
+  describe('3. Exact Air Class Requirements per Published Table 6-3', () => {
     const sources = StandardDataProvider.getProduction621Table63Sources();
     const map = new Map(sources.map(s => [s.id, s]));
 
@@ -242,10 +310,278 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
   });
 
   // =========================================================================
-  // 4. AIR CLASS SAFETY & DOWNGRADE ENFORCEMENT
+  // 4. VALIDATE EXPECTED STANDARD (PROMPT 10 ITEM 3)
   // =========================================================================
-  describe('4. Air Class Safety & Downgrade Prevention', () => {
-    it('Disallows silent downgrade: Kitchen grease hoods from Class 4 to Class 3 is BLOCKED', () => {
+  describe('4. Standard Validation (ASHRAE 62.1 vs Non-62.1)', () => {
+    it('evaluateSourceClassification rejects non-62.1 standard (e.g. ASHRAE 62.2) as BLOCKED', () => {
+      const result = Ashrae621Table63Service.evaluateSourceClassification('kitchen_grease_hoods', {
+        expectedStandard: 'ASHRAE 62.2',
+        expectedEdition: '2022'
+      });
+      expect(result.status).toBe('BLOCKED');
+      expect(result.airClass).toBeNull();
+      expect(result.complianceNotes.some(n => n.includes('Standard \'ASHRAE 62.2\' is rejected'))).toBe(true);
+    });
+
+    it('validateAirClass rejects non-62.1 standard (e.g. ASHRAE 62.2) as BLOCKED', () => {
+      const result = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'kitchen_grease_hoods',
+        selectedAirClass: 4,
+        expectedStandard: 'ASHRAE 62.2',
+        expectedEdition: '2022'
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
+      expect(result.message).toContain("Standard 'ASHRAE 62.2' is rejected");
+    });
+
+    it('evaluateSourceClassification and validateAirClass accept ASHRAE 62.1 normally', () => {
+      const evalRes = Ashrae621Table63Service.evaluateSourceClassification('kitchen_grease_hoods', {
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022'
+      });
+      expect(evalRes.status).toBe('CLASSIFIED_SPECIAL_REQUIREMENT');
+      expect(evalRes.airClass).toBe(4);
+
+      const valRes = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'kitchen_grease_hoods',
+        selectedAirClass: 4,
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022'
+      });
+      expect(valRes.isValid).toBe(true);
+      expect(valRes.status).toBe('VERIFIED');
+    });
+  });
+
+  // =========================================================================
+  // 5. VALIDATE AIR CLASS INPUT (PROMPT 10 ITEM 4)
+  // =========================================================================
+  describe('5. Air Class Input Validation', () => {
+    it('Rejects invalid Air Class = 0 as BLOCKED', () => {
+      const result = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'kitchen_grease_hoods',
+        selectedAirClass: 0
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
+      expect(result.message).toContain('Invalid Air Class input (0)');
+    });
+
+    it('Rejects invalid Air Class = 5 as BLOCKED', () => {
+      const result = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'kitchen_grease_hoods',
+        selectedAirClass: 5
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
+    });
+
+    it('Rejects out-of-range Air Class = 99 as BLOCKED (does not pass merely because 99 >= 4)', () => {
+      const result = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'kitchen_grease_hoods',
+        selectedAirClass: 99
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
+    });
+
+    it('Rejects decimal Air Class = 2.5 as BLOCKED', () => {
+      const result = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'hydraulic_elevator_machine_room',
+        selectedAirClass: 2.5
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
+    });
+
+    it('Rejects NaN as BLOCKED', () => {
+      const result = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'kitchen_grease_hoods',
+        selectedAirClass: NaN
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
+    });
+
+    it('Rejects Infinity as BLOCKED', () => {
+      const result = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'kitchen_grease_hoods',
+        selectedAirClass: Infinity
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
+    });
+
+    it('Rejects negative Air Class = -1 as BLOCKED', () => {
+      const result = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'kitchen_grease_hoods',
+        selectedAirClass: -1
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
+    });
+
+    it('Rejects string-coerced value as BLOCKED', () => {
+      const result = Ashrae621Table63Service.validateAirClass({
+        sourceId: 'kitchen_grease_hoods',
+        selectedAirClass: '4' as any
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // 6. NEVER INVENT AIR CLASS FOR BLOCKED / UNVERIFIED DATA (PROMPT 10 ITEM 5)
+  // =========================================================================
+  describe('6. Never Invent Air Class for Blocked / Unverified Data', () => {
+    it('Blocked 2025 result returns airClass = null, numericRate = null, requiredExhaust = null', () => {
+      const result = Ashrae621Table63Service.evaluateSourceClassification('kitchen_grease_hoods', {
+        expectedEdition: '2025'
+      });
+      expect(result.status).toBe('BLOCKED');
+      expect(result.airClass).toBeNull();
+      expect(result.numericRate).toBeNull();
+      expect(result.requiredExhaust).toBeNull();
+    });
+
+    it('Unknown source returns airClass = null, numericRate = null, requiredExhaust = null', () => {
+      const result = Ashrae621Table63Service.evaluateSourceClassification('unknown_air_stream_xyz');
+      expect(result.status).toBe('BLOCKED');
+      expect(result.airClass).toBeNull();
+      expect(result.numericRate).toBeNull();
+      expect(result.requiredExhaust).toBeNull();
+    });
+
+    it('Blocked standard returns airClass = null', () => {
+      const result = Ashrae621Table63Service.evaluateSourceClassification('kitchen_grease_hoods', {
+        expectedStandard: 'ASHRAE 62.2'
+      });
+      expect(result.status).toBe('BLOCKED');
+      expect(result.airClass).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // 7. VALIDATE SOURCE RECORD BEFORE USING CLASSIFICATION (PROMPT 10 ITEM 6)
+  // =========================================================================
+  describe('7. Source Record Integrity Validation Before Classification', () => {
+    const validProd = cloneProduction()[0];
+
+    it('Rejects source with standard != ASHRAE 62.1', () => {
+      const corrupted: Ashrae621Table63Source = { ...validProd, standard: 'ASHRAE 62.2' as any };
+      const evalRes = Ashrae621Table63Service.evaluateSourceClassification(corrupted.id, {
+        sourceOverride: corrupted
+      });
+      expect(evalRes.status).toBe('BLOCKED');
+      expect(evalRes.airClass).toBeNull();
+      expect(evalRes.complianceNotes.some(n => n.includes('Standard \'ASHRAE 62.2\' is invalid'))).toBe(true);
+
+      const valRes = Ashrae621Table63Service.validateAirClass({
+        sourceId: corrupted.id,
+        selectedAirClass: 4,
+        sourceOverride: corrupted
+      });
+      expect(valRes.status).toBe('BLOCKED');
+      expect(valRes.isValid).toBe(false);
+    });
+
+    it('Rejects source with edition != 2022', () => {
+      const corrupted: Ashrae621Table63Source = { ...validProd, edition: '2025' };
+      const evalRes = Ashrae621Table63Service.evaluateSourceClassification(corrupted.id, {
+        sourceOverride: corrupted
+      });
+      expect(evalRes.status).toBe('BLOCKED');
+      expect(evalRes.airClass).toBeNull();
+
+      const valRes = Ashrae621Table63Service.validateAirClass({
+        sourceId: corrupted.id,
+        selectedAirClass: 4,
+        sourceOverride: corrupted
+      });
+      expect(valRes.status).toBe('BLOCKED');
+    });
+
+    it('Rejects source with referenceTable != Table 6-3', () => {
+      const corrupted: Ashrae621Table63Source = { ...validProd, referenceTable: 'Table 6-2' };
+      const evalRes = Ashrae621Table63Service.evaluateSourceClassification(corrupted.id, {
+        sourceOverride: corrupted
+      });
+      expect(evalRes.status).toBe('BLOCKED');
+      expect(evalRes.airClass).toBeNull();
+
+      const valRes = Ashrae621Table63Service.validateAirClass({
+        sourceId: corrupted.id,
+        selectedAirClass: 4,
+        sourceOverride: corrupted
+      });
+      expect(valRes.status).toBe('BLOCKED');
+    });
+
+    it('Rejects source with referenceSection != 6.5.1', () => {
+      const corrupted: Ashrae621Table63Source = { ...validProd, referenceSection: '6.2.1' };
+      const evalRes = Ashrae621Table63Service.evaluateSourceClassification(corrupted.id, {
+        sourceOverride: corrupted
+      });
+      expect(evalRes.status).toBe('BLOCKED');
+      expect(evalRes.airClass).toBeNull();
+
+      const valRes = Ashrae621Table63Service.validateAirClass({
+        sourceId: corrupted.id,
+        selectedAirClass: 4,
+        sourceOverride: corrupted
+      });
+      expect(valRes.status).toBe('BLOCKED');
+    });
+
+    it('Rejects source with verificationStatus != VERIFIED', () => {
+      const corrupted: Ashrae621Table63Source = { ...validProd, verificationStatus: 'NOT_VERIFIED' as any };
+      const evalRes = Ashrae621Table63Service.evaluateSourceClassification(corrupted.id, {
+        sourceOverride: corrupted
+      });
+      expect(evalRes.status).toBe('BLOCKED');
+      expect(evalRes.airClass).toBeNull();
+
+      const valRes = Ashrae621Table63Service.validateAirClass({
+        sourceId: corrupted.id,
+        selectedAirClass: 4,
+        sourceOverride: corrupted
+      });
+      expect(valRes.status).toBe('BLOCKED');
+    });
+
+    it('Rejects source with airClass out of 1-4 range', () => {
+      const corrupted: Ashrae621Table63Source = { ...validProd, airClass: 99 as any };
+      const evalRes = Ashrae621Table63Service.evaluateSourceClassification(corrupted.id, {
+        sourceOverride: corrupted
+      });
+      expect(evalRes.status).toBe('BLOCKED');
+      expect(evalRes.airClass).toBeNull();
+
+      const valRes = Ashrae621Table63Service.validateAirClass({
+        sourceId: corrupted.id,
+        selectedAirClass: 4,
+        sourceOverride: corrupted
+      });
+      expect(valRes.status).toBe('BLOCKED');
+    });
+  });
+
+  // =========================================================================
+  // 8. AIR CLASS SAFETY & OVERRIDE METADATA WORDING (PROMPT 10 ITEMS 8 & 9)
+  // =========================================================================
+  describe('8. Air Class Safety & Override Metadata Integrity', () => {
+    it('S. Silent downgrade remains BLOCKED (Class 4 -> Class 3)', () => {
       const result = Ashrae621Table63Service.validateAirClass({
         sourceId: 'kitchen_grease_hoods',
         selectedAirClass: 3
@@ -253,11 +589,11 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(result.isValid).toBe(false);
       expect(result.status).toBe('BLOCKED');
       expect(result.isDowngraded).toBe(true);
-      expect(result.effectiveAirClass).toBe(4); // Does not adopt lower class
+      expect(result.effectiveAirClass).toBe(4);
       expect(result.message).toContain('Silent downgrade');
     });
 
-    it('Disallows silent downgrade: Laboratory hoods from Class 4 to Class 1 is BLOCKED', () => {
+    it('S. Silent downgrade remains BLOCKED (Class 4 -> Class 1)', () => {
       const result = Ashrae621Table63Service.validateAirClass({
         sourceId: 'laboratory_hoods',
         selectedAirClass: 1
@@ -267,16 +603,17 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(result.effectiveAirClass).toBe(4);
     });
 
-    it('Disallows silent downgrade: Refrigerating machinery from Class 3 to Class 2 without justification is BLOCKED', () => {
+    it('S. Silent downgrade remains BLOCKED (Class 3 -> Class 2)', () => {
       const result = Ashrae621Table63Service.validateAirClass({
         sourceId: 'refrigerating_machinery',
         selectedAirClass: 2
       });
       expect(result.isValid).toBe(false);
       expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBe(3);
     });
 
-    it('Allows engineering override ONLY when explicit professional justification and EHS sign-off are provided', () => {
+    it('T. Explicit downgrade metadata produces documented override state without claiming professional verification', () => {
       const result = Ashrae621Table63Service.validateAirClass({
         sourceId: 'kitchen_hoods_non_grease',
         selectedAirClass: 2,
@@ -287,14 +624,15 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(result.status).toBe('OVERRIDE_PERMITTED');
       expect(result.isDowngraded).toBe(true);
       expect(result.effectiveAirClass).toBe(2);
-      expect(result.message).toContain('Engineering override permitted');
-      expect(result.complianceNotes.some(n => n.includes('Jane Doe, PE / CIH'))).toBe(true);
+      expect(result.message).toContain('Documented override metadata supplied by user');
+      expect(result.complianceNotes.some(n => n.includes('Documented override metadata supplied by user: Jane Doe, PE / CIH'))).toBe(true);
+      expect(result.complianceNotes.some(n => n.includes('not independently verified'))).toBe(true);
     });
 
     it('Upgrading to a more restrictive Air Class is always permitted and VERIFIED', () => {
       const result = Ashrae621Table63Service.validateAirClass({
         sourceId: 'hydraulic_elevator_machine_room',
-        selectedAirClass: 3 // Source requires 2, engineer chooses 3
+        selectedAirClass: 3
       });
       expect(result.isValid).toBe(true);
       expect(result.status).toBe('VERIFIED');
@@ -304,10 +642,10 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
   });
 
   // =========================================================================
-  // 5. NO-NUMERIC-RATE & CLASSIFICATION-ONLY SAFETY ENFORCEMENT
+  // 9. NO-NUMERIC-RATE & CLASSIFICATION-ONLY SAFETY ENFORCEMENT
   // =========================================================================
-  describe('5. Table 6-3 Does Not Invent Numeric Exhaust Rates', () => {
-    it('All 7 sources produce numericRate = null, requiredExhaust = null, and rateStatus = NOT_APPLICABLE', () => {
+  describe('9. Table 6-3 Does Not Invent Numeric Exhaust Rates', () => {
+    it('V. Table 6-3 never produces numeric requiredExhaust across all 7 sources', () => {
       const sources = StandardDataProvider.getProduction621Table63Sources();
       sources.forEach(src => {
         const evalResult = Ashrae621Table63Service.evaluateSourceClassification(src.id);
@@ -324,12 +662,12 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
   });
 
   // =========================================================================
-  // 6. TABLE 6-2 AND TABLE 6-3 OVERLAP AGREEMENT
+  // 10. TABLE 6-2 AND TABLE 6-3 OVERLAP AGREEMENT
   // =========================================================================
-  describe('6. Table 6-2 / Table 6-3 Overlap Agreement', () => {
+  describe('10. Table 6-2 / Table 6-3 Overlap Agreement', () => {
     const table62Rates = StandardDataProvider.getProduction621ExhaustRates();
 
-    it('Paint spray booths: Table 6-2 and Table 6-3 agree on Air Class 4 and special standard OSHA 1910.107 / NFPA 33', () => {
+    it('U. Paint spray booths: Table 6-2 and Table 6-3 overlap remains valid', () => {
       const t62 = table62Rates.find(r => r.id === 'paint_spray_booths')!;
       expect(t62).toBeDefined();
       expect(t62.airClass).toBe(4);
@@ -343,7 +681,7 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       expect(overlapCheck.discrepancies).toHaveLength(0);
     });
 
-    it('Refrigerating machinery rooms: Table 6-2 and Table 6-3 agree on Air Class 3 and ANSI/ASHRAE Standard 15', () => {
+    it('U. Refrigerating machinery rooms: Table 6-2 and Table 6-3 overlap remains valid', () => {
       const t62 = table62Rates.find(r => r.id === 'refrigerating_machinery')!;
       expect(t62).toBeDefined();
       expect(t62.airClass).toBe(3);
@@ -366,18 +704,19 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
   });
 
   // =========================================================================
-  // 7. 2025 ISOLATION-GUARD TESTS
+  // 11. 2025 ISOLATION-GUARD TESTS
   // =========================================================================
-  describe('7. 2025 Isolation-Guard Tests', () => {
-    it('2025 isolation guard: evaluateSourceClassification rejects 2025 as BLOCKED', () => {
+  describe('11. 2025 Isolation-Guard Tests', () => {
+    it('Q. evaluateSourceClassification rejects 2025 as BLOCKED with airClass = null', () => {
       const result = Ashrae621Table63Service.evaluateSourceClassification('kitchen_grease_hoods', {
         expectedEdition: '2025'
       });
       expect(result.status).toBe('BLOCKED');
+      expect(result.airClass).toBeNull();
       expect(result.complianceNotes.some(n => n.includes('Edition 2025 is not active in production'))).toBe(true);
     });
 
-    it('2025 isolation guard: validateAirClass rejects 2025 as BLOCKED', () => {
+    it('validateAirClass rejects 2025 as BLOCKED with effectiveAirClass = null', () => {
       const result = Ashrae621Table63Service.validateAirClass({
         sourceId: 'kitchen_grease_hoods',
         selectedAirClass: 4,
@@ -385,43 +724,13 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       });
       expect(result.isValid).toBe(false);
       expect(result.status).toBe('BLOCKED');
+      expect(result.effectiveAirClass).toBeNull();
     });
 
-    it('2025 isolation guard: StandardDataProvider.get621Table63Sources("2025") throws error', () => {
+    it('StandardDataProvider.get621Table63Sources("2025") throws INVALID_STANDARD_EDITION', () => {
       expect(() => {
         StandardDataProvider.get621Table63Sources('2025');
       }).toThrow('INVALID_STANDARD_EDITION');
-    });
-  });
-
-  // =========================================================================
-  // 8. NOT_VERIFIED SAFETY TEST
-  // =========================================================================
-  describe('8. NOT_VERIFIED Safety Guard', () => {
-    it('Unverified Table 6-3 record is BLOCKED by evaluateSourceClassification', () => {
-      const prod = cloneProduction();
-      prod[0].verificationStatus = 'NOT_VERIFIED';
-
-      // Temporarily simulate corrupted source retrieval
-      const origGetSource = Ashrae621Table63Service.getSource;
-      (Ashrae621Table63Service as any).getSource = (id: string) => {
-        if (id === prod[0].id) return prod[0];
-        return origGetSource.call(Ashrae621Table63Service, id);
-      };
-
-      try {
-        const evalRes = Ashrae621Table63Service.evaluateSourceClassification(prod[0].id);
-        expect(evalRes.status).toBe('BLOCKED');
-        expect(evalRes.complianceNotes.some(n => n.includes('must be VERIFIED'))).toBe(true);
-
-        const valRes = Ashrae621Table63Service.validateAirClass({
-          sourceId: prod[0].id,
-          selectedAirClass: 4
-        });
-        expect(valRes.status).toBe('BLOCKED');
-      } finally {
-        (Ashrae621Table63Service as any).getSource = origGetSource;
-      }
     });
   });
 });

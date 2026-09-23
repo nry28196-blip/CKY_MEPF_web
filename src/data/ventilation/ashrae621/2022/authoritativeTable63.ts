@@ -13,6 +13,16 @@
  * It provides required Air Class classification for listed airstreams/sources.
  */
 
+export interface AuthoritativeTable63Revision {
+  readonly standard: 'ASHRAE 62.1';
+  readonly edition: '2022';
+  readonly baseEdition: '2022';
+  readonly publishedAddendaApplied: readonly string[];
+  readonly publishedErrataApplied: readonly string[];
+  readonly verificationDate: string;
+  readonly source: string;
+}
+
 export interface AuthoritativeTable63Record {
   readonly id: string;
   readonly name: string;
@@ -30,6 +40,8 @@ export interface AuthoritativeTable63Record {
   readonly applicableAddenda: readonly string[];
   readonly notes?: string;
   readonly specialStandardReference?: string;
+  readonly revisionState?: AuthoritativeTable63Revision;
+  readonly metadataSourceType?: 'STANDARD_TABLE' | 'SUPPLEMENTARY_GUIDANCE';
 }
 
 export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
@@ -49,7 +61,17 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
     verificationDate: '2026-09-22',
     applicableAddenda: ['Addendum x'],
     notes: 'Exhaust airflow shall be designed in accordance with ANSI/ASHRAE Standard 154 (Section 6.5.1.2.3). Air Class 4 prohibits recirculation or transfer to other spaces.',
-    specialStandardReference: 'ANSI/ASHRAE Standard 154'
+    specialStandardReference: 'ANSI/ASHRAE Standard 154',
+    metadataSourceType: 'STANDARD_TABLE',
+    revisionState: {
+      standard: 'ASHRAE 62.1',
+      edition: '2022',
+      baseEdition: '2022',
+      publishedAddendaApplied: ['Addendum x'],
+      publishedErrataApplied: [],
+      verificationDate: '2026-09-22',
+      source: 'ASHRAE_PUBLISHED'
+    }
   },
   {
     id: 'kitchen_hoods_non_grease',
@@ -67,7 +89,17 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
     verificationDate: '2026-09-22',
     applicableAddenda: ['Addendum x'],
     notes: 'Exhaust airflow shall be designed in accordance with ANSI/ASHRAE Standard 154 (Section 6.5.1.2.3). Air Class 3 permits recirculation only within the space of origin.',
-    specialStandardReference: 'ANSI/ASHRAE Standard 154'
+    specialStandardReference: 'ANSI/ASHRAE Standard 154',
+    metadataSourceType: 'STANDARD_TABLE',
+    revisionState: {
+      standard: 'ASHRAE 62.1',
+      edition: '2022',
+      baseEdition: '2022',
+      publishedAddendaApplied: ['Addendum x'],
+      publishedErrataApplied: [],
+      verificationDate: '2026-09-22',
+      source: 'ASHRAE_PUBLISHED'
+    }
   },
   {
     id: 'diazo_printing_discharge',
@@ -85,7 +117,17 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
     verificationDate: '2026-09-22',
     applicableAddenda: ['Addendum x'],
     notes: 'Direct discharge required outdoors without recirculation or transfer.',
-    specialStandardReference: 'Manufacturer / EHS containment specifications'
+    specialStandardReference: 'Manufacturer / EHS containment specifications',
+    metadataSourceType: 'STANDARD_TABLE',
+    revisionState: {
+      standard: 'ASHRAE 62.1',
+      edition: '2022',
+      baseEdition: '2022',
+      publishedAddendaApplied: ['Addendum x'],
+      publishedErrataApplied: [],
+      verificationDate: '2026-09-22',
+      source: 'ASHRAE_PUBLISHED'
+    }
   },
   {
     id: 'hydraulic_elevator_machine_room',
@@ -103,7 +145,17 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
     verificationDate: '2026-09-22',
     applicableAddenda: ['Addendum x'],
     notes: 'Air Class 2 classification. Recirculation to other Class 2 spaces permitted, but prohibited to Class 1 spaces.',
-    specialStandardReference: 'ASME A17.1 / Elevator engineering specifications'
+    specialStandardReference: 'ASME A17.1 / Elevator engineering specifications',
+    metadataSourceType: 'STANDARD_TABLE',
+    revisionState: {
+      standard: 'ASHRAE 62.1',
+      edition: '2022',
+      baseEdition: '2022',
+      publishedAddendaApplied: ['Addendum x'],
+      publishedErrataApplied: [],
+      verificationDate: '2026-09-22',
+      source: 'ASHRAE_PUBLISHED'
+    }
   },
   {
     id: 'laboratory_hoods',
@@ -121,7 +173,17 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
     verificationDate: '2026-09-22',
     applicableAddenda: ['Addendum x'],
     notes: 'Exhaust systems shall comply with ANSI/AIHA/ASSE Z9.5 and NFPA 45. Air Class 4 prohibits any recirculation or transfer.',
-    specialStandardReference: 'ANSI/AIHA Z9.5 / NFPA 45'
+    specialStandardReference: 'ANSI/AIHA Z9.5 / NFPA 45',
+    metadataSourceType: 'STANDARD_TABLE',
+    revisionState: {
+      standard: 'ASHRAE 62.1',
+      edition: '2022',
+      baseEdition: '2022',
+      publishedAddendaApplied: ['Addendum x'],
+      publishedErrataApplied: [],
+      verificationDate: '2026-09-22',
+      source: 'ASHRAE_PUBLISHED'
+    }
   },
   {
     id: 'paint_spray_booths',
@@ -139,7 +201,17 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
     verificationDate: '2026-09-22',
     applicableAddenda: ['Addendum x'],
     notes: 'Also listed in Table 6-2 (numeric rates governed by OSHA 1910.107 / NFPA 33). Table 6-3 classifies airstream as Air Class 4.',
-    specialStandardReference: 'OSHA 1910.107 / NFPA 33'
+    specialStandardReference: 'OSHA 1910.107 / NFPA 33',
+    metadataSourceType: 'STANDARD_TABLE',
+    revisionState: {
+      standard: 'ASHRAE 62.1',
+      edition: '2022',
+      baseEdition: '2022',
+      publishedAddendaApplied: ['Addendum x'],
+      publishedErrataApplied: [],
+      verificationDate: '2026-09-22',
+      source: 'ASHRAE_PUBLISHED'
+    }
   },
   {
     id: 'refrigerating_machinery',
@@ -157,9 +229,19 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
     verificationDate: '2026-09-22',
     applicableAddenda: ['Addendum x'],
     notes: 'Also listed in Table 6-2 (emergency and continuous ventilation rates governed by ANSI/ASHRAE Standard 15). Table 6-3 classifies airstream as Air Class 3.',
-    specialStandardReference: 'ANSI/ASHRAE Standard 15'
+    specialStandardReference: 'ANSI/ASHRAE Standard 15',
+    metadataSourceType: 'STANDARD_TABLE',
+    revisionState: {
+      standard: 'ASHRAE 62.1',
+      edition: '2022',
+      baseEdition: '2022',
+      publishedAddendaApplied: ['Addendum x'],
+      publishedErrataApplied: [],
+      verificationDate: '2026-09-22',
+      source: 'ASHRAE_PUBLISHED'
+    }
   }
 ] as const;
 
-export const AUTHORITATIVE_TABLE_6_3_COUNT = 7;
+export const AUTHORITATIVE_TABLE_6_3_COUNT = AUTHORITATIVE_TABLE_6_3.length;
 export const AUTHORITATIVE_TABLE_6_3_REFERENCE_BASIS = 'ASHRAE 62.1-2022 + Addendum x';

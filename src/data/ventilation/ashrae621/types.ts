@@ -155,6 +155,8 @@ export interface Ashrae621ExhaustType {
   provenance?: ExhaustProvenance;
 }
 
+export type Table63MetadataSourceType = 'STANDARD_TABLE' | 'SUPPLEMENTARY_GUIDANCE';
+
 export interface Ashrae621Table63Source {
   id: string;
   name: string;
@@ -173,6 +175,7 @@ export interface Ashrae621Table63Source {
   notes?: string;
   specialStandardReference?: string;
   revisionState?: StandardRevision;
+  metadataSourceType?: Table63MetadataSourceType;
 }
 
 export interface Ashrae621FiltrationRequirements {

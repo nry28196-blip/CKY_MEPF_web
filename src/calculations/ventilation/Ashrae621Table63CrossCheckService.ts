@@ -7,7 +7,7 @@
  * Strict architectural rule:
  * - Authoritative fixture does NOT import production data.
  * - Production dataset does NOT import authoritative fixture.
- * - This service acts as the independent verification layer.
+ * - Completeness is verified by auditing every field across every record against the authoritative fixture.
  */
 
 import { Ashrae621Table63Source } from '../../data/ventilation/ashrae621/types';
@@ -43,16 +43,26 @@ export interface Table63AuditReport {
   completenessStatus: 'COMPLETE' | 'SUBSET' | 'INCOMPLETE';
   isCompliant: boolean;
   recordsVerified: number;
+  auditSummary: string;
   auditTimestamp: string;
 }
 
 export class Ashrae621Table63CrossCheckService {
-  static readonly EXPECTED_TOTAL_RECORDS = AUTHORITATIVE_TABLE_6_3_COUNT;
+  // Count derived directly from authoritative fixture, not hardcoded
+  static get EXPECTED_TOTAL_RECORDS(): number {
+    return AUTHORITATIVE_TABLE_6_3.length;
+  }
   static readonly EXPECTED_REFERENCE_BASIS = AUTHORITATIVE_TABLE_6_3_REFERENCE_BASIS;
 
   /**
    * Run independent audit of Table 6-3 dataset against authoritative fixture.
-   * If no dataset is supplied, defaults to active production Table 6-3 dataset from StandardDataProvider.
+   * Compares all required fields:
+   * - id, name, description, airClass, standard, edition
+   * - reference, referenceSection, referenceTable, referenceBasis
+   * - sourceType, verificationStatus, verificationDate
+   * - applicableAddenda, notes, specialStandardReference
+   * - metadataSourceType
+   * - revisionState (standard, edition, baseEdition, publishedAddendaApplied, publishedErrataApplied, source)
    */
   static auditDataset(liveData?: Ashrae621Table63Source[]): Table63AuditReport {
     const dataset = liveData || StandardDataProvider.getProduction621Table63Sources();
@@ -86,7 +96,15 @@ export class Ashrae621Table63CrossCheckService {
 
     const discrepancies: Table63Discrepancy[] = [];
 
-    // 1. Audit each actual record against authoritative counterpart
+    // Helper for array equality
+    const arraysEqual = (a?: readonly string[] | string[], b?: readonly string[] | string[]): boolean => {
+      if (!a && !b) return true;
+      if (!a || !b) return false;
+      if (a.length !== b.length) return false;
+      return a.every((val, idx) => val === b[idx]);
+    };
+
+    // 1. Audit each actual record against authoritative counterpart across all fields
     dataset.forEach(actual => {
       const auth = authoritativeMap.get(actual.id);
       if (!auth) {
@@ -128,6 +146,19 @@ export class Ashrae621Table63CrossCheckService {
         });
       }
 
+      // Description check
+      if (actual.description !== auth.description) {
+        discrepancies.push({
+          id: actual.id,
+          name: actual.name,
+          field: 'description',
+          expectedValue: auth.description,
+          actualValue: actual.description,
+          severity: 'ERROR',
+          description: `Description mismatch for '${actual.id}': expected '${auth.description}', got '${actual.description}'.`
+        });
+      }
+
       // Standard check
       if (actual.standard !== auth.standard) {
         discrepancies.push({
@@ -151,6 +182,19 @@ export class Ashrae621Table63CrossCheckService {
           actualValue: actual.edition,
           severity: 'ERROR',
           description: `Edition mismatch for '${actual.id}': expected '${auth.edition}', got '${actual.edition}'.`
+        });
+      }
+
+      // Reference string check
+      if (actual.reference !== auth.reference) {
+        discrepancies.push({
+          id: actual.id,
+          name: actual.name,
+          field: 'reference',
+          expectedValue: auth.reference,
+          actualValue: actual.reference,
+          severity: 'ERROR',
+          description: `Reference mismatch for '${actual.id}': expected '${auth.reference}', got '${actual.reference}'.`
         });
       }
 
@@ -193,6 +237,19 @@ export class Ashrae621Table63CrossCheckService {
         });
       }
 
+      // SourceType check
+      if (actual.sourceType !== auth.sourceType) {
+        discrepancies.push({
+          id: actual.id,
+          name: actual.name,
+          field: 'sourceType',
+          expectedValue: auth.sourceType,
+          actualValue: actual.sourceType,
+          severity: 'ERROR',
+          description: `SourceType mismatch for '${actual.id}': expected '${auth.sourceType}', got '${actual.sourceType}'.`
+        });
+      }
+
       // Verification Status check (CRITICAL)
       if (actual.verificationStatus !== auth.verificationStatus) {
         discrepancies.push({
@@ -206,8 +263,47 @@ export class Ashrae621Table63CrossCheckService {
         });
       }
 
+      // Verification Date check
+      if (auth.verificationDate && actual.verificationDate !== auth.verificationDate) {
+        discrepancies.push({
+          id: actual.id,
+          name: actual.name,
+          field: 'verificationDate',
+          expectedValue: auth.verificationDate,
+          actualValue: actual.verificationDate,
+          severity: 'ERROR',
+          description: `Verification date mismatch for '${actual.id}': expected '${auth.verificationDate}', got '${actual.verificationDate}'.`
+        });
+      }
+
+      // Applicable Addenda check
+      if (!arraysEqual(actual.applicableAddenda, auth.applicableAddenda)) {
+        discrepancies.push({
+          id: actual.id,
+          name: actual.name,
+          field: 'applicableAddenda',
+          expectedValue: JSON.stringify(auth.applicableAddenda),
+          actualValue: JSON.stringify(actual.applicableAddenda),
+          severity: 'ERROR',
+          description: `Applicable addenda mismatch for '${actual.id}': expected ${JSON.stringify(auth.applicableAddenda)}, got ${JSON.stringify(actual.applicableAddenda)}.`
+        });
+      }
+
+      // Notes check
+      if ((auth.notes || actual.notes) && actual.notes !== auth.notes) {
+        discrepancies.push({
+          id: actual.id,
+          name: actual.name,
+          field: 'notes',
+          expectedValue: auth.notes,
+          actualValue: actual.notes,
+          severity: 'ERROR',
+          description: `Notes mismatch for '${actual.id}': expected '${auth.notes}', got '${actual.notes}'.`
+        });
+      }
+
       // Special Standard Reference check where applicable
-      if (auth.specialStandardReference && actual.specialStandardReference !== auth.specialStandardReference) {
+      if ((auth.specialStandardReference || actual.specialStandardReference) && actual.specialStandardReference !== auth.specialStandardReference) {
         discrepancies.push({
           id: actual.id,
           name: actual.name,
@@ -217,6 +313,101 @@ export class Ashrae621Table63CrossCheckService {
           severity: 'ERROR',
           description: `Special standard reference mismatch for '${actual.id}': expected '${auth.specialStandardReference}', got '${actual.specialStandardReference}'.`
         });
+      }
+
+      // Metadata SourceType check
+      if (auth.metadataSourceType && actual.metadataSourceType !== auth.metadataSourceType) {
+        discrepancies.push({
+          id: actual.id,
+          name: actual.name,
+          field: 'metadataSourceType',
+          expectedValue: auth.metadataSourceType,
+          actualValue: actual.metadataSourceType,
+          severity: 'ERROR',
+          description: `Metadata sourceType mismatch for '${actual.id}': expected '${auth.metadataSourceType}', got '${actual.metadataSourceType}'.`
+        });
+      }
+
+      // Revision State check (if present in authoritative)
+      if (auth.revisionState) {
+        if (!actual.revisionState) {
+          discrepancies.push({
+            id: actual.id,
+            name: actual.name,
+            field: 'revisionState',
+            expectedValue: 'Defined revisionState',
+            actualValue: 'Missing revisionState',
+            severity: 'ERROR',
+            description: `Revision state missing for '${actual.id}'.`
+          });
+        } else {
+          if (actual.revisionState.standard !== auth.revisionState.standard) {
+            discrepancies.push({
+              id: actual.id,
+              name: actual.name,
+              field: 'revisionState.standard',
+              expectedValue: auth.revisionState.standard,
+              actualValue: actual.revisionState.standard,
+              severity: 'ERROR',
+              description: `revisionState.standard mismatch for '${actual.id}': expected '${auth.revisionState.standard}', got '${actual.revisionState.standard}'.`
+            });
+          }
+          if (actual.revisionState.edition !== auth.revisionState.edition) {
+            discrepancies.push({
+              id: actual.id,
+              name: actual.name,
+              field: 'revisionState.edition',
+              expectedValue: auth.revisionState.edition,
+              actualValue: actual.revisionState.edition,
+              severity: 'ERROR',
+              description: `revisionState.edition mismatch for '${actual.id}': expected '${auth.revisionState.edition}', got '${actual.revisionState.edition}'.`
+            });
+          }
+          if (actual.revisionState.baseEdition !== auth.revisionState.baseEdition) {
+            discrepancies.push({
+              id: actual.id,
+              name: actual.name,
+              field: 'revisionState.baseEdition',
+              expectedValue: auth.revisionState.baseEdition,
+              actualValue: actual.revisionState.baseEdition,
+              severity: 'ERROR',
+              description: `revisionState.baseEdition mismatch for '${actual.id}': expected '${auth.revisionState.baseEdition}', got '${actual.revisionState.baseEdition}'.`
+            });
+          }
+          if (!arraysEqual(actual.revisionState.publishedAddendaApplied, auth.revisionState.publishedAddendaApplied)) {
+            discrepancies.push({
+              id: actual.id,
+              name: actual.name,
+              field: 'revisionState.publishedAddendaApplied',
+              expectedValue: JSON.stringify(auth.revisionState.publishedAddendaApplied),
+              actualValue: JSON.stringify(actual.revisionState.publishedAddendaApplied),
+              severity: 'ERROR',
+              description: `revisionState.publishedAddendaApplied mismatch for '${actual.id}'.`
+            });
+          }
+          if (!arraysEqual(actual.revisionState.publishedErrataApplied, auth.revisionState.publishedErrataApplied)) {
+            discrepancies.push({
+              id: actual.id,
+              name: actual.name,
+              field: 'revisionState.publishedErrataApplied',
+              expectedValue: JSON.stringify(auth.revisionState.publishedErrataApplied),
+              actualValue: JSON.stringify(actual.revisionState.publishedErrataApplied),
+              severity: 'ERROR',
+              description: `revisionState.publishedErrataApplied mismatch for '${actual.id}'.`
+            });
+          }
+          if (actual.revisionState.source !== auth.revisionState.source) {
+            discrepancies.push({
+              id: actual.id,
+              name: actual.name,
+              field: 'revisionState.source',
+              expectedValue: auth.revisionState.source,
+              actualValue: actual.revisionState.source,
+              severity: 'ERROR',
+              description: `revisionState.source mismatch for '${actual.id}': expected '${auth.revisionState.source}', got '${actual.revisionState.source}'.`
+            });
+          }
+        }
       }
     });
 
@@ -264,6 +455,9 @@ export class Ashrae621Table63CrossCheckService {
       dataset.length === authoritativeMap.size;
 
     const recordsVerified = isCompliant ? dataset.length : 0;
+    const auditSummary = discrepancies.length === 0
+      ? '0 discrepancies across all audited fields.'
+      : `${discrepancies.length} discrepancies found across audited fields.`;
 
     return {
       referenceBasis: AUTHORITATIVE_TABLE_6_3_REFERENCE_BASIS,
@@ -279,6 +473,7 @@ export class Ashrae621Table63CrossCheckService {
       completenessStatus,
       isCompliant,
       recordsVerified,
+      auditSummary,
       auditTimestamp: new Date().toISOString()
     };
   }

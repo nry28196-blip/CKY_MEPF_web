@@ -330,16 +330,16 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
           </div>
 
           <p className="text-xs text-slate-400 leading-relaxed">
-            Per ASHRAE 62.1-2022 Section 6.5.1 and Addendum x, design exhaust airflow is determined in accordance with Tables 6-2 and 6-3. Table 6-3 designates mandatory Air Class classifications for specialized airstreams and hood discharges. Table 6-3 prescribes <strong className="text-slate-200">no numeric exhaust airflow rates</strong>; required exhaust airflows must be engineered in accordance with the referenced governing standards.
+            Per ASHRAE 62.1-2022 Section 6.5.1 and Addendum x, design exhaust airflow is determined in accordance with Tables 6-2 and 6-3. Table 6-3 designates mandatory Air Class classifications for specialized airstreams and hood discharges. Table 6-3 prescribes <strong className="text-slate-200">no numeric exhaust airflow rates</strong>; required exhaust airflows must be engineered in accordance with the referenced governing standards. Source names and Air Classes are standard-derived; additional scope notes represent supplementary engineering guidance.
           </p>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/60 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
                 <tr>
-                  <th className="py-2.5 px-3">Airstream or Source</th>
-                  <th className="py-2.5 px-3">Required Air Class</th>
-                  <th className="py-2.5 px-3">Governing Equipment Standard</th>
+                  <th className="py-2.5 px-3">Airstream or Source (Standard-Derived)</th>
+                  <th className="py-2.5 px-3">Required Air Class (Table 6-3)</th>
+                  <th className="py-2.5 px-3">Governing Standard / Supplementary Guidance</th>
                   <th className="py-2.5 px-3">Recirculation Limitations</th>
                   <th className="py-2.5 px-3 text-right">Prescriptive Rate</th>
                 </tr>
@@ -360,7 +360,9 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                     <tr key={src.id} className="hover:bg-slate-800/30 transition-colors">
                       <td className="py-2 px-3 font-sans font-medium text-slate-200">
                         {src.name}
-                        <div className="text-[10px] text-slate-400 font-normal mt-0.5">{src.description}</div>
+                        <div className="text-[10px] text-slate-400 font-normal mt-0.5">
+                          <span className="text-slate-500 font-medium">Supplementary Guidance:</span> {src.description}
+                        </div>
                       </td>
                       <td className="py-2 px-3 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${airClassBadge}`}>
