@@ -1,6 +1,7 @@
 import { ValidationStatus } from './VentilationValidationService';
 import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
 import { DataProvenanceValidationService } from './DataProvenanceValidationService';
+import { ft2ToM2, m2ToFt2 } from '../../lib/UnitConversionService';
 
 export type ExhaustOperationMode = 'continuous' | 'intermittent';
 export type ExhaustUnitSystem = 'metric' | 'ip';
@@ -397,16 +398,22 @@ export class Ashrae621ExhaustService {
     let requiredExhaustIp: number;
     let rateApplied: number;
 
+    const isAreaBased = exhaustType.unitType === 'm2';
+
     if (unitSystem === 'ip') {
       rateApplied = rateIp;
       requiredExhaust = rateIp * input.qty;
       requiredExhaustIp = requiredExhaust;
-      requiredExhaustMetric = rateMetric * input.qty;
+      // In IP mode, input.qty is in ft2 for area-based spaces. Convert to m2 before multiplying by rateMetric (L/s·m2).
+      const areaM2 = isAreaBased ? ft2ToM2(input.qty) : input.qty;
+      requiredExhaustMetric = rateMetric * areaM2;
     } else {
       rateApplied = rateMetric;
       requiredExhaust = rateMetric * input.qty;
       requiredExhaustMetric = requiredExhaust;
-      requiredExhaustIp = rateIp * input.qty;
+      // In Metric mode, input.qty is in m2 for area-based spaces. Convert to ft2 before multiplying by rateIp (cfm/ft2).
+      const areaFt2 = isAreaBased ? m2ToFt2(input.qty) : input.qty;
+      requiredExhaustIp = rateIp * areaFt2;
     }
 
     // 9. Result status determination

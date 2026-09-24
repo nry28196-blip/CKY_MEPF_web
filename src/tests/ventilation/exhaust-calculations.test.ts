@@ -357,4 +357,87 @@ describe('ASHRAE 62.1-2022 Prescriptive Exhaust Calculations (Table 6-2 & Sectio
     expect(resKitchen.status).toBe('PASS');
     expect(resKitchen.complianceNotes.some(n => n.includes('Commercial cooking exhaust safety'))).toBe(true);
   });
+
+  describe('Finding 1 Regression: Area-based Exhaust Cross-Unit Calculations', () => {
+    const kitchen = exhaustRates2022.find(e => e.id === 'kitchen_commercial')!;
+    const autoRepair = exhaustRates2022.find(e => e.id === 'auto_repair')!;
+
+    it('Case A — Metric input: 100 m² commercial kitchen (rateMetric=3.5 L/s·m², rateIp=0.70 cfm/ft²)', () => {
+      const res = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        exhaustType: kitchen,
+        qty: 100, // 100 m²
+        designExhaust: 350,
+        unitSystem: 'metric'
+      });
+
+      expect(res.status).toBe('PASS');
+      expect(res.requiredExhaust).toBe(350); // 3.5 * 100 L/s
+      expect(res.requiredExhaustMetric).toBe(350); // L/s
+      // Converted area in ft²: 100 / 0.09290304 ≈ 1076.391 ft²
+      // requiredExhaustIp: 0.70 * 1076.391 ≈ 753.47 cfm
+      expect(res.requiredExhaustIp).toBeCloseTo(753.47, 1);
+      expect(res.rateApplied).toBe(3.5);
+      expect(res.rateAppliedMetric).toBe(3.5);
+      expect(res.rateAppliedIp).toBe(0.70);
+    });
+
+    it('Case B — IP input: 1000 ft² commercial kitchen (rateMetric=3.5 L/s·m², rateIp=0.70 cfm/ft²)', () => {
+      const res = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        exhaustType: kitchen,
+        qty: 1000, // 1000 ft²
+        designExhaust: 700,
+        unitSystem: 'ip'
+      });
+
+      expect(res.status).toBe('PASS');
+      expect(res.requiredExhaust).toBe(700); // 0.70 * 1000 cfm
+      expect(res.requiredExhaustIp).toBe(700); // cfm
+      // Converted area in m²: 1000 * 0.09290304 = 92.90304 m²
+      // requiredExhaustMetric: 3.5 * 92.90304 = 325.16 L/s
+      expect(res.requiredExhaustMetric).toBeCloseTo(325.16, 1);
+      expect(res.rateApplied).toBe(0.70);
+      expect(res.rateAppliedMetric).toBe(3.5);
+      expect(res.rateAppliedIp).toBe(0.70);
+    });
+
+    it('Case C — Auto Repair Metric input: 200 m² (rateMetric=7.5 L/s·m², rateIp=1.50 cfm/ft²)', () => {
+      const res = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        exhaustType: autoRepair,
+        qty: 200, // 200 m²
+        designExhaust: 1500,
+        unitSystem: 'metric'
+      });
+
+      expect(res.status).toBe('PASS');
+      expect(res.requiredExhaust).toBe(1500); // 7.5 * 200 L/s
+      expect(res.requiredExhaustMetric).toBe(1500);
+      // Converted area in ft²: 200 / 0.09290304 ≈ 2152.782 ft²
+      // requiredExhaustIp: 1.50 * 2152.782 ≈ 3229.17 cfm
+      expect(res.requiredExhaustIp).toBeCloseTo(3229.17, 1);
+    });
+
+    it('Case D — Non-area fixture-based space preserves identical quantity across cross-unit representation', () => {
+      const toilet = exhaustRates2022.find(e => e.id === 'toilet_public')!;
+      const res = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        exhaustType: toilet,
+        qty: 4, // 4 fixtures
+        designExhaust: 100,
+        unitSystem: 'metric',
+        operationMode: 'continuous'
+      });
+
+      expect(res.status).toBe('PASS');
+      expect(res.requiredExhaust).toBe(100); // 25 L/s * 4
+      expect(res.requiredExhaustMetric).toBe(100);
+      expect(res.requiredExhaustIp).toBe(200); // 50 cfm * 4
+    });
+  });
 });

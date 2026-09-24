@@ -245,6 +245,18 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       const basisDisc = report.discrepancies.find(d => d.id === corrupted[4].id && d.field === 'referenceBasis');
       expect(basisDisc).toBeDefined();
     });
+
+    it('Negative: Corrupt metadataSourceType is detected', () => {
+      const corrupted = cloneProduction();
+      corrupted[0].metadataSourceType = 'SUPPLEMENTARY_GUIDANCE';
+
+      const report = Ashrae621Table63CrossCheckService.auditDataset(corrupted);
+      expect(report.isCompliant).toBe(false);
+      const metaDisc = report.discrepancies.find(d => d.id === corrupted[0].id && d.field === 'metadataSourceType');
+      expect(metaDisc).toBeDefined();
+      expect(metaDisc?.expectedValue).toBe('STANDARD_TABLE');
+      expect(metaDisc?.actualValue).toBe('SUPPLEMENTARY_GUIDANCE');
+    });
   });
 
   // =========================================================================
