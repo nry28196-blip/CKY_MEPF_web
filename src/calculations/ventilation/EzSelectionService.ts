@@ -250,23 +250,61 @@ export class EzSelectionService {
       }
     }
 
-    if (criteria.distributionCategory === 'personalized' && criteria.supplyLocation && criteria.supplyLocation !== 'breathing_zone' && !criteria.personalizedSystemType) {
+    // TASK 3 — Breathing-zone and personalized consistency checks
+    if (
+      criteria.isPersonalizedVentilation === false &&
+      (criteria.personalizedSystemType ||
+       criteria.distributionCategory === 'personalized' ||
+       criteria.supplyLocation === 'breathing_zone' ||
+       criteria.personalizedPrerequisites !== undefined ||
+       criteria.personalizedPrerequisitesMet === true)
+    ) {
       return {
         ezConfig: null,
         selectedConfig: null,
         ez: null,
         status: 'FAIL',
-        reasons: ['Personalized ventilation selected with non-personalized configuration data.']
+        reasons: ['Contradictory personalized configuration: isPersonalizedVentilation is false but a personalized ventilation configuration was specified.']
       };
     }
 
-    if (criteria.isPersonalizedVentilation === false && criteria.personalizedSystemType) {
+    if (criteria.personalizedSystemType && criteria.supplyLocation && criteria.supplyLocation !== 'breathing_zone') {
       return {
         ezConfig: null,
         selectedConfig: null,
         ez: null,
         status: 'FAIL',
-        reasons: ['Personalized system type specified but isPersonalizedVentilation is false.']
+        reasons: [`Contradictory personalized configuration: personalized system type '${criteria.personalizedSystemType}' cannot have non-breathing-zone supply location '${criteria.supplyLocation}'.`]
+      };
+    }
+
+    if (criteria.distributionCategory === 'personalized' && criteria.supplyLocation && criteria.supplyLocation !== 'breathing_zone') {
+      return {
+        ezConfig: null,
+        selectedConfig: null,
+        ez: null,
+        status: 'FAIL',
+        reasons: [`Contradictory configuration: personalized distribution category requires breathing zone supply location, received '${criteria.supplyLocation}'.`]
+      };
+    }
+
+    if (criteria.distributionCategory && criteria.distributionCategory !== 'personalized' && (criteria.personalizedSystemType || criteria.isPersonalizedVentilation)) {
+      return {
+        ezConfig: null,
+        selectedConfig: null,
+        ez: null,
+        status: 'FAIL',
+        reasons: [`Contradictory configuration: distribution category '${criteria.distributionCategory}' is incompatible with personalized ventilation.`]
+      };
+    }
+
+    if ((criteria.isPersonalizedVentilation || criteria.distributionCategory === 'personalized' || criteria.personalizedSystemType) && criteria.returnLocation && criteria.returnLocation !== 'ceiling') {
+      return {
+        ezConfig: null,
+        selectedConfig: null,
+        ez: null,
+        status: 'FAIL',
+        reasons: [`Contradictory configuration: personalized ventilation requires ceiling return, received '${criteria.returnLocation}'.`]
       };
     }
 
@@ -279,11 +317,18 @@ export class EzSelectionService {
     }
 
     // 4. Personalized ventilation (Table 6-4 & Section 6.2.1.2.2)
-    if (criteria.isPersonalizedVentilation || criteria.distributionCategory === 'personalized' || criteria.supplyLocation === 'breathing_zone') {
+    const isPersonalized = Boolean(
+      criteria.isPersonalizedVentilation ||
+      criteria.distributionCategory === 'personalized' ||
+      criteria.supplyLocation === 'breathing_zone' ||
+      criteria.personalizedSystemType
+    );
+
+    if (isPersonalized) {
       // Must verify Section 6.2.1.2.2 prerequisites before returning standard Ez
       const pReq = criteria.personalizedPrerequisites;
       if (pReq) {
-        // Breathing zone distribution check
+        // 1. Breathing zone distribution check
         if (pReq.airDistributedInBreathingZone === undefined || pReq.airDistributedInBreathingZone === null) {
           return {
             ezConfig: null,
@@ -303,10 +348,23 @@ export class EzSelectionService {
           };
         }
 
-        // Head/facial region velocity check (<= 0.25 m/s)
-        let velocityMet: boolean | null = null;
-        if (typeof pReq.headRegionVelocityMs === 'number') {
-          if (pReq.headRegionVelocityMs > 0.25) {
+        // 2. Head/facial region velocity check (<= 0.25 m/s)
+        let velocityConditionMet: boolean | null = null;
+        const hasNumericVel = typeof pReq.headRegionVelocityMs === 'number';
+        const hasBoolVel = typeof pReq.headRegionVelocityMet === 'boolean';
+
+        if (hasNumericVel && hasBoolVel) {
+          const numericMet = (pReq.headRegionVelocityMs as number) <= 0.25;
+          if (numericMet !== pReq.headRegionVelocityMet) {
+            return {
+              ezConfig: null,
+              selectedConfig: null,
+              ez: null,
+              status: 'FAIL',
+              reasons: [`Contradictory personalized prerequisites: occupant head region velocity (${pReq.headRegionVelocityMs} m/s) contradicts headRegionVelocityMet (${pReq.headRegionVelocityMet}).`]
+            };
+          }
+          if (!numericMet) {
             return {
               ezConfig: null,
               selectedConfig: null,
@@ -315,9 +373,20 @@ export class EzSelectionService {
               reasons: [`Section 6.2.1.2.2 violation: velocity at occupant head region (${pReq.headRegionVelocityMs} m/s) exceeds 0.25 m/s limit.`]
             };
           }
-          velocityMet = pReq.headRegionVelocityMs <= 0.25;
-        } else if (typeof pReq.headRegionVelocityMet === 'boolean') {
-          if (!pReq.headRegionVelocityMet) {
+          velocityConditionMet = true;
+        } else if (hasNumericVel) {
+          if ((pReq.headRegionVelocityMs as number) > 0.25) {
+            return {
+              ezConfig: null,
+              selectedConfig: null,
+              ez: null,
+              status: 'FAIL',
+              reasons: [`Section 6.2.1.2.2 violation: velocity at occupant head region (${pReq.headRegionVelocityMs} m/s) exceeds 0.25 m/s limit.`]
+            };
+          }
+          velocityConditionMet = true;
+        } else if (hasBoolVel) {
+          if (pReq.headRegionVelocityMet === false) {
             return {
               ezConfig: null,
               selectedConfig: null,
@@ -326,9 +395,10 @@ export class EzSelectionService {
               reasons: ['Section 6.2.1.2.2 violation: velocity at occupant head region exceeds 0.25 m/s limit.']
             };
           }
-          velocityMet = pReq.headRegionVelocityMet;
+          velocityConditionMet = true;
         }
-        if (velocityMet === null) {
+
+        if (velocityConditionMet === null) {
           return {
             ezConfig: null,
             selectedConfig: null,
@@ -338,10 +408,23 @@ export class EzSelectionService {
           };
         }
 
-        // Return opening height check (> 2.8 m above floor)
-        let returnOpeningMet: boolean | null = null;
-        if (typeof pReq.returnOpeningHeightM === 'number') {
-          if (pReq.returnOpeningHeightM <= 2.8) {
+        // 3. Return opening height check (> 2.8 m above floor)
+        let returnOpeningConditionMet: boolean | null = null;
+        const hasNumericHeight = typeof pReq.returnOpeningHeightM === 'number';
+        const hasBoolHeight = typeof pReq.returnOpeningHeightGt28m === 'boolean';
+
+        if (hasNumericHeight && hasBoolHeight) {
+          const numericMet = (pReq.returnOpeningHeightM as number) > 2.8;
+          if (numericMet !== pReq.returnOpeningHeightGt28m) {
+            return {
+              ezConfig: null,
+              selectedConfig: null,
+              ez: null,
+              status: 'FAIL',
+              reasons: [`Contradictory personalized prerequisites: return opening height (${pReq.returnOpeningHeightM} m) contradicts returnOpeningHeightGt28m (${pReq.returnOpeningHeightGt28m}).`]
+            };
+          }
+          if (!numericMet) {
             return {
               ezConfig: null,
               selectedConfig: null,
@@ -350,9 +433,20 @@ export class EzSelectionService {
               reasons: [`Section 6.2.1.2.2 violation: return opening height (${pReq.returnOpeningHeightM} m) is not greater than 2.8 m above floor.`]
             };
           }
-          returnOpeningMet = pReq.returnOpeningHeightM > 2.8;
-        } else if (typeof pReq.returnOpeningHeightGt28m === 'boolean') {
-          if (!pReq.returnOpeningHeightGt28m) {
+          returnOpeningConditionMet = true;
+        } else if (hasNumericHeight) {
+          if ((pReq.returnOpeningHeightM as number) <= 2.8) {
+            return {
+              ezConfig: null,
+              selectedConfig: null,
+              ez: null,
+              status: 'FAIL',
+              reasons: [`Section 6.2.1.2.2 violation: return opening height (${pReq.returnOpeningHeightM} m) is not greater than 2.8 m above floor.`]
+            };
+          }
+          returnOpeningConditionMet = true;
+        } else if (hasBoolHeight) {
+          if (pReq.returnOpeningHeightGt28m === false) {
             return {
               ezConfig: null,
               selectedConfig: null,
@@ -361,9 +455,10 @@ export class EzSelectionService {
               reasons: ['Section 6.2.1.2.2 violation: return opening height is not greater than 2.8 m above floor.']
             };
           }
-          returnOpeningMet = pReq.returnOpeningHeightGt28m;
+          returnOpeningConditionMet = true;
         }
-        if (returnOpeningMet === null) {
+
+        if (returnOpeningConditionMet === null) {
           return {
             ezConfig: null,
             selectedConfig: null,
@@ -372,13 +467,32 @@ export class EzSelectionService {
             reasons: ['Personalized ventilation prerequisite missing: return opening height must be verified (> 2.8 m above floor).']
           };
         }
-      } else if (criteria.personalizedPrerequisitesMet === false || criteria.personalizedPrerequisitesMet !== true) {
+
+        // Contradiction with compact representation personalizedPrerequisitesMet if provided
+        if (criteria.personalizedPrerequisitesMet === false) {
+          return {
+            ezConfig: null,
+            selectedConfig: null,
+            ez: null,
+            status: 'FAIL',
+            reasons: ['Contradictory personalized prerequisites: structured prerequisites provided but personalizedPrerequisitesMet is false.']
+          };
+        }
+      } else if (criteria.personalizedPrerequisitesMet === false) {
+        return {
+          ezConfig: null,
+          selectedConfig: null,
+          ez: null,
+          status: 'FAIL',
+          reasons: ['Personalized ventilation prerequisites under Section 6.2.1.2.2 not satisfied.']
+        };
+      } else if (criteria.personalizedPrerequisitesMet !== true) {
         return {
           ezConfig: null,
           selectedConfig: null,
           ez: null,
           status: 'INCOMPLETE',
-          reasons: ['Personalized ventilation prerequisites under ASHRAE 62.1-2022 Section 6.2.1.2.2 must be verified (100% outdoor air directly to breathing zone, occupant control, and velocity limits).']
+          reasons: ['Personalized ventilation prerequisites under ASHRAE 62.1-2022 Section 6.2.1.2.2 must be verified (personalized air in breathing zone, head region velocity <= 0.25 m/s, return opening height > 2.8 m).']
         };
       }
 
@@ -394,18 +508,54 @@ export class EzSelectionService {
       }
 
       if (pType === 'ceiling_cool') {
+        if (supplyAirCondition === 'warm' || spaceTempRelationship === 'heating_gte_8c' || spaceTempRelationship === 'heating_lt_8c') {
+          return {
+            ezConfig: null,
+            selectedConfig: null,
+            ez: null,
+            status: 'FAIL',
+            reasons: ['Contradictory configuration: ceiling_cool personalized ventilation cannot use warm supply air.']
+          };
+        }
         const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-personalized-ceiling-cool')!;
         return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
       }
       if (pType === 'ceiling_warm') {
+        if (supplyAirCondition === 'cool' || spaceTempRelationship === 'cooling') {
+          return {
+            ezConfig: null,
+            selectedConfig: null,
+            ez: null,
+            status: 'FAIL',
+            reasons: ['Contradictory configuration: ceiling_warm personalized ventilation cannot use cool supply air.']
+          };
+        }
         const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-personalized-ceiling-warm')!;
         return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
       }
       if (pType === 'stratified_nonaspirating') {
+        if (supplyAirCondition === 'warm' || spaceTempRelationship === 'heating_gte_8c' || spaceTempRelationship === 'heating_lt_8c') {
+          return {
+            ezConfig: null,
+            selectedConfig: null,
+            ez: null,
+            status: 'FAIL',
+            reasons: ['Contradictory configuration: stratified_nonaspirating personalized ventilation requires cooling supply air.']
+          };
+        }
         const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-personalized-strat-nonaspirating')!;
         return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
       }
       if (pType === 'stratified_aspirating') {
+        if (supplyAirCondition === 'warm' || spaceTempRelationship === 'heating_gte_8c' || spaceTempRelationship === 'heating_lt_8c') {
+          return {
+            ezConfig: null,
+            selectedConfig: null,
+            ez: null,
+            status: 'FAIL',
+            reasons: ['Contradictory configuration: stratified_aspirating personalized ventilation requires cooling supply air.']
+          };
+        }
         const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-personalized-strat-aspirating')!;
         return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
       }
