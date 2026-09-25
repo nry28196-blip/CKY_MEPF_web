@@ -30,6 +30,10 @@ export interface DensityInput {
    * CW = 1.0 when W < 0.024 kg/kg
    */
   applyStandardSimplifications?: boolean;
+  /**
+   * Specific analytical equation preference: 'D-4' (Cz * CT * CW) or 'D-5b' (1.2 / rho)
+   */
+  analyticalEquation?: 'D-4' | 'D-5b';
 }
 
 export interface DensityResult {
@@ -43,6 +47,8 @@ export interface DensityResult {
   ct: number;
   cw: number;
   eRho: number; // Ep factor
+  eRhoEqD4: number; // Cz * CT * CW (Normative Appendix D Eq D-4)
+  eRhoEqD5b: number; // 1.2 / rho (Section D2.3 alternative density calculation)
   methodUsed: 'TABLE' | 'ANALYTICAL';
   simplificationsApplied?: {
     ctSimplified: boolean;
@@ -157,6 +163,8 @@ export class DensityCorrectionService {
         ct: 1.0,
         cw: 1.0,
         eRho: 1.0,
+        eRhoEqD4: 1.0,
+        eRhoEqD5b: 1.0,
         methodUsed: input.method || 'TABLE',
         tableReference: 'ASHRAE 62.1-2022 Table 6-5',
         status,
@@ -186,6 +194,8 @@ export class DensityCorrectionService {
         ct: 1.0,
         cw: 1.0,
         eRho: 1.0,
+        eRhoEqD4: 1.0,
+        eRhoEqD5b: 1.0,
         methodUsed: input.method || 'TABLE',
         tableReference: 'ASHRAE 62.1-2022 Table 6-5',
         status,
@@ -211,21 +221,42 @@ export class DensityCorrectionService {
     let humidityRatioKgKg = 0;
     let dryAirDensity = 0;
 
-    if (input?.humidityRatio !== undefined && input?.humidityRatio !== null && !isNaN(input.humidityRatio)) {
+    const hasExplicitW = input?.humidityRatio !== undefined && input?.humidityRatio !== null && !isNaN(input.humidityRatio);
+    const hasExplicitRH = input?.relativeHumidity !== undefined && input?.relativeHumidity !== null && !isNaN(input.relativeHumidity);
+
+    if (hasExplicitW) {
       // Explicit humidityRatio is authoritative moisture input
-      humidityRatioKgKg = input.humidityRatio;
+      humidityRatioKgKg = input!.humidityRatio!;
       const pv = (humidityRatioKgKg / (0.621945 + humidityRatioKgKg)) * pressureAtm;
       const pd = Math.max(0, pressureAtm - pv);
       dryAirDensity = pd / (rDryAir * tKelvin);
       rh = psat > 0 ? Math.min(100, Math.max(0, (pv / psat) * 100)) : 0;
-    } else {
+    } else if (hasExplicitRH) {
       // Derive humidityRatio from RH, temperature, and atmospheric pressure
-      rh = input?.relativeHumidity && !isNaN(input.relativeHumidity) ? input.relativeHumidity : 0;
+      rh = input!.relativeHumidity!;
       humidityRatioKgKg = this.calculateHumidityRatio(temperature, rh, pressureAtm);
       const rhFraction = Math.max(0, Math.min(100, rh)) / 100;
       const pv = rhFraction * psat;
       const pd = Math.max(0, pressureAtm - pv);
       dryAirDensity = pd / (rDryAir * tKelvin);
+    } else {
+      // Missing analytical moisture: do not silently assume W = 0 without explicit notification
+      if (method === 'ANALYTICAL') {
+        status = 'INCOMPLETE';
+        message = 'Missing outdoor-air moisture input (humidityRatio or relativeHumidity) for Normative Appendix D analytical calculation.';
+        auditTrail.push({
+          symbol: 'W / RH',
+          name: 'Missing Analytical Moisture Input',
+          formula: 'Appendix D requires explicit moisture input (humidityRatio or relativeHumidity)',
+          inputs: {},
+          result: 'INCOMPLETE',
+          unit: '',
+          reference: 'ASHRAE 62.1-2022 Section D2.2'
+        });
+      }
+      humidityRatioKgKg = 0;
+      rh = 0;
+      dryAirDensity = pressureAtm / (rDryAir * tKelvin);
     }
 
     // Analytical factors (Normative Appendix D)
@@ -250,10 +281,14 @@ export class DensityCorrectionService {
       cwSimplified = true;
     }
 
-    // Eq D-4: Ep = Cz * CT * CW or Section D2.3 Ep = 1.2 / rho
-    const analyticalEp = applySimplifications
-      ? (cz * ct * cw)
-      : (dryAirDensity > 0 ? (this.STANDARD_DENSITY / dryAirDensity) : (cz * ct * cw));
+    // Eq D-4: Ep = Cz * CT * CW
+    const eRhoEqD4 = cz * ct * cw;
+    // Section D2.3: Ep = 1.2 / rho
+    const eRhoEqD5b = dryAirDensity > 0 ? (this.STANDARD_DENSITY / dryAirDensity) : eRhoEqD4;
+
+    const analyticalEp = (input?.analyticalEquation === 'D-4' || applySimplifications)
+      ? eRhoEqD4
+      : eRhoEqD5b;
 
     let eRho = 1.0;
 
@@ -349,6 +384,8 @@ export class DensityCorrectionService {
       ct,
       cw,
       eRho,
+      eRhoEqD4,
+      eRhoEqD5b,
       methodUsed: method,
       simplificationsApplied: {
         ctSimplified,

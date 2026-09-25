@@ -74,6 +74,86 @@ export interface AlternativeSystemResult {
 
 export class Ashrae621AlternativeSystemService {
   static calculate(input: AlternativeSystemInput): AlternativeSystemResult {
+    // Defense-in-depth edition defense for direct service invocation
+    const requestedEdition = input.edition || '2022';
+    if (requestedEdition === '2025' || input.zones.some(z => (z as any).expectedEdition === '2025')) {
+      return {
+        zoneResults: [],
+        ev: null,
+        vou: null,
+        vot: null,
+        vps: input.vps ?? null,
+        vpsDesignBasis: input.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition',
+        designCondition: input.designCondition || 'Cooling design',
+        airDistributionType: input.airDistributionType === 'VAV' ? 'VAV' : 'CV',
+        xs: null,
+        criticalZoneId: null,
+        status: 'BLOCKED',
+        message: 'ASHRAE 62.1-2025 is deferred and not approved for production use. Direct Alternative Procedure calculations for 2025 are BLOCKED.',
+        auditTrail: [{
+          symbol: 'Edition Check',
+          name: 'Production Scope Validation',
+          formula: 'Edition must be 2022',
+          inputs: { 'Requested Edition': '2025' },
+          result: 'BLOCKED',
+          unit: '',
+          reference: 'ASHRAE 62.1 Production Baseline Policy'
+        }]
+      };
+    }
+
+    if (requestedEdition === '2019' || input.zones.some(z => (z as any).expectedEdition === '2019')) {
+      return {
+        zoneResults: [],
+        ev: null,
+        vou: null,
+        vot: null,
+        vps: input.vps ?? null,
+        vpsDesignBasis: input.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition',
+        designCondition: input.designCondition || 'Cooling design',
+        airDistributionType: input.airDistributionType === 'VAV' ? 'VAV' : 'CV',
+        xs: null,
+        criticalZoneId: null,
+        status: 'BLOCKED',
+        message: 'ASHRAE 62.1-2019 is archived and not approved for active production calculations. Direct Alternative Procedure calculations for 2019 are BLOCKED.',
+        auditTrail: [{
+          symbol: 'Edition Check',
+          name: 'Production Scope Validation',
+          formula: 'Edition must be 2022',
+          inputs: { 'Requested Edition': '2019' },
+          result: 'BLOCKED',
+          unit: '',
+          reference: 'ASHRAE 62.1 Production Baseline Policy'
+        }]
+      };
+    }
+
+    if (requestedEdition !== '2022') {
+      return {
+        zoneResults: [],
+        ev: null,
+        vou: null,
+        vot: null,
+        vps: input.vps ?? null,
+        vpsDesignBasis: input.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition',
+        designCondition: input.designCondition || 'Cooling design',
+        airDistributionType: input.airDistributionType === 'VAV' ? 'VAV' : 'CV',
+        xs: null,
+        criticalZoneId: null,
+        status: 'BLOCKED',
+        message: `Unknown or unapproved standard edition '${requestedEdition}'. Direct Alternative Procedure calculations are restricted to ASHRAE 62.1-2022.`,
+        auditTrail: [{
+          symbol: 'Edition Check',
+          name: 'Production Scope Validation',
+          formula: 'Edition must be 2022',
+          inputs: { 'Requested Edition': String(requestedEdition) },
+          result: 'BLOCKED',
+          unit: '',
+          reference: 'ASHRAE 62.1 Production Baseline Policy'
+        }]
+      };
+    }
+
     const auditTrail: AuditTrailItem[] = [];
     const statuses: ValidationStatus[] = [];
 

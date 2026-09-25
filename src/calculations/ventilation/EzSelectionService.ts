@@ -2,6 +2,32 @@ import { Ashrae621Ez, SourceType } from '../../data/ventilation/ashrae621/types'
 import { ASHRAE_621_2022_EZ_VALUES } from '../../data/ventilation/ashrae621/2022/data';
 import { ValidationStatus } from './VentilationValidationService';
 
+export interface PersonalizedVentilationPrerequisites {
+  /** Personalized air distributed in the breathing zone */
+  airDistributedInBreathingZone?: boolean | null;
+  /** Velocity at occupant head/facial region (m/s). Must be <= 0.25 m/s */
+  headRegionVelocityMs?: number | null;
+  /** Or boolean indicating velocity <= 0.25 m/s */
+  headRegionVelocityMet?: boolean | null;
+  /** Return air openings/pathways height above floor (m). Must be > 2.8 m */
+  returnOpeningHeightM?: number | null;
+  /** Or boolean indicating return opening height > 2.8 m */
+  returnOpeningHeightGt28m?: boolean | null;
+}
+
+export interface StratifiedSystemPrerequisites {
+  /** Cool supply air at least 2°C below average room air temperature */
+  tempDiffRoomSupplyC?: number | null;
+  supplyTempBelowRoomGte2C?: boolean | null;
+  /** Return air openings/pathways located > 2.8 m above floor */
+  returnOpeningHeightM?: number | null;
+  returnOpeningHeightGt28m?: boolean | null;
+  /** No devices that mechanically mix the air */
+  noMechanicalMixingDevices?: boolean | null;
+  /** Protection from impinging airstreams from adjacent ventilation zones */
+  protectedFromImpingingAirstreams?: boolean | null;
+}
+
 export interface EzSelectionCriteria {
   distributionCategory?: 'ceiling' | 'floor' | 'makeup' | 'personalized' | 'unidirectional' | 'override';
   supplyLocation?: 'ceiling' | 'floor' | 'breathing_zone' | 'other';
@@ -11,12 +37,17 @@ export interface EzSelectionCriteria {
   supplyTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
   supplyJetVelocityMet?: boolean | null; // true if supply jet velocity >= 0.8 m/s (150 fpm) within 1.4 m of floor
   verticalThrowMet?: boolean | null; // true if vertical throw of cool air >= 0.25 m/s (60 fpm) at 1.4 m
-  returnHeightGte55m?: boolean | null; // true if return height > 5.5 m (18 ft); false if <= 5.5 m
+  returnHeightM?: number | null; // Exact return height (m). Boundary is > 5.5 m vs <= 5.5 m.
+  returnHeightGt55m?: boolean | null; // true if return height > 5.5 m (18 ft); false if <= 5.5 m
+  returnHeightGte55m?: boolean | null; // Backward compatibility alias for returnHeightGt55m
   isDirectMakeupExhaust?: boolean;
   makeupAirDistance?: 'greater_than_half_length' | 'less_than_half_length' | null; // relative to half space length
   isPersonalizedVentilation?: boolean;
+  personalizedPrerequisites?: PersonalizedVentilationPrerequisites;
   personalizedPrerequisitesMet?: boolean | null; // Section 6.2.1.2.2 prerequisites verified
   personalizedSystemType?: 'ceiling_cool' | 'ceiling_warm' | 'stratified_nonaspirating' | 'stratified_aspirating' | null;
+  stratifiedPrerequisites?: StratifiedSystemPrerequisites;
+  stratifiedPrerequisitesMet?: boolean | null; // Section 6.2.1.2.1 prerequisites verified
   manualOverride?: {
     ezValue: number;
     basis: string;
@@ -40,10 +71,18 @@ export interface EzResolutionResult {
 
 export class EzSelectionService {
   /**
-   * Retrieves all verified Table 6-4 records for the 2022 standard edition.
+   * Retrieves all Table 6-4 records for the 2022 standard edition.
+   * Note: Contains both verified records and non-production unverified records (e.g., ez-unidirectional-flow).
    */
   static getTable64Values(): Ashrae621Ez[] {
     return ASHRAE_621_2022_EZ_VALUES;
+  }
+
+  /**
+   * Retrieves only production-verified Table 6-4 records for the 2022 standard edition.
+   */
+  static getVerifiedTable64Values(): Ashrae621Ez[] {
+    return ASHRAE_621_2022_EZ_VALUES.filter(e => e.verificationStatus === 'VERIFIED');
   }
 
   /**
@@ -105,6 +144,96 @@ export class EzSelectionService {
       };
     }
 
+    // 2. Unidirectional flow protection: Non-production / UNIMPLEMENTED
+    if (criteria.distributionCategory === 'unidirectional') {
+      const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-unidirectional-flow') || null;
+      return {
+        ezConfig: config,
+        selectedConfig: config,
+        ez: null,
+        status: 'BLOCKED',
+        reasons: ['Unidirectional downward flow through perforated ceiling is UNIMPLEMENTED / NOT_VERIFIED for production engineering calculations.']
+      };
+    }
+
+    // 3. Contradiction Detection (Do not silently resolve contradictory criteria)
+    if (criteria.supplyAirCondition === 'warm' && (criteria.spaceTempRelationship === 'cooling' || criteria.supplyTempRelationship === 'cooling')) {
+      return {
+        ezConfig: null,
+        selectedConfig: null,
+        ez: null,
+        status: 'FAIL',
+        reasons: ['Contradictory supply air condition and temperature relationship: supplyAirCondition is warm but temperature relationship is cooling.']
+      };
+    }
+
+    if (criteria.supplyAirCondition === 'cool' && (
+      criteria.spaceTempRelationship === 'heating_gte_8c' || criteria.spaceTempRelationship === 'heating_lt_8c' ||
+      criteria.supplyTempRelationship === 'heating_gte_8c' || criteria.supplyTempRelationship === 'heating_lt_8c'
+    )) {
+      return {
+        ezConfig: null,
+        selectedConfig: null,
+        ez: null,
+        status: 'FAIL',
+        reasons: ['Contradictory supply air condition and temperature relationship: supplyAirCondition is cool but temperature relationship is heating.']
+      };
+    }
+
+    if (criteria.spaceTempRelationship && criteria.supplyTempRelationship && criteria.spaceTempRelationship !== criteria.supplyTempRelationship) {
+      const isSpaceCool = criteria.spaceTempRelationship === 'cooling';
+      const isSupplyCool = criteria.supplyTempRelationship === 'cooling';
+      if (isSpaceCool !== isSupplyCool) {
+        return {
+          ezConfig: null,
+          selectedConfig: null,
+          ez: null,
+          status: 'FAIL',
+          reasons: ['Contradictory spaceTempRelationship and supplyTempRelationship specified.']
+        };
+      }
+    }
+
+    if (criteria.distributionCategory === 'ceiling' && criteria.supplyLocation && criteria.supplyLocation !== 'ceiling') {
+      return {
+        ezConfig: null,
+        selectedConfig: null,
+        ez: null,
+        status: 'FAIL',
+        reasons: [`Contradictory distribution category 'ceiling' with supply location '${criteria.supplyLocation}'.`]
+      };
+    }
+
+    if (criteria.distributionCategory === 'floor' && criteria.supplyLocation && criteria.supplyLocation !== 'floor') {
+      return {
+        ezConfig: null,
+        selectedConfig: null,
+        ez: null,
+        status: 'FAIL',
+        reasons: [`Contradictory distribution category 'floor' with supply location '${criteria.supplyLocation}'.`]
+      };
+    }
+
+    if (criteria.distributionCategory === 'personalized' && criteria.supplyLocation && criteria.supplyLocation !== 'breathing_zone' && !criteria.personalizedSystemType) {
+      return {
+        ezConfig: null,
+        selectedConfig: null,
+        ez: null,
+        status: 'FAIL',
+        reasons: ['Personalized ventilation selected with non-personalized configuration data.']
+      };
+    }
+
+    if (criteria.isPersonalizedVentilation === false && criteria.personalizedSystemType) {
+      return {
+        ezConfig: null,
+        selectedConfig: null,
+        ez: null,
+        status: 'FAIL',
+        reasons: ['Personalized system type specified but isPersonalizedVentilation is false.']
+      };
+    }
+
     // Determine supply air condition and temperature relationship
     let supplyAirCondition = criteria.supplyAirCondition;
     let spaceTempRelationship = criteria.spaceTempRelationship || criteria.supplyTempRelationship;
@@ -113,10 +242,101 @@ export class EzSelectionService {
       else if (spaceTempRelationship === 'heating_gte_8c' || spaceTempRelationship === 'heating_lt_8c') supplyAirCondition = 'warm';
     }
 
-    // 2. Personalized ventilation (Table 6-4 & Section 6.2.1.2.2)
+    // 4. Personalized ventilation (Table 6-4 & Section 6.2.1.2.2)
     if (criteria.isPersonalizedVentilation || criteria.distributionCategory === 'personalized' || criteria.supplyLocation === 'breathing_zone') {
       // Must verify Section 6.2.1.2.2 prerequisites before returning standard Ez
-      if (criteria.personalizedPrerequisitesMet !== true) {
+      const pReq = criteria.personalizedPrerequisites;
+      if (pReq) {
+        // Breathing zone distribution check
+        if (pReq.airDistributedInBreathingZone === undefined || pReq.airDistributedInBreathingZone === null) {
+          return {
+            ezConfig: null,
+            selectedConfig: null,
+            ez: null,
+            status: 'INCOMPLETE',
+            reasons: ['Personalized ventilation prerequisite missing: airDistributedInBreathingZone must be verified.']
+          };
+        }
+        if (pReq.airDistributedInBreathingZone === false) {
+          return {
+            ezConfig: null,
+            selectedConfig: null,
+            ez: null,
+            status: 'FAIL',
+            reasons: ['Section 6.2.1.2.2 violation: personalized air is not distributed in the breathing zone.']
+          };
+        }
+
+        // Head/facial region velocity check (<= 0.25 m/s)
+        let velocityMet: boolean | null = null;
+        if (typeof pReq.headRegionVelocityMs === 'number') {
+          if (pReq.headRegionVelocityMs > 0.25) {
+            return {
+              ezConfig: null,
+              selectedConfig: null,
+              ez: null,
+              status: 'FAIL',
+              reasons: [`Section 6.2.1.2.2 violation: velocity at occupant head region (${pReq.headRegionVelocityMs} m/s) exceeds 0.25 m/s limit.`]
+            };
+          }
+          velocityMet = pReq.headRegionVelocityMs <= 0.25;
+        } else if (typeof pReq.headRegionVelocityMet === 'boolean') {
+          if (!pReq.headRegionVelocityMet) {
+            return {
+              ezConfig: null,
+              selectedConfig: null,
+              ez: null,
+              status: 'FAIL',
+              reasons: ['Section 6.2.1.2.2 violation: velocity at occupant head region exceeds 0.25 m/s limit.']
+            };
+          }
+          velocityMet = pReq.headRegionVelocityMet;
+        }
+        if (velocityMet === null) {
+          return {
+            ezConfig: null,
+            selectedConfig: null,
+            ez: null,
+            status: 'INCOMPLETE',
+            reasons: ['Personalized ventilation prerequisite missing: velocity at occupant head region must be verified (<= 0.25 m/s).']
+          };
+        }
+
+        // Return opening height check (> 2.8 m above floor)
+        let returnOpeningMet: boolean | null = null;
+        if (typeof pReq.returnOpeningHeightM === 'number') {
+          if (pReq.returnOpeningHeightM <= 2.8) {
+            return {
+              ezConfig: null,
+              selectedConfig: null,
+              ez: null,
+              status: 'FAIL',
+              reasons: [`Section 6.2.1.2.2 violation: return opening height (${pReq.returnOpeningHeightM} m) is not greater than 2.8 m above floor.`]
+            };
+          }
+          returnOpeningMet = pReq.returnOpeningHeightM > 2.8;
+        } else if (typeof pReq.returnOpeningHeightGt28m === 'boolean') {
+          if (!pReq.returnOpeningHeightGt28m) {
+            return {
+              ezConfig: null,
+              selectedConfig: null,
+              ez: null,
+              status: 'FAIL',
+              reasons: ['Section 6.2.1.2.2 violation: return opening height is not greater than 2.8 m above floor.']
+            };
+          }
+          returnOpeningMet = pReq.returnOpeningHeightGt28m;
+        }
+        if (returnOpeningMet === null) {
+          return {
+            ezConfig: null,
+            selectedConfig: null,
+            ez: null,
+            status: 'INCOMPLETE',
+            reasons: ['Personalized ventilation prerequisite missing: return opening height must be verified (> 2.8 m above floor).']
+          };
+        }
+      } else if (criteria.personalizedPrerequisitesMet === false || criteria.personalizedPrerequisitesMet !== true) {
         return {
           ezConfig: null,
           selectedConfig: null,
@@ -155,7 +375,7 @@ export class EzSelectionService {
       }
     }
 
-    // 3. Makeup supply air (Table 6-4)
+    // 5. Makeup supply air (Table 6-4)
     if (criteria.distributionCategory === 'makeup' || criteria.isDirectMakeupExhaust) {
       if (!criteria.makeupAirDistance) {
         return {
@@ -178,15 +398,15 @@ export class EzSelectionService {
       }
     }
 
-    // 4. Ceiling supply configurations
+    // 6. Ceiling supply configurations
     if (criteria.supplyLocation === 'ceiling') {
-      // 4a. Ceiling supply of cool air
+      // 6a. Ceiling supply of cool air
       if (supplyAirCondition === 'cool' || spaceTempRelationship === 'cooling') {
         const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-1')!;
         return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
       }
 
-      // 4b. Ceiling supply of warm air
+      // 6b. Ceiling supply of warm air
       if (supplyAirCondition === 'warm' || spaceTempRelationship === 'heating_gte_8c' || spaceTempRelationship === 'heating_lt_8c') {
         // Floor return
         if (criteria.returnLocation === 'floor') {
@@ -234,9 +454,9 @@ export class EzSelectionService {
       }
     }
 
-    // 5. Floor supply configurations
+    // 7. Floor supply configurations
     if (criteria.supplyLocation === 'floor') {
-      // 5a. Floor supply of warm air
+      // 7a. Floor supply of warm air
       if (supplyAirCondition === 'warm' || spaceTempRelationship === 'heating_gte_8c' || spaceTempRelationship === 'heating_lt_8c') {
         if (criteria.returnLocation === 'floor') {
           const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-floor-warm-floor-ret')!;
@@ -248,8 +468,89 @@ export class EzSelectionService {
         }
       }
 
-      // 5b. Floor supply of cool air and ceiling return (Stratified cooling)
+      // 7b. Floor supply of cool air and ceiling return (Stratified cooling)
       if ((supplyAirCondition === 'cool' || spaceTempRelationship === 'cooling') && criteria.returnLocation === 'ceiling') {
+        // Validate Section 6.2.1.2.1 stratified system prerequisites
+        const sReq = criteria.stratifiedPrerequisites;
+        if (sReq) {
+          if (typeof sReq.tempDiffRoomSupplyC === 'number') {
+            if (sReq.tempDiffRoomSupplyC < 2.0) {
+              return {
+                ezConfig: null, selectedConfig: null, ez: null, status: 'FAIL',
+                reasons: [`Section 6.2.1.2.1 violation: supply air temperature difference (${sReq.tempDiffRoomSupplyC}°C) is less than required 2°C below room temperature.`]
+              };
+            }
+          } else if (sReq.supplyTempBelowRoomGte2C === false) {
+            return {
+              ezConfig: null, selectedConfig: null, ez: null, status: 'FAIL',
+              reasons: ['Section 6.2.1.2.1 violation: supply air is not at least 2°C below room temperature.']
+            };
+          } else if (sReq.supplyTempBelowRoomGte2C !== true) {
+            return {
+              ezConfig: null, selectedConfig: null, ez: null, status: 'INCOMPLETE',
+              reasons: ['Stratified system prerequisite missing: supply air must be verified at least 2°C below room temperature.']
+            };
+          }
+
+          if (typeof sReq.returnOpeningHeightM === 'number') {
+            if (sReq.returnOpeningHeightM <= 2.8) {
+              return {
+                ezConfig: null, selectedConfig: null, ez: null, status: 'FAIL',
+                reasons: [`Section 6.2.1.2.1 violation: return opening height (${sReq.returnOpeningHeightM} m) is not greater than 2.8 m above floor.`]
+              };
+            }
+          } else if (sReq.returnOpeningHeightGt28m === false) {
+            return {
+              ezConfig: null, selectedConfig: null, ez: null, status: 'FAIL',
+              reasons: ['Section 6.2.1.2.1 violation: return opening height is not greater than 2.8 m above floor.']
+            };
+          } else if (sReq.returnOpeningHeightGt28m !== true) {
+            return {
+              ezConfig: null, selectedConfig: null, ez: null, status: 'INCOMPLETE',
+              reasons: ['Stratified system prerequisite missing: return opening height must be verified (> 2.8 m above floor).']
+            };
+          }
+
+          if (sReq.noMechanicalMixingDevices === false) {
+            return {
+              ezConfig: null, selectedConfig: null, ez: null, status: 'FAIL',
+              reasons: ['Section 6.2.1.2.1 violation: mechanical mixing devices are present in the space.']
+            };
+          } else if (sReq.noMechanicalMixingDevices !== true) {
+            return {
+              ezConfig: null, selectedConfig: null, ez: null, status: 'INCOMPLETE',
+              reasons: ['Stratified system prerequisite missing: must verify no mechanical mixing devices are present.']
+            };
+          }
+
+          if (sReq.protectedFromImpingingAirstreams === false) {
+            return {
+              ezConfig: null, selectedConfig: null, ez: null, status: 'FAIL',
+              reasons: ['Section 6.2.1.2.1 violation: stratified zone is not protected from impinging airstreams.']
+            };
+          } else if (sReq.protectedFromImpingingAirstreams !== true) {
+            return {
+              ezConfig: null, selectedConfig: null, ez: null, status: 'INCOMPLETE',
+              reasons: ['Stratified system prerequisite missing: must verify protection from impinging airstreams from adjacent zones.']
+            };
+          }
+        } else if (criteria.stratifiedPrerequisitesMet === false) {
+          return {
+            ezConfig: null, selectedConfig: null, ez: null, status: 'FAIL',
+            reasons: ['Stratified system prerequisites under Section 6.2.1.2.1 not satisfied.']
+          };
+        }
+
+        // Determine exact return height condition: > 5.5 m vs <= 5.5 m
+        let isReturnGt55m: boolean | null = null;
+        if (typeof criteria.returnHeightM === 'number') {
+          isReturnGt55m = criteria.returnHeightM > 5.5;
+        } else if (typeof criteria.returnHeightGt55m === 'boolean') {
+          isReturnGt55m = criteria.returnHeightGt55m;
+        } else if (typeof criteria.returnHeightGte55m === 'boolean') {
+          isReturnGt55m = criteria.returnHeightGte55m;
+        }
+
         if (criteria.verticalThrowMet === null || criteria.verticalThrowMet === undefined) {
           return {
             ezConfig: null,
@@ -260,7 +561,7 @@ export class EzSelectionService {
           };
         }
 
-        if (criteria.returnHeightGte55m === null || criteria.returnHeightGte55m === undefined) {
+        if (isReturnGt55m === null || isReturnGt55m === undefined) {
           return {
             ezConfig: null,
             selectedConfig: null,
@@ -271,19 +572,19 @@ export class EzSelectionService {
         }
 
         // Case 1: vertical throw >= 0.25 m/s (60 fpm) at 1.4 m and ceiling return <= 5.5 m (18 ft) -> Ez = 1.05
-        if (criteria.verticalThrowMet && !criteria.returnHeightGte55m) {
+        if (criteria.verticalThrowMet && !isReturnGt55m) {
           const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-floor-cool-strat-case1')!;
           return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
         }
 
         // Case 2: vertical throw < 0.25 m/s (60 fpm) at 1.4 m and ceiling return <= 5.5 m (18 ft) -> Ez = 1.2
-        if (!criteria.verticalThrowMet && !criteria.returnHeightGte55m) {
+        if (!criteria.verticalThrowMet && !isReturnGt55m) {
           const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-3')!;
           return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
         }
 
         // Case 3: vertical throw < 0.25 m/s (60 fpm) at 1.4 m and ceiling return > 5.5 m (18 ft) -> Ez = 1.5
-        if (!criteria.verticalThrowMet && criteria.returnHeightGte55m) {
+        if (!criteria.verticalThrowMet && isReturnGt55m) {
           const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-floor-cool-strat-h-gte55m')!;
           return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
         }
@@ -318,6 +619,10 @@ export class EzSelectionService {
 
     if (ezConfig.verificationStatus === 'UNIMPLEMENTED') {
       return { valid: false, status: 'BLOCKED', reasons: ['Unimplemented Table 6-4 Configuration'] };
+    }
+
+    if (ezConfig.verificationStatus === 'NOT_VERIFIED' || ezConfig.id === 'ez-unidirectional-flow') {
+      return { valid: false, status: 'BLOCKED', reasons: ['Unverified / non-production Table 6-4 Configuration (ez-unidirectional-flow is NOT_VERIFIED)'] };
     }
 
     if (ezConfig.verificationStatus === 'INVALID') {
