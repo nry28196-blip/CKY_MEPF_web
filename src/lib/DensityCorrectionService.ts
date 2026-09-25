@@ -26,8 +26,8 @@ export interface DensityInput {
   method?: 'TABLE' | 'ANALYTICAL';
   /**
    * Whether to apply standard-permitted simplifications:
-   * CT = 1.0 when T <= 40°C
-   * CW = 1.0 when W <= 0.015 kg/kg
+   * CT = 1.0 when T < 40°C
+   * CW = 1.0 when W < 0.024 kg/kg
    */
   applyStandardSimplifications?: boolean;
 }
@@ -203,22 +203,29 @@ export class DensityCorrectionService {
 
     // Atmospheric barometric pressure
     const pressureAtm = this.calculatePressure(elevation);
-
-    // Vapor and dry air pressure
     const tKelvin = temperature + 273.15;
     const psat = this.calculatePsat(temperature);
-    const rhFraction = Math.max(0, Math.min(100, rh)) / 100;
-    const pv = rhFraction * psat;
-    const pd = Math.max(0, pressureAtm - pv);
     const rDryAir = 0.287058; // kJ/(kg·K)
-    const dryAirDensity = pd / (rDryAir * tKelvin);
 
-    // Determine design humidity ratio W
+    // Determine design humidity ratio W and compute moisture state consistently
     let humidityRatioKgKg = 0;
+    let dryAirDensity = 0;
+
     if (input?.humidityRatio !== undefined && input?.humidityRatio !== null && !isNaN(input.humidityRatio)) {
+      // Explicit humidityRatio is authoritative moisture input
       humidityRatioKgKg = input.humidityRatio;
+      const pv = (humidityRatioKgKg / (0.621945 + humidityRatioKgKg)) * pressureAtm;
+      const pd = Math.max(0, pressureAtm - pv);
+      dryAirDensity = pd / (rDryAir * tKelvin);
+      rh = psat > 0 ? Math.min(100, Math.max(0, (pv / psat) * 100)) : 0;
     } else {
+      // Derive humidityRatio from RH, temperature, and atmospheric pressure
+      rh = input?.relativeHumidity && !isNaN(input.relativeHumidity) ? input.relativeHumidity : 0;
       humidityRatioKgKg = this.calculateHumidityRatio(temperature, rh, pressureAtm);
+      const rhFraction = Math.max(0, Math.min(100, rh)) / 100;
+      const pv = rhFraction * psat;
+      const pd = Math.max(0, pressureAtm - pv);
+      dryAirDensity = pd / (rDryAir * tKelvin);
     }
 
     // Analytical factors (Normative Appendix D)
@@ -226,24 +233,27 @@ export class DensityCorrectionService {
     const cz = 1 / Math.pow(1 - elevation * 2.25577e-5, 5.2559);
 
     // Eq D-2: CT = (T + 273.15) / 294.15
+    // Section D1.3.1: CT may be taken as 1.0 where design temperature T < 40°C
     let ct = (temperature + 273.15) / 294.15;
     let ctSimplified = false;
-    if (applySimplifications && temperature <= 40.0) {
+    if (applySimplifications && temperature < 40.0) {
       ct = 1.0;
       ctSimplified = true;
     }
 
     // Eq D-3: CW = (1 + W) / (1 + 1.6078 * W)
+    // Section D1.4.1: CW may be taken as 1.0 where design humidity ratio W < 0.024 kg/kg
     let cw = (1 + humidityRatioKgKg) / (1 + 1.6078 * humidityRatioKgKg);
     let cwSimplified = false;
-    if (applySimplifications && humidityRatioKgKg <= 0.015) {
+    if (applySimplifications && humidityRatioKgKg < 0.024) {
       cw = 1.0;
       cwSimplified = true;
     }
 
-    const simplifiedEp = cz * ct * cw;
-    const directEp = dryAirDensity > 0 ? this.STANDARD_DENSITY / dryAirDensity : 1.0;
-    const analyticalEp = applySimplifications ? simplifiedEp : directEp;
+    // Eq D-4: Ep = Cz * CT * CW or Section D2.3 Ep = 1.2 / rho
+    const analyticalEp = applySimplifications
+      ? (cz * ct * cw)
+      : (dryAirDensity > 0 ? (this.STANDARD_DENSITY / dryAirDensity) : (cz * ct * cw));
 
     let eRho = 1.0;
 
@@ -300,7 +310,7 @@ export class DensityCorrectionService {
       auditTrail.push({
         symbol: 'CT',
         name: 'Temperature Factor (Eq D-2)',
-        formula: ctSimplified ? '1.0 (Permitted simplification for T ≤ 40°C)' : '(T + 273.15) / 294.15',
+        formula: ctSimplified ? '1.0 (Permitted simplification for T < 40°C)' : '(T + 273.15) / 294.15',
         inputs: { 'T (°C)': temperature },
         result: ct,
         unit: '',
@@ -310,7 +320,7 @@ export class DensityCorrectionService {
       auditTrail.push({
         symbol: 'CW',
         name: 'Moisture Factor (Eq D-3)',
-        formula: cwSimplified ? '1.0 (Permitted simplification for W ≤ 0.015 kg/kg)' : '(1 + W) / (1 + 1.6078 × W)',
+        formula: cwSimplified ? '1.0 (Permitted simplification for W < 0.024 kg/kg)' : '(1 + W) / (1 + 1.6078 × W)',
         inputs: { 'W (kg/kg)': humidityRatioKgKg },
         result: cw,
         unit: '',

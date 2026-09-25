@@ -12,25 +12,25 @@ const makeVerified = (item: any) => {
     const fakeProvenanceItem = {
         value: 1,
         standard: 'ASHRAE 62.1',
-        edition: '2025',
+        edition: '2022',
         reference: ref,
         sourceType: SourceType.ASHRAE_PUBLISHED,
         verificationStatus: 'VERIFIED',
-        verificationDate: '2025-01-01',
-        revision: '2025'
+        verificationDate: '2022-01-01',
+        revision: '2022'
     };
 
     return {
       ...item,
       sourceType: SourceType.ASHRAE_PUBLISHED,
       verificationStatus: 'VERIFIED',
-        verificationDate: '2025-01-01',
+        verificationDate: '2022-01-01',
       reference: ref,
       revisionState: {
         ...item.revisionState,
         standard: 'ASHRAE 62.1',
-        edition: '2025',
-        baseEdition: '2025',
+        edition: '2022',
+        baseEdition: '2022',
         source: SourceType.ASHRAE_PUBLISHED
       },
       provenance: item.category ? {
@@ -47,16 +47,16 @@ const makeVerified = (item: any) => {
 };
 
 
-  const officeSpaceType = StandardDataProvider.get621SpaceTypes('2025').find(s => s.id === 'office')!;
+  const officeSpaceType = StandardDataProvider.get621SpaceTypes('2022').find(s => s.id === 'office')!;
   const verifiedOffice = makeVerified(officeSpaceType);
-  const ezConfig = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-1')!;
+  const ezConfig = StandardDataProvider.get621EzValues('2022').find(e => e.id === 'ez-1')!;
   const verifiedEz = makeVerified(ezConfig);
 
   it('Test A - Office Metric', () => {
     const result = VentilationEngine.runSingleZone({
       zone: {
         expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice,
         area: 100, // m2
         designOccupancy: 5, // persons
@@ -81,7 +81,7 @@ const makeVerified = (item: any) => {
     const result = VentilationEngine.runSingleZone({
       zone: {
         expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice,
         area: areaM2,
         designOccupancy: 5,
@@ -102,11 +102,11 @@ const makeVerified = (item: any) => {
   });
 
   it('Test C - Office Ez', () => {
-    const ezHeating = StandardDataProvider.get621EzValues('2025').find(e => e.id === 'ez-2')!; // Ez = 0.8
+    const ezHeating = StandardDataProvider.get621EzValues('2022').find(e => e.id === 'ez-2')!; // Ez = 0.8
     const result = VentilationEngine.runSingleZone({
       zone: {
         expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice,
         area: 100,
         designOccupancy: 5,
@@ -126,7 +126,7 @@ const makeVerified = (item: any) => {
     const result = VentilationEngine.runSingleZone({
       zone: {
         expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice,
         area: 100,
         designOccupancy: null,
@@ -138,10 +138,10 @@ const makeVerified = (item: any) => {
 
     if (result.status !== "PASS") console.log(result);
     expect(result.status).toBe('PASS'); // Standard default used
-    expect(result.zone.pz).toBeCloseTo(5.4, 2); // default is 5.4 per 100m2
-    expect(result.zone.vbp).toBeCloseTo(5.4 * 2.5, 2); // 13.5
+    expect(result.zone.pz).toBeCloseTo(5.0, 2); // default is 5.0 per 100m2 in Table 6-1 (2022)
+    expect(result.zone.vbp).toBeCloseTo(5.0 * 2.5, 2); // 12.5
     expect(result.zone.vba).toBeCloseTo(30, 2);
-    expect(result.zone.vbz).toBeCloseTo(43.5, 2);
+    expect(result.zone.vbz).toBeCloseTo(42.5, 2);
   });
 
   it('Test F - Simplified Multizone', () => {
@@ -149,13 +149,13 @@ const makeVerified = (item: any) => {
       zones: [
         {
           id: 'zone-1', expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice, area: 100, designOccupancy: 5,
           useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'CV', vpz: 100, vpzMinDesign: null, ep: null, er: null
         },
         {
           id: 'zone-2', expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice, area: 100, designOccupancy: 5,
           useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'CV', vpz: 100, vpzMinDesign: null, ep: null, er: null
         }
@@ -186,7 +186,7 @@ const makeVerified = (item: any) => {
       zones: [
         {
           id: 'zone-1', expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice, area: 100, designOccupancy: 5,
           useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'VAV', vpz: 100, vpzMinDesign: 65, ep: null, er: null
         }
@@ -209,7 +209,7 @@ const makeVerified = (item: any) => {
       zones: [
         {
           id: 'zone-1', expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice, area: 100, designOccupancy: 5,
           useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'VAV', vpz: 100, vpzMinDesign: null, ep: null, er: null
         }
@@ -227,7 +227,7 @@ const makeVerified = (item: any) => {
     const result = VentilationEngine.runSingleZone({
       zone: {
         expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice,
         area: 100, // m2
         designOccupancy: 5, // persons
@@ -246,7 +246,7 @@ const makeVerified = (item: any) => {
       zones: [
         {
           id: 'zone-1', expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice, area: 100, designOccupancy: 5,
           useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'CV', vpz: 100, vpzMinDesign: null, ep: null, er: null
         }
@@ -273,7 +273,7 @@ const makeVerified = (item: any) => {
       zones: [
         {
           id: 'zone-1', expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice, area: 100, designOccupancy: 5,
           useDefaultOccupancy: false, ezConfig: verifiedEz, dMode: 'CV', vpz: 100, vpzMinDesign: null, ep: null, er: null
         }
@@ -292,7 +292,7 @@ const makeVerified = (item: any) => {
     const result = VentilationEngine.runSingleZone({
       zone: {
         expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2025',
+      expectedEdition: '2022',
       spaceType: verifiedOffice,
         area: 100,
         designOccupancy: 5,

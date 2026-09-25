@@ -1,11 +1,12 @@
-VENTILATION TESTS: 232
+VENTILATION TESTS: 438
 PROVENANCE TESTS: DONE (Separated Calculation-Isolation and Production Provenance)
 AIR BALANCE STATUS: NOT_READY_FOR_ENGINEERING_USE
 ACTIVE STANDARD SCOPE: ANSI/ASHRAE Standard 62.1-2022 + Addendum j (ACTIVE_62_1_2022_SCOPE)
 
-Tests Passed: 233
+Tests Passed: 438
+Tests Skipped: 1
 Tests Failed: 0
-Total Tests: 233
+Total Tests: 439
 Lint Result: PASS
 Build Result: PASS
 

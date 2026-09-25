@@ -143,4 +143,171 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
     expect(res.status).toBe('PASS');
     expect(res.vou).toBeDefined();
   });
+
+  describe('ISSUE A: ASHRAE 62.1-2022 Appendix A Regression Suite (Xs = Vou / Vps)', () => {
+    it('1. Single-supply Alternative Procedure verifies Xs = Vou / Vps and Evz', () => {
+      // 2 zones, single supply, CV
+      const input = {
+        zones: [
+          createBaseZone('Z1', { pz: 6, rp: 2.5, az: 50, ra: 0.3, voz: 30, vpz: 100, vpzMinDesign: 100, dMode: 'CV' }),
+          createBaseZone('Z2', { pz: 4, rp: 2.5, az: 33.333333, ra: 0.3, voz: 20, vpz: 100, vpzMinDesign: 100, dMode: 'CV' })
+        ],
+        ps: 10,
+        edition: '2022' as const,
+        systemType: 'single_supply' as const,
+        airDistributionType: 'CV' as const,
+        vps: 200
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('PASS');
+      // Vou = (6*2.5 + 50*0.3) + (4*2.5 + 33.333333*0.3) = 30 + 20 = 50
+      expect(res.vou).toBeCloseTo(50, 2);
+      // Vps = 200
+      expect(res.vps).toBe(200);
+      // Authoritative Appendix A Eq A-1: Xs = Vou / Vps = 50 / 200 = 0.25
+      expect(res.xs).toBeCloseTo(0.25, 4);
+
+      // Single supply: Fa = 1, Fb = 1, Fc = Ez = 1.0
+      // Zd1 = 30 / 100 = 0.30 -> Evz1 = 1 + 0.25 - 0.30 = 0.95
+      // Zd2 = 20 / 100 = 0.20 -> Evz2 = 1 + 0.25 - 0.20 = 1.05
+      const z1 = res.zoneResults.find(z => z.id === 'Z1')!;
+      const z2 = res.zoneResults.find(z => z.id === 'Z2')!;
+      expect(z1.evz).toBeCloseTo(0.95, 4);
+      expect(z2.evz).toBeCloseTo(1.05, 4);
+      // Ev = min(Evz) = 0.95
+      expect(res.ev).toBeCloseTo(0.95, 4);
+      // Vot = Vou / Ev = 50 / 0.95 = 52.6316
+      expect(res.vot).toBeCloseTo(50 / 0.95, 4);
+    });
+
+    it('2. Secondary-recirculation Alternative Procedure verifies Xs = Vou / Vps', () => {
+      // Secondary recirculation: Ep = Vpz / Vdz = 40 / 80 = 0.5, Er = 0.5
+      // Fa = Ep + (1 - Ep)*Er = 0.5 + 0.5*0.5 = 0.75
+      // Fb = Ep = 0.5
+      // Fc = 1 - (1 - Ez)*(1 - Er)*(1 - Ep) = 1 - 0 = 1.0 (with Ez = 1)
+      const input = {
+        zones: [
+          createBaseZone('Z1', { pz: 10, rp: 1.0, az: 100, ra: 0.3, voz: 40, vpz: 40, vpzMinDesign: 40, vdzMinDesign: 80, ep: 0.5, er: 0.5, ez: 1.0, dMode: 'CV' })
+        ],
+        ps: 10,
+        edition: '2022' as const,
+        systemType: 'secondary_recirculation' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('PASS');
+      // Vou = 10*1.0 + 100*0.3 = 40
+      expect(res.vou).toBeCloseTo(40, 2);
+      expect(res.vps).toBe(100);
+      // Xs = Vou / Vps = 40 / 100 = 0.4
+      expect(res.xs).toBeCloseTo(0.4, 4);
+
+      // Zd = Voz / Vdz = 40 / 80 = 0.5
+      // Evz = (Fa + Xs*Fb - Zd*Fc) / Fa = (0.75 + 0.4*0.5 - 0.5*1.0) / 0.75 = (0.75 + 0.20 - 0.50) / 0.75 = 0.45 / 0.75 = 0.60
+      const z1 = res.zoneResults[0];
+      expect(z1.evz).toBeCloseTo(0.60, 4);
+      expect(res.ev).toBeCloseTo(0.60, 4);
+      // Vot = Vou / Ev = 40 / 0.60 = 66.6667
+      expect(res.vot).toBeCloseTo(40 / 0.60, 4);
+    });
+
+    it('3. VAV multi-zone Alternative Procedure calculation', () => {
+      const input = {
+        zones: [
+          createBaseZone('Z1', { pz: 5, rp: 2.0, az: 50, ra: 0.3, voz: 25, vpz: 120, vpzMinDesign: 50, dMode: 'VAV' }),
+          createBaseZone('Z2', { pz: 5, rp: 3.0, az: 50, ra: 0.4, voz: 35, vpz: 150, vpzMinDesign: 70, dMode: 'VAV' })
+        ],
+        ps: 10,
+        edition: '2022' as const,
+        systemType: 'single_supply' as const,
+        airDistributionType: 'VAV' as const,
+        vps: 270
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('PASS');
+      expect(res.airDistributionType).toBe('VAV');
+      // Vou = 25 + 35 = 60
+      expect(res.vou).toBeCloseTo(60, 2);
+      // Xs = 60 / 270
+      expect(res.xs).toBeCloseTo(60 / 270, 4);
+      expect(res.ev).toBeGreaterThan(0);
+      expect(res.vot).toBeCloseTo(60 / res.ev!, 4);
+    });
+
+    it('4. CV multi-zone Alternative Procedure calculation', () => {
+      const input = {
+        zones: [
+          createBaseZone('Z1', { pz: 4, rp: 2.0, az: 40, ra: 0.3, voz: 20, vpz: 100, vpzMinDesign: 100, dMode: 'CV' }),
+          createBaseZone('Z2', { pz: 6, rp: 2.0, az: 60, ra: 0.3, voz: 30, vpz: 150, vpzMinDesign: 150, dMode: 'CV' })
+        ],
+        ps: 10,
+        edition: '2022' as const,
+        systemType: 'single_supply' as const,
+        airDistributionType: 'CV' as const,
+        vps: 250
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('PASS');
+      expect(res.airDistributionType).toBe('CV');
+      expect(res.vou).toBeCloseTo(50, 2);
+      expect(res.xs).toBeCloseTo(50 / 250, 4);
+      expect(res.ev).toBeGreaterThan(0);
+      expect(res.vot).toBeCloseTo(50 / res.ev!, 4);
+    });
+
+    it('5. Case where Ev != 1.0 proves Xs remains Vou/Vps and NOT Vou/Ev/Vps', () => {
+      // Zone with Zd = 0.5, Vps = 100, Vou = 20
+      // Xs = Vou / Vps = 20 / 100 = 0.20
+      // If Xs is used: Evz = 1 + 0.20 - 0.50 = 0.70 -> Ev = 0.70
+      // If erroneous xsSupply was used: xsSupply = (20/0.70)/100 = 0.2857 -> Evz would be 1 + 0.2857 - 0.50 = 0.7857 != 0.70!
+      const input = {
+        zones: [
+          createBaseZone('Z1', { pz: 4, rp: 2.0, az: 40, ra: 0.3, voz: 20, vpz: 100, vpzMinDesign: 40, dMode: 'VAV' }) // Zd = 20 / 40 = 0.50
+        ],
+        ps: 4,
+        edition: '2022' as const,
+        systemType: 'single_supply' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('PASS');
+      expect(res.vou).toBeCloseTo(20, 2);
+      expect(res.xs).toBeCloseTo(0.20, 5); // Must strictly be Vou / Vps
+      expect(res.ev).toBeCloseTo(0.70, 4); // 1 + 0.20 - 0.50 = 0.70
+      // Verify xsSupply is distinct from Xs when Ev != 1.0
+      expect(res.xsSupply).toBeCloseTo((20 / 0.70) / 100, 4);
+      expect(res.xs).not.toBeCloseTo(res.xsSupply!, 3);
+
+      // Audit trail must have Eq A-1 for Xs
+      const xsAudit = res.auditTrail.find(a => a.symbol === 'Xs');
+      expect(xsAudit).toBeDefined();
+      expect(xsAudit?.formula).toBe('Vou / Vps');
+      expect(xsAudit?.reference).toContain('Appendix A Equation A-1');
+    });
+
+    it('6. Final Vot = Vou / Ev strictly enforced per Appendix A Eq A-5', () => {
+      const input = {
+        zones: [
+          createBaseZone('Z1', { pz: 7, rp: 2.0, az: 70, ra: 0.3, voz: 35, vpz: 100, vpzMinDesign: 50, dMode: 'VAV' }) // Zd = 35 / 50 = 0.70
+        ],
+        ps: 7,
+        edition: '2022' as const,
+        systemType: 'single_supply' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('PASS');
+      // Vou = 35, Vps = 100 -> Xs = 0.35
+      // Evz = 1 + 0.35 - 0.70 = 0.65 -> Ev = 0.65
+      expect(res.vou).toBeCloseTo(35, 2);
+      expect(res.xs).toBeCloseTo(0.35, 4);
+      expect(res.ev).toBeCloseTo(0.65, 4);
+      expect(res.vot).toBeCloseTo(35 / 0.65, 4);
+
+      const votAudit = res.auditTrail.find(a => a.symbol === 'Vot');
+      expect(votAudit).toBeDefined();
+      expect(votAudit?.formula).toBe('Vou / Ev');
+      expect(votAudit?.reference).toContain('Appendix A Equation A-5');
+    });
+  });
 });

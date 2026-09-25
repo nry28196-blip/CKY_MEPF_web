@@ -10,10 +10,13 @@ export interface EzSelectionCriteria {
   spaceTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
   supplyTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
   supplyJetVelocityMet?: boolean | null; // true if supply jet velocity >= 0.8 m/s (150 fpm) within 1.4 m of floor
-  verticalThrowMet?: boolean | null; // true if throw of 0.25 m/s <= 1.4 m (displacement / stratified)
-  returnHeightGte55m?: boolean | null; // true if return height >= 5.5 m (18 ft)
+  verticalThrowMet?: boolean | null; // true if vertical throw of cool air >= 0.25 m/s (60 fpm) at 1.4 m
+  returnHeightGte55m?: boolean | null; // true if return height > 5.5 m (18 ft); false if <= 5.5 m
   isDirectMakeupExhaust?: boolean;
+  makeupAirDistance?: 'greater_than_half_length' | 'less_than_half_length' | null; // relative to half space length
   isPersonalizedVentilation?: boolean;
+  personalizedPrerequisitesMet?: boolean | null; // Section 6.2.1.2.2 prerequisites verified
+  personalizedSystemType?: 'ceiling_cool' | 'ceiling_warm' | 'stratified_nonaspirating' | 'stratified_aspirating' | null;
   manualOverride?: {
     ezValue: number;
     basis: string;
@@ -110,16 +113,69 @@ export class EzSelectionService {
       else if (spaceTempRelationship === 'heating_gte_8c' || spaceTempRelationship === 'heating_lt_8c') supplyAirCondition = 'warm';
     }
 
-    // 2. Personalized ventilation
-    if (criteria.isPersonalizedVentilation || criteria.supplyLocation === 'breathing_zone') {
-      const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-personalized-ventilation')!;
-      return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
+    // 2. Personalized ventilation (Table 6-4 & Section 6.2.1.2.2)
+    if (criteria.isPersonalizedVentilation || criteria.distributionCategory === 'personalized' || criteria.supplyLocation === 'breathing_zone') {
+      // Must verify Section 6.2.1.2.2 prerequisites before returning standard Ez
+      if (criteria.personalizedPrerequisitesMet !== true) {
+        return {
+          ezConfig: null,
+          selectedConfig: null,
+          ez: null,
+          status: 'INCOMPLETE',
+          reasons: ['Personalized ventilation prerequisites under ASHRAE 62.1-2022 Section 6.2.1.2.2 must be verified (100% outdoor air directly to breathing zone, occupant control, and velocity limits).']
+        };
+      }
+
+      const pType = criteria.personalizedSystemType;
+      if (!pType) {
+        return {
+          ezConfig: null,
+          selectedConfig: null,
+          ez: null,
+          status: 'INCOMPLETE',
+          reasons: ['Missing Table 6-4 personalized ventilation system type (ceiling_cool, ceiling_warm, stratified_nonaspirating, or stratified_aspirating).']
+        };
+      }
+
+      if (pType === 'ceiling_cool') {
+        const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-personalized-ceiling-cool')!;
+        return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
+      }
+      if (pType === 'ceiling_warm') {
+        const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-personalized-ceiling-warm')!;
+        return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
+      }
+      if (pType === 'stratified_nonaspirating') {
+        const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-personalized-strat-nonaspirating')!;
+        return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
+      }
+      if (pType === 'stratified_aspirating') {
+        const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-personalized-strat-aspirating')!;
+        return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
+      }
     }
 
-    // 3. Direct makeup exhaust
-    if (criteria.isDirectMakeupExhaust || criteria.returnLocation === 'other') {
-      const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-makeup-direct-exhaust')!;
-      return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
+    // 3. Makeup supply air (Table 6-4)
+    if (criteria.distributionCategory === 'makeup' || criteria.isDirectMakeupExhaust) {
+      if (!criteria.makeupAirDistance) {
+        return {
+          ezConfig: null,
+          selectedConfig: null,
+          ez: null,
+          status: 'INCOMPLETE',
+          reasons: ['Missing makeup supply outlet location relative to half the length of the space from exhaust/return.']
+        };
+      }
+
+      if (criteria.makeupAirDistance === 'greater_than_half_length') {
+        const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-makeup-more-half-length')!;
+        return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
+      }
+
+      if (criteria.makeupAirDistance === 'less_than_half_length') {
+        const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-makeup-direct-exhaust')!;
+        return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
+      }
     }
 
     // 4. Ceiling supply configurations
@@ -192,7 +248,7 @@ export class EzSelectionService {
         }
       }
 
-      // 5b. Floor supply of cool air and ceiling return
+      // 5b. Floor supply of cool air and ceiling return (Stratified cooling)
       if ((supplyAirCondition === 'cool' || spaceTempRelationship === 'cooling') && criteria.returnLocation === 'ceiling') {
         if (criteria.verticalThrowMet === null || criteria.verticalThrowMet === undefined) {
           return {
@@ -200,34 +256,46 @@ export class EzSelectionService {
             selectedConfig: null,
             ez: null,
             status: 'INCOMPLETE',
-            reasons: ['Missing vertical throw']
+            reasons: ['Missing vertical throw condition (requires throw velocity >= 0.25 m/s or < 0.25 m/s at 1.4 m)']
           };
         }
 
-        // If vertical throw is > 1.4 m (well-mixed)
-        if (criteria.verticalThrowMet) {
-          const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-4')!;
-          return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
-        }
-
-        // Low-velocity displacement ventilation (stratified) requires return height
         if (criteria.returnHeightGte55m === null || criteria.returnHeightGte55m === undefined) {
           return {
             ezConfig: null,
             selectedConfig: null,
             ez: null,
             status: 'INCOMPLETE',
-            reasons: ['Missing return height']
+            reasons: ['Missing return height condition (requires return height <= 5.5 m or > 5.5 m)']
           };
         }
 
-        if (criteria.returnHeightGte55m) {
-          const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-floor-cool-strat-h-gte55m')!;
+        // Case 1: vertical throw >= 0.25 m/s (60 fpm) at 1.4 m and ceiling return <= 5.5 m (18 ft) -> Ez = 1.05
+        if (criteria.verticalThrowMet && !criteria.returnHeightGte55m) {
+          const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-floor-cool-strat-case1')!;
           return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
-        } else {
+        }
+
+        // Case 2: vertical throw < 0.25 m/s (60 fpm) at 1.4 m and ceiling return <= 5.5 m (18 ft) -> Ez = 1.2
+        if (!criteria.verticalThrowMet && !criteria.returnHeightGte55m) {
           const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-3')!;
           return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
         }
+
+        // Case 3: vertical throw < 0.25 m/s (60 fpm) at 1.4 m and ceiling return > 5.5 m (18 ft) -> Ez = 1.5
+        if (!criteria.verticalThrowMet && criteria.returnHeightGte55m) {
+          const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-floor-cool-strat-h-gte55m')!;
+          return { ezConfig: config, selectedConfig: config, ez: config.ez, status: 'PASS', reasons: [] };
+        }
+
+        // Vertical throw >= 0.25 m/s with return height > 5.5 m is not defined by Table 6-4
+        return {
+          ezConfig: null,
+          selectedConfig: null,
+          ez: null,
+          status: 'INCOMPLETE',
+          reasons: ['Table 6-4 does not specify an Ez value for vertical throw >= 0.25 m/s with return height > 5.5 m. Engineering analysis required.']
+        };
       }
     }
 
@@ -276,8 +344,8 @@ export class EzSelectionService {
         return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air'] };
       }
 
-      // Stratified displacement requires vertical throw
-      if (ezConfig.id === 'ez-3' || ezConfig.id === 'ez-floor-cool-strat-h-gte55m') {
+      // Stratified cooling requires vertical throw and return height
+      if (ezConfig.id === 'ez-3' || ezConfig.id === 'ez-floor-cool-strat-h-gte55m' || ezConfig.id === 'ez-floor-cool-strat-case1') {
         if (conditions.verticalThrowMet === null || conditions.verticalThrowMet === undefined) {
           return { valid: false, status: 'INCOMPLETE', reasons: ['Missing vertical throw'] };
         }

@@ -59,12 +59,13 @@ export interface AlternativeSystemResult {
   zoneResults: AlternativeZoneResult[];
   ev: number | null;
   vou: number | null;
+  vot?: number | null; // Final Vot = Vou / Ev (Appendix A Equation A-5)
   vps: number | null;
   vpsDesignBasis: string;
   designCondition?: string;
   airDistributionType: 'CV' | 'VAV';
-  xs: number | null; // Vou / Vps
-  xsSupply?: number | null; // Vot / Vps = (Vou / Ev) / Vps
+  xs: number | null; // Vou / Vps (Appendix A Equation A-1)
+  xsSupply?: number | null; // Informational: Vot / Vps = (Vou / Ev) / Vps (NOT used in Evz calculation)
   criticalZoneId: string | null;
   status: ValidationStatus;
   message?: string;
@@ -117,6 +118,7 @@ export class Ashrae621AlternativeSystemService {
         zoneResults: [],
         ev: null,
         vou: null,
+        vot: null,
         vps: null,
         vpsDesignBasis,
         designCondition,
@@ -517,6 +519,7 @@ export class Ashrae621AlternativeSystemService {
         zoneResults,
         ev: null,
         vou,
+        vot: null,
         vps,
         vpsDesignBasis,
         designCondition,
@@ -529,73 +532,78 @@ export class Ashrae621AlternativeSystemService {
       };
     }
 
-    // Iterative solver for Ev and Xs
-    // Xs = Vou / Vps (uncorrected system outdoor air fraction)
+    // System average outdoor air fraction per ASHRAE 62.1-2022 Appendix A Equation A-1:
+    // Xs = Vou / Vps
     const xs = vou / vps!;
     auditTrail.push({
       symbol: 'Xs',
-      name: 'Uncorrected System Outdoor Air Fraction',
+      name: 'System Average Outdoor Air Fraction (Eq A-1)',
       formula: 'Vou / Vps',
       inputs: { 'Vou': vou, 'Vps': vps! },
       result: xs,
       unit: '',
-      reference: 'ASHRAE 62.1-2022 Section 6.2.5.2 & Appendix A',
+      reference: 'ASHRAE 62.1-2022 Appendix A Equation A-1',
       status: AuditStatus.DERIVED
     });
 
-    let ev: number | null = 1.0;
-    let xsSupply = 0;
-    let iterations = 0;
-    const maxIterations = 50;
-    let converged = false;
-
-    while (iterations < maxIterations && !converged) {
-      const prevEv = ev!;
-      xsSupply = (vou / ev!) / vps!;
-      let minEvz = 1.0;
-      
-      for (const zc of zoneCalcs) {
-        zc.evz = zc.fa > 0 ? (zc.fa + xsSupply * zc.fb - zc.zd * zc.fc) / zc.fa : 1.0;
-        if (zc.evz < minEvz) {
-          minEvz = zc.evz;
-        }
+    // Zone ventilation efficiency (Evz) calculated using authoritative Xs = Vou / Vps:
+    // For single supply: Evz = 1 + Xs - Zd (or (Fa + Xs*Fb - Zd*Fc)/Fa with Fa=1, Fb=1, Fc=Ez)
+    // For secondary recirculation: Evz = (Fa + Xs * Fb - Zd * Fc) / Fa (Appendix A Equation A-3)
+    let minEvz = 1.0;
+    for (const zc of zoneCalcs) {
+      zc.evz = zc.fa > 0 ? (zc.fa + xs * zc.fb - zc.zd * zc.fc) / zc.fa : 1.0;
+      if (zc.evz < minEvz) {
+        minEvz = zc.evz;
       }
-      
-      ev = minEvz;
-      if (Math.abs(ev - prevEv) < 0.001) {
-        converged = true;
-      }
-      iterations++;
     }
 
+    let ev: number | null = minEvz;
     let isEvValid = true;
-    if (!converged || ev <= 0 || isNaN(ev) || !isFinite(ev)) {
+    if (ev <= 0 || isNaN(ev) || !isFinite(ev)) {
       statuses.push('FAIL');
       isEvValid = false;
       ev = null;
       auditTrail.push({
         symbol: 'Ev',
-        name: 'System Ventilation Efficiency',
-        formula: 'min(Evz) [Iterative]',
-        inputs: { 'Xs': xs, 'Xs_supply': xsSupply, 'Iterations': iterations },
+        name: 'System Ventilation Efficiency (Eq A-4)',
+        formula: 'min(Evz)',
+        inputs: { 'Xs': xs },
         result: 'FAIL',
         unit: '',
-        reference: 'ASHRAE 62.1-2022 Appendix A',
+        reference: 'ASHRAE 62.1-2022 Appendix A Equation A-4',
         status: AuditStatus.FAIL
       });
     } else {
       statuses.push('PASS');
       auditTrail.push({
         symbol: 'Ev',
-        name: 'System Ventilation Efficiency',
-        formula: 'min(Evz) [Iterative]',
-        inputs: { 'Xs': xs, 'Xs_supply': xsSupply, 'Iterations': iterations },
+        name: 'System Ventilation Efficiency (Eq A-4)',
+        formula: 'min(Evz)',
+        inputs: { 'Xs': xs, 'min(Evz)': ev },
         result: ev,
         unit: '',
-        reference: 'ASHRAE 62.1-2022 Appendix A',
+        reference: 'ASHRAE 62.1-2022 Appendix A Equation A-4',
         status: AuditStatus.DERIVED
       });
     }
+
+    // Final required outdoor air intake Vot = Vou / Ev (Appendix A Equation A-5 / Section 6.2.5.4)
+    const vot: number | null = (isEvValid && ev !== null && ev > 0) ? vou / ev : null;
+    if (vot !== null) {
+      auditTrail.push({
+        symbol: 'Vot',
+        name: 'Outdoor Air Intake Flow',
+        formula: 'Vou / Ev',
+        inputs: { 'Vou': vou, 'Ev': ev },
+        result: vot,
+        unit: 'L/s',
+        reference: 'ASHRAE 62.1-2022 Appendix A Equation A-5',
+        status: AuditStatus.DERIVED
+      });
+    }
+
+    // Informational xsSupply: Vot / Vps = (Vou / Ev) / Vps (NOT substituted into Evz)
+    const xsSupply = (vot !== null && vps! > 0) ? vot / vps! : null;
 
     const finalStatus = VentilationValidationService.aggregateStatus(statuses);
 
@@ -629,6 +637,7 @@ export class Ashrae621AlternativeSystemService {
       zoneResults,
       ev: isEvValid ? ev : null,
       vou,
+      vot,
       vps,
       vpsDesignBasis,
       designCondition,

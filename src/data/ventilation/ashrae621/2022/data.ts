@@ -86,59 +86,103 @@ export const ASHRAE_621_2022_EZ_VALUES: Ashrae621Ez[] = [
     sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
   },
   { 
-    id: 'ez-3', name: 'Floor supply of cool air and ceiling return with low velocity / displacement (vertical throw <= 4.5 ft / 1.4 m, return height < 18 ft / 5.5 m)', ez: 1.2, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Floor Supply of Cool Air / Ceiling Return (Stratified, H < 5.5 m)', applicableCondition: 'Low velocity displacement, return height < 18 ft (5.5 m)', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', 
-    distributionCategory: 'floor', supplyLocation: 'floor', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', verticalThrowCondition: 'Throw of 0.25 m/s (50 fpm) <= 1.4 m (4.5 ft) above floor', returnAirHeightCondition: '< 5.5 m (18 ft)', isWellMixed: false, isStratified: true, isPersonalized: false,
+    id: 'ez-floor-cool-strat-case1', name: 'Floor supply of cool air with vertical throw >= 0.25 m/s (60 fpm) at 1.4 m and ceiling return <= 5.5 m (Stratified Cooling Case 1)', ez: 1.05, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Floor Supply of Cool Air / Ceiling Return (Stratified Case 1: vertical throw >= 0.25 m/s at 1.4 m, return <= 5.5 m)', applicableCondition: 'Vertical throw >= 0.25 m/s (60 fpm) at 1.4 m (4.5 ft) above floor, ceiling return <= 5.5 m (18 ft)', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', 
+    distributionCategory: 'floor', supplyLocation: 'floor', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', verticalThrowCondition: 'Vertical throw >= 0.25 m/s (60 fpm) at 1.4 m (4.5 ft) above floor', returnAirHeightCondition: '<= 5.5 m (18 ft)', isWellMixed: false, isStratified: true, isPersonalized: false,
+    revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-25', source: SourceType.ASHRAE_PUBLISHED },
+    provenance: {
+      ez: { value: 1.05, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      applicability: { value: 'Vertical throw >= 0.25 m/s (60 fpm) at 1.4 m (4.5 ft) above floor, ceiling return <= 5.5 m (18 ft)', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' }
+    },
+    sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-25'
+  },
+  { 
+    id: 'ez-3', name: 'Floor supply of cool air with vertical throw < 0.25 m/s (60 fpm) at 1.4 m and ceiling return <= 5.5 m (Stratified Cooling Case 2)', ez: 1.2, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Floor Supply of Cool Air / Ceiling Return (Stratified Case 2: vertical throw < 0.25 m/s at 1.4 m, return <= 5.5 m)', applicableCondition: 'Low velocity displacement, return height <= 18 ft (5.5 m)', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', 
+    distributionCategory: 'floor', supplyLocation: 'floor', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', verticalThrowCondition: 'Vertical throw < 0.25 m/s (60 fpm) at 1.4 m (4.5 ft) above floor', returnAirHeightCondition: '<= 5.5 m (18 ft)', isWellMixed: false, isStratified: true, isPersonalized: false,
     revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
       ez: { value: 1.2, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
-      applicability: { value: 'Low velocity displacement, return height < 18 ft (5.5 m)', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
+      applicability: { value: 'Low velocity displacement, return height <= 18 ft (5.5 m)', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
     },
     sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
   },
   { 
-    id: 'ez-floor-cool-strat-h-gte55m', name: 'Floor supply of cool air and ceiling return with low velocity / displacement (vertical throw <= 4.5 ft / 1.4 m, return height >= 18 ft / 5.5 m)', ez: 1.5, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Floor Supply of Cool Air / Ceiling Return (Stratified, H >= 5.5 m)', applicableCondition: 'Low velocity displacement, return height >= 18 ft (5.5 m)', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', 
-    distributionCategory: 'floor', supplyLocation: 'floor', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', verticalThrowCondition: 'Throw of 0.25 m/s (50 fpm) <= 1.4 m (4.5 ft) above floor', returnAirHeightCondition: '>= 5.5 m (18 ft)', isWellMixed: false, isStratified: true, isPersonalized: false,
+    id: 'ez-floor-cool-strat-h-gte55m', name: 'Floor supply of cool air with vertical throw < 0.25 m/s (60 fpm) at 1.4 m and ceiling return > 5.5 m (Stratified Cooling Case 3)', ez: 1.5, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Floor Supply of Cool Air / Ceiling Return (Stratified Case 3: vertical throw < 0.25 m/s at 1.4 m, return > 5.5 m)', applicableCondition: 'Low velocity displacement, return height > 18 ft (5.5 m)', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', 
+    distributionCategory: 'floor', supplyLocation: 'floor', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', verticalThrowCondition: 'Vertical throw < 0.25 m/s (60 fpm) at 1.4 m (4.5 ft) above floor', returnAirHeightCondition: '> 5.5 m (18 ft)', isWellMixed: false, isStratified: true, isPersonalized: false,
     revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
       ez: { value: 1.5, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
-      applicability: { value: 'Low velocity displacement, return height >= 18 ft (5.5 m)', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
+      applicability: { value: 'Low velocity displacement, return height > 18 ft (5.5 m)', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
     },
     sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
   },
   { 
-    id: 'ez-4', name: 'Floor supply of cool air and ceiling return with vertical throw > 4.5 ft (1.4 m) (well-mixed)', ez: 1.0, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Floor Supply of Cool Air / Ceiling Return (Well-Mixed)', applicableCondition: 'Floor supply cool air, vertical throw > 4.5 ft (1.4 m)', supplyArrangement: 'Floor', returnArrangement: 'Ceiling', 
-    distributionCategory: 'floor', supplyLocation: 'floor', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', verticalThrowCondition: 'Throw of 0.25 m/s (50 fpm) > 1.4 m (4.5 ft) above floor', isWellMixed: true, isStratified: false, isPersonalized: false,
-    revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
+    id: 'ez-makeup-more-half-length', name: 'Makeup supply air located more than half the length of the space from exhaust, return, or both', ez: 0.8, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Makeup Supply Located > 0.5 Space Length from Exhaust/Return', applicableCondition: 'Makeup supply air located > 0.5 space length from exhaust or return', supplyArrangement: 'Ceiling', returnArrangement: 'Other', 
+    distributionCategory: 'makeup', supplyLocation: 'ceiling', supplyAirCondition: 'any', returnLocation: 'other', spaceTempRelationship: 'none', additionalQualifyingConditions: 'Makeup air outlet located > 0.5 the length of the space from exhaust/return', isWellMixed: false, isStratified: false, isPersonalized: false,
+    revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-25', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
-      ez: { value: 1.0, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
-      applicability: { value: 'Floor supply cool air, vertical throw > 4.5 ft (1.4 m)', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
-      reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
+      ez: { value: 0.8, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      applicability: { value: 'Makeup supply air located > 0.5 space length from exhaust or return', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' }
     },
-    sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
+    sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-25'
   },
   { 
-    id: 'ez-makeup-direct-exhaust', name: 'Makeup supply air drawn from space before mixing or within 15 ft (4.5 m) of exhaust hood', ez: 0.5, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Makeup Supply Drawn Directly into Exhaust', applicableCondition: 'Makeup supply drawn before mixing or within 15 ft (4.5 m) of exhaust', supplyArrangement: 'Ceiling', returnArrangement: 'Other', 
-    distributionCategory: 'makeup', supplyLocation: 'ceiling', supplyAirCondition: 'any', returnLocation: 'other', spaceTempRelationship: 'none', additionalQualifyingConditions: 'Makeup supply air drawn from the space before it can mix or within 15 ft (4.5 m) of an exhaust hood', isWellMixed: false, isStratified: false, isPersonalized: false,
+    id: 'ez-makeup-direct-exhaust', name: 'Makeup supply air drawn from space before mixing or located <= half the length of the space from exhaust, return, or both', ez: 0.5, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Makeup Supply Located <= 0.5 Space Length from Exhaust/Return', applicableCondition: 'Makeup supply drawn before mixing or located <= 0.5 space length from exhaust/return', supplyArrangement: 'Ceiling', returnArrangement: 'Other', 
+    distributionCategory: 'makeup', supplyLocation: 'ceiling', supplyAirCondition: 'any', returnLocation: 'other', spaceTempRelationship: 'none', additionalQualifyingConditions: 'Makeup supply air drawn from the space before it can mix or within half the length of the space from exhaust/return', isWellMixed: false, isStratified: false, isPersonalized: false,
     revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
       ez: { value: 0.5, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
-      applicability: { value: 'Makeup supply drawn before mixing or within 15 ft (4.5 m) of exhaust', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
+      applicability: { value: 'Makeup supply drawn before mixing or located <= 0.5 space length from exhaust/return', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
       reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
     },
     sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
   },
   { 
-    id: 'ez-personalized-ventilation', name: 'Personalized ventilation supplying 100% outdoor air directly to occupant breathing zone', ez: 1.5, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Personalized Ventilation Directly to Breathing Zone', applicableCondition: 'Personalized ventilation delivering 100% outdoor air directly to breathing zone', supplyArrangement: 'Breathing Zone', returnArrangement: 'Ceiling', 
-    distributionCategory: 'personalized', supplyLocation: 'breathing_zone', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', isPersonalized: true, isWellMixed: false, isStratified: false, additionalQualifyingConditions: 'Dedicated personalized air terminal delivering outdoor air directly to occupant breathing zone',
-    revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-08', source: SourceType.ASHRAE_PUBLISHED },
+    id: 'ez-personalized-ceiling-cool', name: 'Personalized ventilation + ceiling supply of cool air + ceiling return', ez: 1.40, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Personalized Ventilation + Ceiling Cool Supply + Ceiling Return', applicableCondition: 'Personalized air + ceiling cool supply + ceiling return', supplyArrangement: 'Breathing Zone', returnArrangement: 'Ceiling', 
+    distributionCategory: 'personalized', supplyLocation: 'breathing_zone', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', isPersonalized: true, isWellMixed: false, isStratified: false, additionalQualifyingConditions: 'Personalized air conforming to Section 6.2.1.2.2 + ceiling cool supply + ceiling return',
+    revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-25', source: SourceType.ASHRAE_PUBLISHED },
     provenance: {
-      ez: { value: 1.5, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
-      applicability: { value: 'Personalized ventilation delivering 100% outdoor air directly to breathing zone', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' },
-      reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-08' }
+      ez: { value: 1.40, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      applicability: { value: 'Personalized air + ceiling cool supply + ceiling return', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' }
     },
-    sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-08'
+    sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-25'
+  },
+  { 
+    id: 'ez-personalized-ceiling-warm', name: 'Personalized ventilation + ceiling supply of warm air + ceiling return', ez: 1.40, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Personalized Ventilation + Ceiling Warm Supply + Ceiling Return', applicableCondition: 'Personalized air + ceiling warm supply + ceiling return', supplyArrangement: 'Breathing Zone', returnArrangement: 'Ceiling', 
+    distributionCategory: 'personalized', supplyLocation: 'breathing_zone', supplyAirCondition: 'warm', returnLocation: 'ceiling', spaceTempRelationship: 'heating_gte_8c', isPersonalized: true, isWellMixed: false, isStratified: false, additionalQualifyingConditions: 'Personalized air conforming to Section 6.2.1.2.2 + ceiling warm supply + ceiling return',
+    revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-25', source: SourceType.ASHRAE_PUBLISHED },
+    provenance: {
+      ez: { value: 1.40, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      applicability: { value: 'Personalized air + ceiling warm supply + ceiling return', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' }
+    },
+    sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-25'
+  },
+  { 
+    id: 'ez-personalized-strat-nonaspirating', name: 'Personalized ventilation + stratified distribution + nonaspirating floor supply devices + ceiling return', ez: 1.20, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Personalized Ventilation + Stratified Nonaspirating Floor Supply + Ceiling Return', applicableCondition: 'Personalized air + stratified nonaspirating floor supply + ceiling return', supplyArrangement: 'Breathing Zone', returnArrangement: 'Ceiling', 
+    distributionCategory: 'personalized', supplyLocation: 'breathing_zone', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', isPersonalized: true, isWellMixed: false, isStratified: true, additionalQualifyingConditions: 'Personalized air conforming to Section 6.2.1.2.2 + stratified nonaspirating floor supply devices + ceiling return',
+    revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-25', source: SourceType.ASHRAE_PUBLISHED },
+    provenance: {
+      ez: { value: 1.20, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      applicability: { value: 'Personalized air + stratified nonaspirating floor supply + ceiling return', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' }
+    },
+    sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-25'
+  },
+  { 
+    id: 'ez-personalized-strat-aspirating', name: 'Personalized ventilation + stratified distribution + aspirating floor supply devices + ceiling return', ez: 1.50, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Personalized Ventilation + Stratified Aspirating Floor Supply + Ceiling Return', applicableCondition: 'Personalized air + stratified aspirating floor supply + ceiling return', supplyArrangement: 'Breathing Zone', returnArrangement: 'Ceiling', 
+    distributionCategory: 'personalized', supplyLocation: 'breathing_zone', supplyAirCondition: 'cool', returnLocation: 'ceiling', spaceTempRelationship: 'cooling', isPersonalized: true, isWellMixed: false, isStratified: true, additionalQualifyingConditions: 'Personalized air conforming to Section 6.2.1.2.2 + stratified aspirating floor supply devices + ceiling return',
+    revisionState: { standard: 'ASHRAE 62.1', edition: '2022', baseEdition: '2022', publishedAddendaApplied: [], publishedErrataApplied: [], verificationDate: '2026-09-25', source: SourceType.ASHRAE_PUBLISHED },
+    provenance: {
+      ez: { value: 1.50, standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      applicability: { value: 'Personalized air + stratified aspirating floor supply + ceiling return', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' },
+      reference: { value: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', reference: 'Table 6-4', sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', revision: '2022', verificationDate: '2026-09-25' }
+    },
+    sourceType: SourceType.ASHRAE_PUBLISHED, verificationStatus: 'VERIFIED', verificationDate: '2026-09-25'
   },
   { 
     id: 'ez-unidirectional-flow', name: 'Unidirectional downward flow through perforated ceiling (cleanroom/specialized) [UNIMPLEMENTED]', ez: 0.5, reference: 'Table 6-4', standard: 'ASHRAE 62.1', edition: '2022', configuration: 'Unidirectional Downward Flow', applicableCondition: 'Unidirectional downward flow (cleanroom)', supplyArrangement: 'Ceiling', returnArrangement: 'Floor', 

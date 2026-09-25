@@ -56,6 +56,66 @@ export interface MultiZoneResult {
 export class VentilationEngine {
   static runSingleZone(input: SingleZoneInput): SingleZoneResult {
     const auditTrail: AuditTrailItem[] = [];
+
+    // Enforce active standard production boundary at VentilationEngine entry point
+    const requestedEdition = input.edition || input.zone?.expectedEdition || input.zone?.spaceType?.edition;
+    if (requestedEdition === '2025' || input.zone?.expectedEdition === '2025' || input.zone?.spaceType?.edition === '2025') {
+      const densityResult = DensityCorrectionService.calculate(input.density);
+      return {
+        zone: {
+          id: input.zone?.spaceType?.id || 'zone-2025',
+          spaceTypeId: input.zone?.spaceType?.id,
+          spaceTypeName: input.zone?.spaceType?.name,
+          standard: 'ASHRAE 62.1',
+          edition: '2025',
+          revision: 'DEFERRED_2025_NON_PRODUCTION',
+          references: [],
+          az: null, pz: null, rp: null, ra: null, vbp: null, vba: null, vbz: null, ez: null, epDensity: null, voz: null,
+          occupancySource: null,
+          occupancyDensityUsed: null,
+          populationBeforeDisplayRounding: null,
+          status: 'BLOCKED',
+          reason: 'ASHRAE 62.1-2025 is deferred and not approved for production use. Calculations for this edition are BLOCKED.',
+          auditTrail: []
+        },
+        density: densityResult,
+        voz: null,
+        vot: null,
+        finalDesignOutdoorAir: null,
+        auditTrail: [],
+        revisionState: 'DEFERRED_2025_NON_PRODUCTION',
+        status: 'BLOCKED'
+      };
+    }
+
+    if (requestedEdition === '2019' || input.zone?.expectedEdition === '2019' || input.zone?.spaceType?.edition === '2019') {
+      const densityResult = DensityCorrectionService.calculate(input.density);
+      return {
+        zone: {
+          id: input.zone?.spaceType?.id || 'zone-2019',
+          spaceTypeId: input.zone?.spaceType?.id,
+          spaceTypeName: input.zone?.spaceType?.name,
+          standard: 'ASHRAE 62.1',
+          edition: '2019',
+          revision: 'ARCHIVED_2019_NON_PRODUCTION',
+          references: [],
+          az: null, pz: null, rp: null, ra: null, vbp: null, vba: null, vbz: null, ez: null, epDensity: null, voz: null,
+          occupancySource: null,
+          occupancyDensityUsed: null,
+          populationBeforeDisplayRounding: null,
+          status: 'BLOCKED',
+          reason: 'ASHRAE 62.1-2019 is archived and not active for production use. Calculations for this edition are BLOCKED.',
+          auditTrail: []
+        },
+        density: densityResult,
+        voz: null,
+        vot: null,
+        finalDesignOutdoorAir: null,
+        auditTrail: [],
+        revisionState: 'ARCHIVED_2019_NON_PRODUCTION',
+        status: 'BLOCKED'
+      };
+    }
     
     // 1. Calculate Density
     const densityResult = DensityCorrectionService.calculate(input.density);
@@ -67,7 +127,7 @@ export class VentilationEngine {
     const statuses = [zoneResult.status, densityResult.status];
     const status = VentilationValidationService.aggregateStatus(statuses);
     
-    if (status === 'FAIL' || status === 'INCOMPLETE' || status === 'NOT_VERIFIED') {
+    if (status === 'FAIL' || status === 'INCOMPLETE' || status === 'NOT_VERIFIED' || status === 'BLOCKED') {
         return {
           zone: zoneResult, density: densityResult, voz: null, vot: null, 
           finalDesignOutdoorAir: null, auditTrail: [], revisionState: input.zone?.spaceType?.revisionState.source || 'Unknown', status
@@ -91,6 +151,52 @@ export class VentilationEngine {
 
   static runMultiZone(input: MultiZoneInput): MultiZoneResult {
     const auditTrail: AuditTrailItem[] = [];
+
+    // Enforce active standard production boundary at VentilationEngine entry point
+    const requestedEdition = input.edition || (input.zones.length > 0 ? (input.zones[0].expectedEdition || input.zones[0].spaceType?.edition) : undefined);
+    if (requestedEdition === '2025' || input.zones.some(z => z.expectedEdition === '2025' || z.spaceType?.edition === '2025')) {
+      const densityResult = DensityCorrectionService.calculate(input.density);
+      return {
+        zoneResults: [],
+        density: densityResult,
+        simplifiedSystem: null,
+        alternativeSystem: null,
+        vou: null,
+        ev: null,
+        vps: input.vps ?? null,
+        vpsDesignBasis: input.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition',
+        designCondition: input.designCondition || 'Cooling design',
+        airDistributionType: input.airDistributionType || 'CV',
+        xs: null,
+        vot: null,
+        finalDesignOutdoorAir: null,
+        auditTrail: [],
+        revisionState: 'DEFERRED_2025_NON_PRODUCTION',
+        status: 'BLOCKED'
+      };
+    }
+
+    if (requestedEdition === '2019' || input.zones.some(z => z.expectedEdition === '2019' || z.spaceType?.edition === '2019')) {
+      const densityResult = DensityCorrectionService.calculate(input.density);
+      return {
+        zoneResults: [],
+        density: densityResult,
+        simplifiedSystem: null,
+        alternativeSystem: null,
+        vou: null,
+        ev: null,
+        vps: input.vps ?? null,
+        vpsDesignBasis: input.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition',
+        designCondition: input.designCondition || 'Cooling design',
+        airDistributionType: input.airDistributionType || 'CV',
+        xs: null,
+        vot: null,
+        finalDesignOutdoorAir: null,
+        auditTrail: [],
+        revisionState: 'ARCHIVED_2019_NON_PRODUCTION',
+        status: 'BLOCKED'
+      };
+    }
     
     // 1. Calculate Density
     const densityResult = DensityCorrectionService.calculate(input.density);
