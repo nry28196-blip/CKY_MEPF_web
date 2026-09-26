@@ -91,6 +91,13 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+          Calculation Basis: ASHRAE 62.1-2022 + Addendum x (Tables 6-2 & 6-3)
+        </div>
+      </div>
+
       <EngineeringStatusHeader
         status={headerStatus}
         message={`ASHRAE 62.1-${edition} Prescriptive Exhaust (Section 6.5.1, Table 6-2) - ${results.status === 'PASS' ? 'All exhaust requirements met' : 'Check prescriptive requirements'}`}

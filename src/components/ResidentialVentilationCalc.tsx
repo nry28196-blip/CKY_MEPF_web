@@ -56,20 +56,12 @@ export default function ResidentialVentilationCalc() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-white">Dwelling Unit Ventilation</h2>
-          <div className="mt-1 text-xs font-mono font-semibold text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-2.5 py-1 rounded-md inline-flex items-center gap-2">
+          <h2 className="text-xl font-bold text-white mb-2">Dwelling Unit Ventilation</h2>
+          <div className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
             Calculation Basis: ASHRAE 62.2-2022
           </div>
         </div>
-        <select 
-          className="bg-slate-900 border border-slate-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
-          value={standard}
-          disabled
-        >
-          <option value="ASHRAE 62.2-2022">ASHRAE 62.2-2022 (Residential)</option>
-          <option value="ASHRAE 62.2-2025" disabled>ASHRAE 62.2-2025 [DISABLED / FUTURE]</option>
-        </select>
       </div>
 
       <EngineeringStatusHeader 

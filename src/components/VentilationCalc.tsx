@@ -30,6 +30,22 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
     }
   }, [governingStandard]);
 
+  const getActiveBaseline = () => {
+    switch (ventMode) {
+      case 'residential':
+        return 'ASHRAE 62.2-2022 (Residential)';
+      case 'exhaust':
+        return 'ASHRAE 62.1-2022 (Commercial Exhaust)';
+      case 'balance':
+        return 'ASHRAE 62.1-2022 (Air Balance)';
+      case 'kitchen':
+        return 'ASHRAE 154 / IMC 507 (Kitchen Hood)';
+      case 'standard':
+      default:
+        return 'ASHRAE 62.1-2022 (Commercial)';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <VentilationReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} />
@@ -39,7 +55,7 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
           <span className="text-xs font-mono font-bold text-cyan-300">
-            Active Baseline: {ventMode === 'residential' ? 'ASHRAE 62.2-2022 (Residential)' : 'ASHRAE 62.1-2022 (Commercial)'}
+            Active Baseline: {getActiveBaseline()}
           </span>
         </div>
         <div className="text-[11px] font-mono text-slate-400">

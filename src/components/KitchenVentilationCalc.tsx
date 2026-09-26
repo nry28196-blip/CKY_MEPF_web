@@ -115,6 +115,13 @@ export default function KitchenVentilationCalc() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+          Calculation Basis: ANSI/ASHRAE Standard 154 / IMC 507 / NFPA 96
+        </div>
+      </div>
+
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
           <h3 className="text-sm font-semibold text-white mb-5 flex items-center">
             <ChefHat className="w-4 h-4 mr-2 text-rose-400" />

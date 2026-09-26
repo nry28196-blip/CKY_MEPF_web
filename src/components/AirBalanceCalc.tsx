@@ -40,6 +40,13 @@ export default function AirBalanceCalc() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+          Calculation Basis: ASHRAE 62.1-2022 (Section 6.2.8 & System Balance)
+        </div>
+      </div>
+
       <EngineeringStatusHeader 
         status="NOT_READY_FOR_ENGINEERING_USE" 
         message="This module performs simplified volumetric checks and does not yet compute full rigorous mass balance. Do not use for engineering sign-off."
