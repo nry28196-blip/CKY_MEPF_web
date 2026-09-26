@@ -74,9 +74,51 @@ export interface AlternativeSystemResult {
 
 export class Ashrae621AlternativeSystemService {
   static calculate(input: AlternativeSystemInput): AlternativeSystemResult {
-    // Defense-in-depth edition defense for direct service invocation
+    // Defense-in-depth: Fabricated VERIFIED metadata must never bypass standard/edition isolation.
+    // 1. Standard Scope Check: ASHRAE 62.2 is outside this calculation scope
+    const requestedStandard = (input as any).standard || (input as any).expectedStandard;
+    const has622Zone = (input.zones || []).some(z => {
+      const std = (z as any).standard || (z as any).expectedStandard;
+      return std === '62.2' || std === 'ASHRAE 62.2';
+    });
+    if (requestedStandard === '62.2' || requestedStandard === 'ASHRAE 62.2' || has622Zone) {
+      return {
+        zoneResults: [],
+        ev: null,
+        vou: null,
+        vot: null,
+        vps: input.vps ?? null,
+        vpsDesignBasis: input.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition',
+        designCondition: input.designCondition || 'Cooling design',
+        airDistributionType: input.airDistributionType === 'VAV' ? 'VAV' : 'CV',
+        xs: null,
+        criticalZoneId: null,
+        status: 'BLOCKED',
+        message: 'ASHRAE 62.2 is outside the scope of ASHRAE 62.1 Alternative Procedure calculations.',
+        auditTrail: [{
+          symbol: 'Standard Scope Check',
+          name: 'Standard Scope Validation',
+          formula: 'Standard must be ASHRAE 62.1',
+          inputs: { 'Requested Standard': String(requestedStandard || 'ASHRAE 62.2') },
+          result: 'BLOCKED',
+          unit: '',
+          reference: 'ASHRAE 62.1 Production Baseline Policy'
+        }]
+      };
+    }
+
+    // 2. Production Edition Isolation:
+    // 2022 = active production (allowed)
+    // 2019 = archived / BLOCKED
+    // 2025 = deferred / BLOCKED
+    // invalid edition = BLOCKED
+    // omitted edition = controlled production baseline (2022) only
     const requestedEdition = input.edition || '2022';
-    if (requestedEdition === '2025' || input.zones.some(z => (z as any).expectedEdition === '2025')) {
+
+    const has2025Zone = (input.zones || []).some(z => 
+      (z as any).expectedEdition === '2025' || (z as any).edition === '2025' || (z as any).standardEdition === '2025'
+    );
+    if (requestedEdition === '2025' || has2025Zone) {
       return {
         zoneResults: [],
         ev: null,
@@ -102,7 +144,10 @@ export class Ashrae621AlternativeSystemService {
       };
     }
 
-    if (requestedEdition === '2019' || input.zones.some(z => (z as any).expectedEdition === '2019')) {
+    const has2019Zone = (input.zones || []).some(z => 
+      (z as any).expectedEdition === '2019' || (z as any).edition === '2019' || (z as any).standardEdition === '2019'
+    );
+    if (requestedEdition === '2019' || has2019Zone) {
       return {
         zoneResults: [],
         ev: null,
@@ -128,7 +173,11 @@ export class Ashrae621AlternativeSystemService {
       };
     }
 
-    if (requestedEdition !== '2022') {
+    const hasInvalidZone = (input.zones || []).some(z => {
+      const ed = (z as any).expectedEdition || (z as any).edition || (z as any).standardEdition;
+      return ed !== undefined && ed !== '2022';
+    });
+    if (requestedEdition !== '2022' || hasInvalidZone) {
       return {
         zoneResults: [],
         ev: null,

@@ -3,7 +3,7 @@ import { Ashrae621SimplifiedSystemService } from '../../calculations/ventilation
 import { Ashrae621AlternativeSystemService } from '../../calculations/ventilation/Ashrae621AlternativeSystemService';
 import { DensityCorrectionService } from '../../lib/DensityCorrectionService';
 
-describe('ASHRAE 62.1-2025 SOFTWARE VALIDATION TEST', () => {
+describe('ASHRAE 62.1-2022 SOFTWARE VALIDATION TEST', () => {
 
   describe('Simplified System Population Boundary Tests', () => {
     it('A. Ps > ΣPz -> Expected: FAIL', () => {

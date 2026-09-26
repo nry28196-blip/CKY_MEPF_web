@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
+import { EzSelectionService } from '../../calculations/ventilation/EzSelectionService';
 import { SourceType, AshraeEdition } from '../../data/ventilation/ashrae621/types';
 import { createSyntheticVerifiedSpaceType, createSyntheticVerifiedEz, createSyntheticVerifiedExhaust, withMalformedSpaceType, withMalformedExhaust } from './test-fixtures';
 
@@ -838,6 +839,82 @@ describe('ASHRAE 62.1 PRODUCTION SAFETY AUTOMATED TESTS', () => {
       expect(result.status).toBe('PASS');
       expect(result.requiredExhaust).toBe(50);
       expect(result.designExhaust).toBe(60);
+    });
+  });
+
+  describe('13. REGRESSION: ez-unidirectional-flow IS UNVERIFIED AND STRICTLY BLOCKED', () => {
+    it('A. ez-unidirectional-flow is NOT_VERIFIED in Table 6-4 production dataset', () => {
+      const allTable64 = EzSelectionService.getTable64Values();
+      const unidirectional = allTable64.find(e => e.id === 'ez-unidirectional-flow');
+      expect(unidirectional).toBeDefined();
+      expect(unidirectional!.verificationStatus).toBe('NOT_VERIFIED');
+      expect(unidirectional!.ez).toBe(0.5);
+    });
+
+    it('B. ez-unidirectional-flow is excluded from getVerifiedTable64Values()', () => {
+      const verified = EzSelectionService.getVerifiedTable64Values();
+      const unidirectional = verified.find(e => e.id === 'ez-unidirectional-flow');
+      expect(unidirectional).toBeUndefined();
+      expect(verified.every(e => e.verificationStatus === 'VERIFIED')).toBe(true);
+      expect(verified.every(e => e.id !== 'ez-unidirectional-flow')).toBe(true);
+    });
+
+    it('C. Selection by distributionCategory=unidirectional returns status BLOCKED and ez=null', () => {
+      const res = EzSelectionService.resolveEzFromCriteria({
+        distributionCategory: 'unidirectional'
+      });
+      expect(res.status).toBe('BLOCKED');
+      expect(res.ez).toBeNull();
+      expect(res.reasons[0]).toContain('UNIMPLEMENTED / NOT_VERIFIED');
+    });
+
+    it('D. Selection by ceiling supply + floor return + isothermal air returns status BLOCKED and ez=null', () => {
+      const res = EzSelectionService.resolveEzFromCriteria({
+        supplyLocation: 'ceiling',
+        returnLocation: 'floor',
+        supplyAirCondition: 'isothermal'
+      });
+      expect(res.status).toBe('BLOCKED');
+      expect(res.ez).toBeNull();
+    });
+
+    it('E. validateEzConfiguration BLOCKS ez-unidirectional-flow even though numeric Ez (0.5) exists', () => {
+      const allTable64 = EzSelectionService.getTable64Values();
+      const unidirectional = allTable64.find(e => e.id === 'ez-unidirectional-flow')!;
+      const validation = EzSelectionService.validateEzConfiguration(unidirectional);
+      expect(validation.valid).toBe(false);
+      expect(validation.status).toBe('BLOCKED');
+      expect(validation.reasons[0]).toContain('ez-unidirectional-flow is NOT_VERIFIED');
+    });
+
+    it('F. Tampered ez-unidirectional-flow with fabricated VERIFIED status is STILL BLOCKED', () => {
+      const allTable64 = EzSelectionService.getTable64Values();
+      const unidirectional = allTable64.find(e => e.id === 'ez-unidirectional-flow')!;
+      const tampered = {
+        ...unidirectional,
+        verificationStatus: 'VERIFIED' as const
+      };
+      const validation = EzSelectionService.validateEzConfiguration(tampered);
+      expect(validation.valid).toBe(false);
+      expect(validation.status).toBe('BLOCKED');
+    });
+
+    it('G. Ashrae621ZoneService.calculateZone with ez-unidirectional-flow is BLOCKED, never PASS', () => {
+      const allTable64 = EzSelectionService.getTable64Values();
+      const unidirectional = allTable64.find(e => e.id === 'ez-unidirectional-flow')!;
+      const space2022 = StandardDataProvider.getProduction621SpaceTypes().find(s => s.id === 'office')!;
+      const result = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: space2022,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: unidirectional
+      });
+      expect(result.status).toBe('BLOCKED');
+      expect(result.voz).toBeNull();
+      expect(result.status).not.toBe('PASS');
     });
   });
 });

@@ -4,7 +4,7 @@
  * 2025 data and calculations are not approved for production use.
  * Future 2025 activation requires a controlled verification of the published standard, applicable addenda/errata, formulas, and data tables.
  */
-import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, Ashrae621Table63Source, Ashrae621AirQualityStandards, DatasetCompletenessStatus } from './ashrae621/types';
+import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType, Ashrae621Table63Source, Ashrae621AirQualityStandards, DatasetCompletenessStatus, ASHRAE_62_1_PRODUCTION_BASIS, ProductionStandardBasis } from './ashrae621/types';
 import { ASHRAE_621_2019_SPACE_TYPES, ASHRAE_621_2019_EZ_VALUES, ASHRAE_621_2019_EXHAUST_RATES, ASHRAE_621_2019_AIR_QUALITY_STANDARDS } from './ashrae621/2019/data';
 import { ASHRAE_621_2022_SPACE_TYPES, ASHRAE_621_2022_EZ_VALUES, ASHRAE_621_2022_EXHAUST_RATES, ASHRAE_621_2022_AIR_QUALITY_STANDARDS, ASHRAE_621_2022_DATASET_STATUS } from './ashrae621/2022/data';
 import { ASHRAE_621_2022_TABLE_6_3_SOURCES } from './ashrae621/2022/table63Data';
@@ -20,6 +20,10 @@ export const ACTIVE_PRODUCTION_EDITION: AshraeEdition = '2022';
 export const DEFERRED_FUTURE_EDITION: AshraeEdition = '2025';
 
 export class StandardDataProvider {
+  static getProductionBasis(): ProductionStandardBasis {
+    return ASHRAE_62_1_PRODUCTION_BASIS;
+  }
+
   // Production methods guaranteed to return 2022 baseline data:
   static getProduction621SpaceTypes(): Ashrae621SpaceType[] {
     return ASHRAE_621_2022_SPACE_TYPES;

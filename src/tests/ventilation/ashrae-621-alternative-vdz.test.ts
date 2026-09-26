@@ -5,7 +5,7 @@ import { Ashrae621SimplifiedSystemService } from '../../calculations/ventilation
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
 import { SourceType } from '../../data/ventilation/ashrae621/types';
 
-describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL TESTS', () => {
+describe('ASHRAE 62.1-2022 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL TESTS', () => {
   const createBaseZone = (id: string, overrides: Partial<AlternativeZoneInput> = {}): AlternativeZoneInput => ({
     id,
     pz: 10,
@@ -308,6 +308,146 @@ describe('ASHRAE 62.1-2025 Alternative Procedure Vdz/Zd INDEPENDENT MATHEMATICAL
       expect(votAudit).toBeDefined();
       expect(votAudit?.formula).toBe('Vou / Ev');
       expect(votAudit?.reference).toContain('Appendix A Equation A-5');
+    });
+  });
+
+  describe('ISSUE B: Direct Alternative Service Edition & Scope Isolation', () => {
+    it('1. Direct call with edition 2022 is allowed and succeeds', () => {
+      const input = {
+        zones: [createBaseZone('Z1', { voz: 30, vpzMinDesign: 60 })],
+        ps: 5,
+        edition: '2022' as const,
+        systemType: 'single_supply' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('PASS');
+      expect(res.ev).toBeDefined();
+      expect(res.vou).toBeDefined();
+    });
+
+    it('2. Direct call with omitted edition defaults to controlled production baseline (2022)', () => {
+      const input = {
+        zones: [createBaseZone('Z1', { voz: 30, vpzMinDesign: 60 })],
+        ps: 5,
+        // edition omitted
+        systemType: 'single_supply' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('PASS');
+      expect(res.ev).toBeDefined();
+      expect(res.vou).toBeDefined();
+    });
+
+    it('3. Direct call with edition 2019 is BLOCKED', () => {
+      const input = {
+        zones: [createBaseZone('Z1', { voz: 30, vpzMinDesign: 60 })],
+        ps: 5,
+        edition: '2019' as const,
+        systemType: 'single_supply' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('BLOCKED');
+      expect(res.ev).toBeNull();
+      expect(res.vou).toBeNull();
+      expect(res.message).toContain('ASHRAE 62.1-2019 is archived');
+    });
+
+    it('4. Direct call with edition 2025 is BLOCKED', () => {
+      const input = {
+        zones: [createBaseZone('Z1', { voz: 30, vpzMinDesign: 60 })],
+        ps: 5,
+        edition: '2025' as const,
+        systemType: 'single_supply' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('BLOCKED');
+      expect(res.ev).toBeNull();
+      expect(res.vou).toBeNull();
+      expect(res.message).toContain('ASHRAE 62.1-2025 is deferred');
+    });
+
+    it('5. Direct call with invalid edition is BLOCKED', () => {
+      const input = {
+        zones: [createBaseZone('Z1', { voz: 30, vpzMinDesign: 60 })],
+        ps: 5,
+        edition: '2016' as any,
+        systemType: 'single_supply' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('BLOCKED');
+      expect(res.ev).toBeNull();
+      expect(res.message).toContain('Unknown or unapproved standard edition');
+    });
+
+    it('6. Direct call with ASHRAE 62.2 scope is BLOCKED', () => {
+      const input = {
+        zones: [createBaseZone('Z1', { voz: 30, vpzMinDesign: 60 })],
+        ps: 5,
+        standard: 'ASHRAE 62.2' as any,
+        systemType: 'single_supply' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input as any);
+      expect(res.status).toBe('BLOCKED');
+      expect(res.message).toContain('ASHRAE 62.2 is outside the scope');
+    });
+
+    it('7. Fabricated VERIFIED metadata with 2025 NEVER bypasses edition restriction', () => {
+      const input = {
+        zones: [createBaseZone('Z1', { voz: 30, vpzMinDesign: 60 })],
+        ps: 5,
+        edition: '2025' as const,
+        systemType: 'single_supply' as const,
+        vps: 100,
+        // Fabricated VERIFIED metadata injected
+        verificationStatus: 'VERIFIED',
+        isVerified: true,
+        metadata: {
+          verificationStatus: 'VERIFIED',
+          sourceType: 'ASHRAE_PUBLISHED'
+        }
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input as any);
+      expect(res.status).toBe('BLOCKED');
+      expect(res.ev).toBeNull();
+      expect(res.vou).toBeNull();
+      expect(res.message).toContain('ASHRAE 62.1-2025 is deferred');
+    });
+
+    it('8. Fabricated VERIFIED metadata with 2019 NEVER bypasses edition restriction', () => {
+      const input = {
+        zones: [createBaseZone('Z1', { voz: 30, vpzMinDesign: 60 })],
+        ps: 5,
+        edition: '2019' as const,
+        systemType: 'single_supply' as const,
+        vps: 100,
+        verificationStatus: 'VERIFIED',
+        isVerified: true
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input as any);
+      expect(res.status).toBe('BLOCKED');
+      expect(res.ev).toBeNull();
+      expect(res.message).toContain('ASHRAE 62.1-2019 is archived');
+    });
+
+    it('9. Direct call where a zone requests edition 2025 is BLOCKED even if system edition is omitted', () => {
+      const input = {
+        zones: [
+          createBaseZone('Z1', { voz: 30, vpzMinDesign: 60, expectedEdition: '2025' } as any)
+        ],
+        ps: 5,
+        systemType: 'single_supply' as const,
+        vps: 100
+      };
+      const res = Ashrae621AlternativeSystemService.calculate(input);
+      expect(res.status).toBe('BLOCKED');
+      expect(res.ev).toBeNull();
+      expect(res.message).toContain('ASHRAE 62.1-2025 is deferred');
     });
   });
 });

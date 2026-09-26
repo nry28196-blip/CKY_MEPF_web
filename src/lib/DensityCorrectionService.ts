@@ -286,9 +286,16 @@ export class DensityCorrectionService {
     // Section D2.3: Ep = 1.2 / rho
     const eRhoEqD5b = dryAirDensity > 0 ? (this.STANDARD_DENSITY / dryAirDensity) : eRhoEqD4;
 
-    const analyticalEp = (input?.analyticalEquation === 'D-4' || applySimplifications)
-      ? eRhoEqD4
-      : eRhoEqD5b;
+    let analyticalEp: number;
+    if (input?.analyticalEquation === 'D-4') {
+      analyticalEp = eRhoEqD4;
+    } else if (input?.analyticalEquation === 'D-5b') {
+      analyticalEp = eRhoEqD5b;
+    } else if (applySimplifications) {
+      analyticalEp = eRhoEqD4;
+    } else {
+      analyticalEp = eRhoEqD5b;
+    }
 
     let eRho = 1.0;
 
@@ -362,15 +369,27 @@ export class DensityCorrectionService {
         reference: 'ASHRAE 62.1-2022 Normative Appendix D (Eq D-3 / Section D.1)'
       });
 
-      auditTrail.push({
-        symbol: 'Ep',
-        name: 'Air-Density Factor (Analytical)',
-        formula: 'Cz × CT × CW',
-        inputs: { 'Cz': cz, 'CT': ct, 'CW': cw },
-        result: eRho,
-        unit: '',
-        reference: 'ASHRAE 62.1-2022 Normative Appendix D (Eq D-4)'
-      });
+      if (input?.analyticalEquation === 'D-5b') {
+        auditTrail.push({
+          symbol: 'Ep',
+          name: 'Air-Density Factor (Analytical Section D2.3)',
+          formula: '1.2 / ρ',
+          inputs: { 'ρ_standard': this.STANDARD_DENSITY, 'ρ_actual': dryAirDensity },
+          result: eRho,
+          unit: '',
+          reference: 'ASHRAE 62.1-2022 Normative Appendix D (Section D2.3)'
+        });
+      } else {
+        auditTrail.push({
+          symbol: 'Ep',
+          name: 'Air-Density Factor (Analytical)',
+          formula: 'Cz × CT × CW',
+          inputs: { 'Cz': cz, 'CT': ct, 'CW': cw },
+          result: eRho,
+          unit: '',
+          reference: 'ASHRAE 62.1-2022 Normative Appendix D (Eq D-4)'
+        });
+      }
     }
 
     return {

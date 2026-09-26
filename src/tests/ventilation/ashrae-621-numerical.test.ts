@@ -112,5 +112,40 @@ describe('ASHRAE 62.1-2025 & 2019 Production Isolation Tests', () => {
       expect(result.vot).toBeNull();
       expect(result.finalDesignOutdoorAir).toBeNull();
     });
+
+    it('Blocks ASHRAE 62.2 standard at VentilationEngine entry point (out of scope)', () => {
+      const result = VentilationEngine.runSingleZone({
+        density: { elevation: 0, temperature: 20 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.2' as any,
+          expectedEdition: '2022',
+          spaceType: StandardDataProvider.get621SpaceTypes('2022').find(s => s.id === 'office') || null,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: StandardDataProvider.get621EzValues('2022').find(e => e.id === 'ez-1') || null
+        }
+      });
+      expect(result.status).toBe('BLOCKED');
+      expect(result.vot).toBeNull();
+    });
+
+    it('Blocks invalid edition at VentilationEngine entry point', () => {
+      const result = VentilationEngine.runSingleZone({
+        edition: '2016' as any,
+        density: { elevation: 0, temperature: 20 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: StandardDataProvider.get621SpaceTypes('2022').find(s => s.id === 'office') || null,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: StandardDataProvider.get621EzValues('2022').find(e => e.id === 'ez-1') || null
+        }
+      });
+      expect(result.status).toBe('BLOCKED');
+      expect(result.vot).toBeNull();
+    });
   });
 });

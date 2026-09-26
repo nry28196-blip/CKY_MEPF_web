@@ -23,6 +23,30 @@ export interface AuthoritativeTable63Revision {
   readonly source: string;
 }
 
+export interface AuthoritativeTable63DataProvenance {
+  readonly value: number | string;
+  readonly standard: string;
+  readonly edition: string;
+  readonly reference: string;
+  readonly sourceType: string;
+  readonly verificationStatus: string;
+  readonly revision: string;
+  readonly verificationDate?: string;
+}
+
+export interface AuthoritativeTable63SupplementaryGuidance {
+  readonly reference: string;
+  readonly organization?: string;
+  readonly role: 'SUPPLEMENTARY_GUIDANCE' | 'SPECIAL_REQUIREMENT_CONTEXT';
+  readonly notes?: string;
+}
+
+export interface AuthoritativeTable63Provenance {
+  readonly airClass: AuthoritativeTable63DataProvenance;
+  readonly reference: AuthoritativeTable63DataProvenance;
+  readonly supplementaryGuidance?: AuthoritativeTable63SupplementaryGuidance;
+}
+
 export interface AuthoritativeTable63Record {
   readonly id: string;
   readonly name: string;
@@ -42,6 +66,7 @@ export interface AuthoritativeTable63Record {
   readonly specialStandardReference?: string;
   readonly revisionState?: AuthoritativeTable63Revision;
   readonly metadataSourceType?: 'STANDARD_TABLE' | 'SUPPLEMENTARY_GUIDANCE';
+  readonly provenance?: AuthoritativeTable63Provenance;
 }
 
 export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
@@ -71,6 +96,34 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
       publishedErrataApplied: [],
       verificationDate: '2026-09-22',
       source: 'ASHRAE_PUBLISHED'
+    },
+    provenance: {
+      airClass: {
+        value: 4,
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      reference: {
+        value: 'Section 6.5.1, Table 6-3',
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      supplementaryGuidance: {
+        reference: 'ANSI/ASHRAE Standard 154',
+        organization: 'ASHRAE',
+        role: 'SUPPLEMENTARY_GUIDANCE',
+        notes: 'Exhaust airflow shall be designed in accordance with ANSI/ASHRAE Standard 154 (Section 6.5.1.2.3).'
+      }
     }
   },
   {
@@ -99,6 +152,34 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
       publishedErrataApplied: [],
       verificationDate: '2026-09-22',
       source: 'ASHRAE_PUBLISHED'
+    },
+    provenance: {
+      airClass: {
+        value: 3,
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      reference: {
+        value: 'Section 6.5.1, Table 6-3',
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      supplementaryGuidance: {
+        reference: 'ANSI/ASHRAE Standard 154',
+        organization: 'ASHRAE',
+        role: 'SUPPLEMENTARY_GUIDANCE',
+        notes: 'Exhaust airflow shall be designed in accordance with ANSI/ASHRAE Standard 154 (Section 6.5.1.2.3).'
+      }
     }
   },
   {
@@ -127,6 +208,34 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
       publishedErrataApplied: [],
       verificationDate: '2026-09-22',
       source: 'ASHRAE_PUBLISHED'
+    },
+    provenance: {
+      airClass: {
+        value: 4,
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      reference: {
+        value: 'Section 6.5.1, Table 6-3',
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      supplementaryGuidance: {
+        reference: 'Manufacturer / EHS containment specifications',
+        organization: 'Manufacturer / EHS',
+        role: 'SUPPLEMENTARY_GUIDANCE',
+        notes: 'Direct discharge required outdoors without recirculation or transfer per manufacturer and EHS containment specifications.'
+      }
     }
   },
   {
@@ -155,6 +264,34 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
       publishedErrataApplied: [],
       verificationDate: '2026-09-22',
       source: 'ASHRAE_PUBLISHED'
+    },
+    provenance: {
+      airClass: {
+        value: 2,
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      reference: {
+        value: 'Section 6.5.1, Table 6-3',
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      supplementaryGuidance: {
+        reference: 'ASME A17.1 / Elevator engineering specifications',
+        organization: 'ASME',
+        role: 'SUPPLEMENTARY_GUIDANCE',
+        notes: 'Ventilation and elevator machinery safety governed by ASME A17.1 / Elevator engineering specifications.'
+      }
     }
   },
   {
@@ -183,6 +320,34 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
       publishedErrataApplied: [],
       verificationDate: '2026-09-22',
       source: 'ASHRAE_PUBLISHED'
+    },
+    provenance: {
+      airClass: {
+        value: 4,
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      reference: {
+        value: 'Section 6.5.1, Table 6-3',
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      supplementaryGuidance: {
+        reference: 'ANSI/AIHA Z9.5 / NFPA 45',
+        organization: 'ANSI/AIHA / NFPA',
+        role: 'SUPPLEMENTARY_GUIDANCE',
+        notes: 'Exhaust systems shall comply with ANSI/AIHA/ASSE Z9.5 and NFPA 45.'
+      }
     }
   },
   {
@@ -211,6 +376,34 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
       publishedErrataApplied: [],
       verificationDate: '2026-09-22',
       source: 'ASHRAE_PUBLISHED'
+    },
+    provenance: {
+      airClass: {
+        value: 4,
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      reference: {
+        value: 'Section 6.5.1, Table 6-3',
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      supplementaryGuidance: {
+        reference: 'OSHA 1910.107 / NFPA 33',
+        organization: 'OSHA / NFPA',
+        role: 'SUPPLEMENTARY_GUIDANCE',
+        notes: 'Also listed in Table 6-2 (numeric rates governed by OSHA 1910.107 / NFPA 33). Table 6-3 classifies airstream as Air Class 4.'
+      }
     }
   },
   {
@@ -239,6 +432,34 @@ export const AUTHORITATIVE_TABLE_6_3: readonly AuthoritativeTable63Record[] = [
       publishedErrataApplied: [],
       verificationDate: '2026-09-22',
       source: 'ASHRAE_PUBLISHED'
+    },
+    provenance: {
+      airClass: {
+        value: 3,
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      reference: {
+        value: 'Section 6.5.1, Table 6-3',
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        reference: 'Section 6.5.1, Table 6-3',
+        sourceType: 'ASHRAE_PUBLISHED',
+        verificationStatus: 'VERIFIED',
+        revision: '2022',
+        verificationDate: '2026-09-22'
+      },
+      supplementaryGuidance: {
+        reference: 'ANSI/ASHRAE Standard 15',
+        organization: 'ASHRAE',
+        role: 'SUPPLEMENTARY_GUIDANCE',
+        notes: 'Emergency and continuous ventilation rates governed by ANSI/ASHRAE Standard 15.'
+      }
     }
   }
 ] as const;

@@ -745,4 +745,259 @@ describe('ASHRAE 62.1-2022 Table 6-3 Independent Audit Suite', () => {
       }).toThrow('INVALID_STANDARD_EDITION');
     });
   });
+
+  // =========================================================================
+  // 12. COMPLETE TABLE 6-3 PROVENANCE MODELING & SAFETY (TASKS 1 - 5)
+  // =========================================================================
+  describe('12. Complete Table 6-3 Provenance Modeling & Safety Suite', () => {
+    const expectedIds = [
+      'kitchen_grease_hoods',
+      'kitchen_hoods_non_grease',
+      'diazo_printing_discharge',
+      'hydraulic_elevator_machine_room',
+      'laboratory_hoods',
+      'paint_spray_booths',
+      'refrigerating_machinery'
+    ];
+
+    it('Task 1 & 4. All seven expected Table 6-3 records are present with unique IDs', () => {
+      const records = StandardDataProvider.getProduction621Table63Sources();
+      expect(records).toHaveLength(7);
+
+      const ids = records.map(r => r.id);
+      expect(new Set(ids).size).toBe(7);
+
+      expectedIds.forEach(expectedId => {
+        expect(ids).toContain(expectedId);
+      });
+    });
+
+    it('Task 1 & 4. Every Table 6-3 record preserves primary standard identity', () => {
+      const records = StandardDataProvider.getProduction621Table63Sources();
+      records.forEach(record => {
+        // Standard: ANSI/ASHRAE Standard 62.1
+        expect(record.standard).toBe('ASHRAE 62.1');
+        // Edition: 2022
+        expect(record.edition).toBe('2022');
+        // Section: 6.5.1
+        expect(record.referenceSection).toBe('6.5.1');
+        // Table: Table 6-3
+        expect(record.referenceTable).toBe('Table 6-3');
+        // Combined reference
+        expect(record.reference).toBe('Section 6.5.1, Table 6-3');
+        // Metadata source type is STANDARD_TABLE, never changed to SUPPLEMENTARY_GUIDANCE
+        expect(record.metadataSourceType).toBe('STANDARD_TABLE');
+        // Verification status
+        expect(record.verificationStatus).toBe('VERIFIED');
+        expect(record.sourceType).toBe(SourceType.ASHRAE_PUBLISHED);
+      });
+    });
+
+    it('Task 2 & 4. Air Class provenance is primary Table 6-3 across all seven records', () => {
+      const records = StandardDataProvider.getProduction621Table63Sources();
+      records.forEach(record => {
+        expect(record.provenance).toBeDefined();
+        const prov = record.provenance!;
+
+        // Air Class provenance
+        expect(prov.airClass).toBeDefined();
+        expect(prov.airClass.value).toBe(record.airClass);
+        expect([1, 2, 3, 4]).toContain(prov.airClass.value);
+        expect(prov.airClass.standard).toBe('ASHRAE 62.1');
+        expect(prov.airClass.edition).toBe('2022');
+        expect(prov.airClass.reference).toBe('Section 6.5.1, Table 6-3');
+        expect(prov.airClass.sourceType).toBe(SourceType.ASHRAE_PUBLISHED);
+        expect(prov.airClass.verificationStatus).toBe('VERIFIED');
+        expect(prov.airClass.revision).toBe('2022');
+
+        // Reference provenance
+        expect(prov.reference).toBeDefined();
+        expect(prov.reference.value).toBe('Section 6.5.1, Table 6-3');
+        expect(prov.reference.standard).toBe('ASHRAE 62.1');
+        expect(prov.reference.edition).toBe('2022');
+        expect(prov.reference.reference).toBe('Section 6.5.1, Table 6-3');
+        expect(prov.reference.sourceType).toBe(SourceType.ASHRAE_PUBLISHED);
+        expect(prov.reference.verificationStatus).toBe('VERIFIED');
+      });
+    });
+
+    it('Task 2 & 4. Supplementary references are separate engineering context and not the source of Air Class', () => {
+      const records = StandardDataProvider.getProduction621Table63Sources();
+      records.forEach(record => {
+        const prov = record.provenance!;
+        expect(prov.supplementaryGuidance).toBeDefined();
+        const supp = prov.supplementaryGuidance!;
+
+        // Supplementary reference is distinct and populated
+        expect(typeof supp.reference).toBe('string');
+        expect(supp.reference.length).toBeGreaterThan(0);
+        expect(supp.role).toBe('SUPPLEMENTARY_GUIDANCE');
+        expect(typeof supp.notes).toBe('string');
+
+        // The Air Class reference is NOT the supplementary reference
+        expect(prov.airClass.reference).toBe('Section 6.5.1, Table 6-3');
+        expect(prov.airClass.standard).toBe('ASHRAE 62.1');
+
+        // Supplementary standard is separate from primary Table 6-3 standard
+        expect(supp.reference).not.toBe(prov.airClass.reference);
+      });
+    });
+
+    it('Task 2 & 4. Supplementary references cover all required engineering standards across all 7 records', () => {
+      const records = StandardDataProvider.getProduction621Table63Sources();
+      const map = new Map(records.map(r => [r.id, r]));
+
+      // 1. Kitchen grease hoods -> ANSI/ASHRAE Standard 154
+      const greaseHood = map.get('kitchen_grease_hoods')!;
+      expect(greaseHood.provenance?.supplementaryGuidance?.reference).toContain('Standard 154');
+      expect(greaseHood.specialStandardReference).toContain('Standard 154');
+
+      // 2. Kitchen hoods non-grease -> ANSI/ASHRAE Standard 154
+      const nonGreaseHood = map.get('kitchen_hoods_non_grease')!;
+      expect(nonGreaseHood.provenance?.supplementaryGuidance?.reference).toContain('Standard 154');
+      expect(nonGreaseHood.specialStandardReference).toContain('Standard 154');
+
+      // 3. Diazo printing -> manufacturer / EHS specifications
+      const diazo = map.get('diazo_printing_discharge')!;
+      expect(diazo.provenance?.supplementaryGuidance?.reference.toLowerCase()).toContain('manufacturer');
+      expect(diazo.specialStandardReference?.toLowerCase()).toContain('manufacturer');
+
+      // 4. Hydraulic elevator -> ASME A17.1
+      const elevator = map.get('hydraulic_elevator_machine_room')!;
+      expect(elevator.provenance?.supplementaryGuidance?.reference).toContain('ASME A17.1');
+      expect(elevator.specialStandardReference).toContain('ASME A17.1');
+
+      // 5. Laboratory hoods -> ANSI/AIHA Z9.5 / NFPA 45
+      const lab = map.get('laboratory_hoods')!;
+      expect(lab.provenance?.supplementaryGuidance?.reference).toContain('Z9.5');
+      expect(lab.provenance?.supplementaryGuidance?.reference).toContain('NFPA 45');
+      expect(lab.specialStandardReference).toContain('Z9.5');
+
+      // 6. Paint spray booths -> OSHA 1910.107 / NFPA 33
+      const paint = map.get('paint_spray_booths')!;
+      expect(paint.provenance?.supplementaryGuidance?.reference).toContain('OSHA 1910.107');
+      expect(paint.provenance?.supplementaryGuidance?.reference).toContain('NFPA 33');
+      expect(paint.specialStandardReference).toContain('OSHA 1910.107');
+
+      // 7. Refrigerating machinery -> ANSI/ASHRAE Standard 15
+      const refrig = map.get('refrigerating_machinery')!;
+      expect(refrig.provenance?.supplementaryGuidance?.reference).toContain('Standard 15');
+      expect(refrig.specialStandardReference).toContain('Standard 15');
+    });
+
+    it('Task 4 & 5. Supplementary references cannot be interpreted as Table 6-3 numeric values', () => {
+      const records = StandardDataProvider.getProduction621Table63Sources();
+      records.forEach(record => {
+        const supp = record.provenance?.supplementaryGuidance as any;
+        expect(supp).toBeDefined();
+
+        // No numeric rate fields exist on supplementary guidance
+        expect(supp.rate).toBeUndefined();
+        expect(supp.continuousRate).toBeUndefined();
+        expect(supp.intermittentRate).toBeUndefined();
+        expect(supp.numericRate).toBeUndefined();
+        expect(supp.requiredExhaust).toBeUndefined();
+
+        // Table 6-3 service classification returns null rates for all records
+        const evalResult = Ashrae621Table63Service.evaluateSourceClassification(record.id);
+        expect(evalResult.numericRate).toBeNull();
+        expect(evalResult.requiredExhaust).toBeNull();
+        expect(evalResult.rateStatus).toBe('NOT_APPLICABLE');
+        expect(evalResult.status).toBe('CLASSIFIED_SPECIAL_REQUIREMENT');
+        expect(evalResult.status).not.toBe('PASS');
+        expect(evalResult.provenance).toBeDefined();
+        expect(evalResult.provenance?.airClass.value).toBe(record.airClass);
+      });
+    });
+
+    it('Task 3. Authoritative fixture remains independent from production data and table63Data', () => {
+      // Authoritative fixture has all 7 records
+      expect(AUTHORITATIVE_TABLE_6_3).toHaveLength(7);
+      // Independent object instances
+      expect(StandardDataProvider.getProduction621Table63Sources()).not.toBe(AUTHORITATIVE_TABLE_6_3);
+
+      for (let i = 0; i < 7; i++) {
+        const prod = StandardDataProvider.getProduction621Table63Sources()[i];
+        const auth = AUTHORITATIVE_TABLE_6_3[i];
+        expect(prod).not.toBe(auth);
+        expect(prod.id).toBe(auth.id);
+        expect(prod.airClass).toBe(auth.airClass);
+        expect(auth.provenance).toBeDefined();
+        expect(auth.provenance?.airClass.value).toBe(auth.airClass);
+        expect(auth.provenance?.airClass.standard).toBe('ASHRAE 62.1');
+        expect(auth.provenance?.reference.value).toBe('Section 6.5.1, Table 6-3');
+        expect(auth.provenance?.supplementaryGuidance?.reference).toBeDefined();
+      }
+    });
+
+    it('Task 5. Safety: Special-requirement blocking behavior remains intact for all 7 records', () => {
+      const records = StandardDataProvider.getProduction621Table63Sources();
+      records.forEach(record => {
+        // Attempting to downgrade without justification is strictly BLOCKED
+        if (record.airClass > 1) {
+          const downgradeAttempt = Ashrae621Table63Service.validateAirClass({
+            sourceId: record.id,
+            selectedAirClass: record.airClass - 1
+          });
+          expect(downgradeAttempt.isValid).toBe(false);
+          expect(downgradeAttempt.status).toBe('BLOCKED');
+          expect(downgradeAttempt.isDowngraded).toBe(true);
+        }
+      });
+    });
+
+    it('Negative: Source record integrity validation rejects corrupted provenance airClass value', () => {
+      const valid = cloneProduction()[0];
+      const corrupted: Ashrae621Table63Source = {
+        ...valid,
+        provenance: {
+          ...valid.provenance!,
+          airClass: {
+            ...valid.provenance!.airClass,
+            value: 2 // does not match record.airClass (4)
+          }
+        }
+      };
+
+      const check = Ashrae621Table63Service.validateSourceIntegrity(corrupted);
+      expect(check.isValid).toBe(false);
+      expect(check.reason).toContain('Provenance airClass value');
+    });
+
+    it('Negative: Source record integrity validation rejects corrupted provenance standard', () => {
+      const valid = cloneProduction()[0];
+      const corrupted: Ashrae621Table63Source = {
+        ...valid,
+        provenance: {
+          ...valid.provenance!,
+          airClass: {
+            ...valid.provenance!.airClass,
+            standard: 'NFPA 45' // not ASHRAE 62.1
+          }
+        }
+      };
+
+      const check = Ashrae621Table63Service.validateSourceIntegrity(corrupted);
+      expect(check.isValid).toBe(false);
+      expect(check.reason).toContain('Provenance airClass standard');
+    });
+
+    it('Negative: Source record integrity validation rejects corrupted provenance reference', () => {
+      const valid = cloneProduction()[0];
+      const corrupted: Ashrae621Table63Source = {
+        ...valid,
+        provenance: {
+          ...valid.provenance!,
+          airClass: {
+            ...valid.provenance!.airClass,
+            reference: 'Table 6-2' // not Section 6.5.1, Table 6-3
+          }
+        }
+      };
+
+      const check = Ashrae621Table63Service.validateSourceIntegrity(corrupted);
+      expect(check.isValid).toBe(false);
+      expect(check.reason).toContain('Provenance airClass reference');
+    });
+  });
 });

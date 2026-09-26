@@ -82,7 +82,7 @@ export class EzSelectionService {
    * Retrieves only production-verified Table 6-4 records for the 2022 standard edition.
    */
   static getVerifiedTable64Values(): Ashrae621Ez[] {
-    return ASHRAE_621_2022_EZ_VALUES.filter(e => e.verificationStatus === 'VERIFIED');
+    return ASHRAE_621_2022_EZ_VALUES.filter(e => e.verificationStatus === 'VERIFIED' && e.id !== 'ez-unidirectional-flow');
   }
 
   /**
@@ -145,7 +145,8 @@ export class EzSelectionService {
     }
 
     // 2. Unidirectional flow protection: Non-production / UNIMPLEMENTED
-    if (criteria.distributionCategory === 'unidirectional') {
+    if (criteria.distributionCategory === 'unidirectional' ||
+        (criteria.supplyLocation === 'ceiling' && criteria.returnLocation === 'floor' && criteria.supplyAirCondition === 'isothermal')) {
       const config = ASHRAE_621_2022_EZ_VALUES.find(e => e.id === 'ez-unidirectional-flow') || null;
       return {
         ezConfig: config,
@@ -903,7 +904,7 @@ export class EzSelectionService {
       return { valid: false, status: 'BLOCKED', reasons: ['Unimplemented Table 6-4 Configuration'] };
     }
 
-    if (ezConfig.verificationStatus === 'NOT_VERIFIED' || ezConfig.id === 'ez-unidirectional-flow') {
+    if (ezConfig.verificationStatus === 'NOT_VERIFIED' || ezConfig.id === 'ez-unidirectional-flow' || ezConfig.distributionCategory === 'unidirectional') {
       return { valid: false, status: 'BLOCKED', reasons: ['Unverified / non-production Table 6-4 Configuration (ez-unidirectional-flow is NOT_VERIFIED)'] };
     }
 

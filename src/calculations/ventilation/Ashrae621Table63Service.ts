@@ -16,7 +16,7 @@
  * 9. Standard validation: Non-62.1 requests are BLOCKED.
  */
 
-import { Ashrae621Table63Source, Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
+import { Ashrae621Table63Source, Ashrae621ExhaustType, Table63SourceProvenance } from '../../data/ventilation/ashrae621/types';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 
 export type Table63EvaluationStatus = 'CLASSIFIED_SPECIAL_REQUIREMENT' | 'BLOCKED' | 'OVERRIDE_WARNING';
@@ -37,6 +37,7 @@ export interface Table63ClassificationResult {
   referenceBasis: string;
   specialStandardReference?: string;
   complianceNotes: string[];
+  provenance?: Table63SourceProvenance;
 }
 
 export interface AirClassValidationInput {
@@ -114,6 +115,22 @@ export class Ashrae621Table63Service {
     }
     if (![1, 2, 3, 4].includes(source.airClass as number)) {
       return { isValid: false, reason: `Air Class '${source.airClass}' is invalid (must be 1, 2, 3, or 4).` };
+    }
+    if (source.provenance) {
+      if (source.provenance.airClass) {
+        if (source.provenance.airClass.value !== source.airClass) {
+          return { isValid: false, reason: `Provenance airClass value (${source.provenance.airClass.value}) does not match record airClass (${source.airClass}).` };
+        }
+        if (source.provenance.airClass.standard !== 'ASHRAE 62.1') {
+          return { isValid: false, reason: `Provenance airClass standard '${source.provenance.airClass.standard}' is invalid (must be 'ASHRAE 62.1').` };
+        }
+        if (source.provenance.airClass.edition !== '2022') {
+          return { isValid: false, reason: `Provenance airClass edition '${source.provenance.airClass.edition}' is invalid (must be '2022').` };
+        }
+        if (source.provenance.airClass.reference !== 'Section 6.5.1, Table 6-3') {
+          return { isValid: false, reason: `Provenance airClass reference '${source.provenance.airClass.reference}' is invalid (must be 'Section 6.5.1, Table 6-3').` };
+        }
+      }
     }
     return { isValid: true };
   }
@@ -254,7 +271,8 @@ export class Ashrae621Table63Service {
       referenceTable: source.referenceTable,
       referenceBasis: source.referenceBasis,
       specialStandardReference: source.specialStandardReference,
-      complianceNotes: notes
+      complianceNotes: notes,
+      provenance: source.provenance
     };
   }
 

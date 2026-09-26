@@ -169,5 +169,12 @@ describe('ASHRAE Ventilation Standard Isolation and 2022 Production Freeze', () 
       expect(calcResult.status).toBe('PASS');
       expect(calcResult.voz).toBe(42.5);
     });
+
+    it('ez-unidirectional-flow is frozen as unverified / non-production in 2022 baseline', () => {
+      const ez2022 = StandardDataProvider.get621EzValues('2022');
+      const unidirectional = ez2022.find(e => e.id === 'ez-unidirectional-flow');
+      expect(unidirectional).toBeDefined();
+      expect(unidirectional!.verificationStatus).toBe('NOT_VERIFIED');
+    });
   });
 });
