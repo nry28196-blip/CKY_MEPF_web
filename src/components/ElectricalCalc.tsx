@@ -12,6 +12,7 @@ import InputAlert from './InputAlert';
 import { useLanguage } from '../lib/translations';
 import { exportElectricalToCsv } from '../lib/exportCsv';
 import FormulaVisualizer from './FormulaVisualizer';
+import InteractiveFormulaReferenceCard from './InteractiveFormulaReferenceCard';
 import VoltageDropCalc from './VoltageDropCalc';
 
 interface ElectricalCalcProps {
@@ -159,50 +160,7 @@ export default function ElectricalCalc({ restoredParams, onSaveCalculation, auto
       </div>
 
       {subTab === 'formulas' ? (
-        <FormulaVisualizer
-          category="Electrical"
-          formulas={[
-            {
-              id: 'three_phase_power',
-              title: 'Three-Phase Power',
-              description: 'Calculates the real power in a balanced three-phase electrical system.',
-              equation: 'P = \\sqrt{3} \\cdot V_{LL} \\cdot I \\cdot \\cos(\\phi)',
-              variables: [
-                { symbol: 'P', meaning: 'Real power (W or kW)' },
-                { symbol: 'V_{LL}', meaning: 'Line-to-Line Voltage (V)' },
-                { symbol: 'I', meaning: 'Current (A)' },
-                { symbol: '\\cos(\\phi)', meaning: 'Power Factor (PF)' }
-              ]
-            },
-            {
-              id: 'single_phase_power',
-              title: 'Single-Phase Power',
-              description: 'Calculates the real power in a single-phase electrical system.',
-              equation: 'P = V_{LN} \\cdot I \\cdot \\cos(\\phi)',
-              variables: [
-                { symbol: 'P', meaning: 'Real power (W or kW)' },
-                { symbol: 'V_{LN}', meaning: 'Line-to-Neutral Voltage (V)' },
-                { symbol: 'I', meaning: 'Current (A)' },
-                { symbol: '\\cos(\\phi)', meaning: 'Power Factor (PF)' }
-              ]
-            },
-            {
-              id: 'ups_capacity',
-              title: 'UPS Battery Capacity',
-              description: 'Estimates the required battery Ampere-hour (Ah) capacity for a UPS system.',
-              equation: 'C_{Ah} = \\frac{S_{VA} \\cdot PF \\cdot t_{hrs}}{V_{dc} \\cdot \\eta_{inv} \\cdot K_{derate}}',
-              variables: [
-                { symbol: 'C_{Ah}', meaning: 'Battery capacity (Ah)' },
-                { symbol: 'S_{VA}', meaning: 'Apparent load power (VA)' },
-                { symbol: 'PF', meaning: 'Load power factor' },
-                { symbol: 't_{hrs}', meaning: 'Backup time (hours)' },
-                { symbol: 'V_{dc}', meaning: 'Nominal DC bus voltage (V)' },
-                { symbol: '\\eta_{inv}', meaning: 'Inverter efficiency (e.g., 0.95)' },
-                { symbol: 'K_{derate}', meaning: 'Aging & temperature derating factor' }
-              ]
-            }
-          ]}
-        />
+        <InteractiveFormulaReferenceCard activeTab="electrical" defaultExpanded={true} />
       ) : subTab === 'ups' ? (
         <UpsSizingCalc restoredParams={restoredParams} onSaveCalculation={onSaveCalculation} autoCalculate={autoCalculate} />
       ) : subTab === 'elv_ups' ? (

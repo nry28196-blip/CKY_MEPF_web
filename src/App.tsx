@@ -12,6 +12,8 @@ import PlumbingCalc from './components/PlumbingCalc';
 import FireCalc from './components/FireCalc';
 import BulkCalc from './components/BulkCalc';
 import CostCalc from './components/CostCalc';
+import InteractiveFormulaReferenceCard from './components/InteractiveFormulaReferenceCard';
+import QuickActionsMenu from './components/QuickActionsMenu';
 import EngineeringUnitConverter from './components/EngineeringUnitConverter';
 import ReferenceModal from './components/ReferenceModal';
 import CompareModal from './components/CompareModal';
@@ -24,6 +26,7 @@ export default function App() {
   const { language, setLanguage, t } = useLanguage();
   const { unitSystem, toggleUnitSystem } = useUnit();
   const [activeTab, setActiveTab] = useState<TabType>('mechanical');
+  const [activeMechanicalSubTab, setActiveMechanicalSubTab] = useState<string>('ductSizing');
   const workspaceRef = React.useRef<HTMLDivElement>(null);
   const isFirstRender = React.useRef(true);
 
@@ -223,6 +226,7 @@ export default function App() {
           <MechanicalCalc  isDarkMode={isDarkMode} 
             restoredParams={restoredParams} 
             onSaveCalculation={addHistoryItem} 
+            onSubTabChange={(sub) => setActiveMechanicalSubTab(sub)}
           />
         );
     }
@@ -440,6 +444,14 @@ export default function App() {
                 className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
               >
                 {renderActiveCalc()}
+              </div>
+
+              {/* Interactive Reference Card Component for currently active calculation tab */}
+              <div className="mt-8 pt-6 border-t border-slate-800/80">
+                <InteractiveFormulaReferenceCard 
+                  activeTab={activeTab} 
+                  subTab={activeTab === 'mechanical' ? activeMechanicalSubTab : undefined}
+                />
               </div>
             </div>
           </div>
@@ -686,6 +698,22 @@ export default function App() {
 
       {/* Floating Dynamic Unit Solver widget */}
       <EngineeringUnitConverter />
+
+      {/* Floating Quick Actions Menu in Bottom-Right Corner */}
+      <QuickActionsMenu
+        activeTab={activeTab}
+        onSelectTab={(tab) => setActiveTab(tab)}
+        autoCalculate={autoCalculate}
+        onToggleAutoCalculate={() => setAutoCalculate(prev => !prev)}
+        unitSystem={unitSystem}
+        onToggleUnitSystem={toggleUnitSystem}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={() => setIsDarkMode(prev => !prev)}
+        onOpenReferenceModal={() => setIsRefModalOpen(true)}
+        onScrollToTop={() => {
+          workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
+      />
 
       {/* Engineering References Modal */}
       <ReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} />

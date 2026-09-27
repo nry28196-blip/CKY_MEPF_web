@@ -77,19 +77,20 @@ export default function EngineeringUnitConverter() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 font-sans">
+    <div className="fixed bottom-6 right-20 sm:right-48 z-40 font-sans">
       
       {/* Collapsed Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-850 text-sky-400 border border-sky-500/30 px-4 py-3 rounded-full shadow-2xl shadow-sky-950/40 hover:shadow-sky-400/20 active:scale-95 transition-all group duration-300 cursor-pointer"
+          className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-850 text-sky-400 border border-sky-500/30 px-3 sm:px-4 py-3 rounded-full shadow-2xl shadow-sky-950/40 hover:shadow-sky-400/20 active:scale-95 transition-all group duration-300 cursor-pointer"
+          title="MEPF Dynamic Unit Converter"
         >
           <div className="relative">
             <RefreshCw className="h-4 w-4 animate-spin group-hover:rotate-180 transition-transform" style={{ animationDuration: '10s' }} />
             <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-sky-400 animate-ping" />
           </div>
-          <span className="text-xs font-bold tracking-wider uppercase text-slate-200">MEPF Converter</span>
+          <span className="hidden md:inline text-xs font-bold tracking-wider uppercase text-slate-200">MEPF Converter</span>
         </button>
       )}
 

@@ -17,6 +17,7 @@ import { useLanguage } from '../lib/translations';
 import { exportPlumbingToCsv } from '../lib/exportCsv';
 import { IPC_FIXTURES, getFixtureById } from '../lib/plumbingFixtures';
 import FormulaVisualizer from './FormulaVisualizer';
+import InteractiveFormulaReferenceCard from './InteractiveFormulaReferenceCard';
 import IPCReferenceModal from './IPCReferenceModal';
 import PressureGauge from './PressureGauge';
 
@@ -1039,49 +1040,7 @@ export default function PlumbingCalc({ restoredParams, onSaveCalculation, autoCa
         <div className="w-full bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-6 google-pro-border-cyan">
           
           {subTab === 'formulas' && (
-            <FormulaVisualizer
-              category="Plumbing"
-              formulas={[
-                {
-                  id: 'velocity',
-                  title: 'Pipe Water Velocity',
-                  description: 'Calculates the velocity of water through a pipe based on flow rate and internal diameter.',
-                  equation: 'V = \\frac{4 \\cdot Q}{\\pi \\cdot D_{int}^2}',
-                  variables: [
-                    { symbol: 'V', meaning: 'Velocity (m/s)' },
-                    { symbol: 'Q', meaning: 'Flow rate (m³/s)' },
-                    { symbol: 'D_{int}', meaning: 'Internal pipe diameter (m)' }
-                  ]
-                },
-                {
-                  id: 'hazen_williams',
-                  title: 'Friction Loss (Hazen-Williams)',
-                  description: 'Empirical formula used to calculate pressure drop in closed water pipes.',
-                  equation: 'H_f = 10.67 \\cdot L \\cdot \\left(\\frac{Q}{C}\\right)^{1.852} \\cdot \\frac{1}{D^{4.87}}',
-                  variables: [
-                    { symbol: 'H_f', meaning: 'Friction head loss (m)' },
-                    { symbol: 'L', meaning: 'Length of pipe (m)' },
-                    { symbol: 'Q', meaning: 'Flow rate (m³/s)' },
-                    { symbol: 'C', meaning: 'Roughness coefficient (e.g. 150 for PVC)' },
-                    { symbol: 'D', meaning: 'Pipe internal diameter (m)' }
-                  ]
-                },
-                {
-                  id: 'pump_power',
-                  title: 'Pump Brake Horsepower',
-                  description: 'Calculates the required motor power to drive a water pump.',
-                  equation: 'P = \\frac{\\rho \\cdot g \\cdot Q \\cdot H}{\\eta}',
-                  variables: [
-                    { symbol: 'P', meaning: 'Power (Watts)' },
-                    { symbol: '\\rho', meaning: 'Fluid density (1000 kg/m³ for water)' },
-                    { symbol: 'g', meaning: 'Gravity (9.81 m/s²)' },
-                    { symbol: 'Q', meaning: 'Flow rate (m³/s)' },
-                    { symbol: 'H', meaning: 'Total dynamic head (m)' },
-                    { symbol: '\\eta', meaning: 'Pump efficiency (0.0 to 1.0)' }
-                  ]
-                }
-              ]}
-            />
+            <InteractiveFormulaReferenceCard activeTab="plumbing" defaultExpanded={true} />
           )}
 
           {subTab === 'fixtures' && (

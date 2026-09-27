@@ -16,6 +16,7 @@ import AuditTrailTable from './AuditTrailTable';
 import InputAlert from './InputAlert';
 import ValidatedInput from './ValidatedInput';
 import FormulaVisualizer, { FormulaDef } from './FormulaVisualizer';
+import InteractiveFormulaReferenceCard from './InteractiveFormulaReferenceCard';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
 import { exportCoolingLoadToCsv, exportVrfToCsv } from '../lib/exportCsv';
@@ -41,13 +42,18 @@ interface MechanicalCalcProps {
   onSaveCalculation?: any;
   autoCalculate?: boolean;
   isDarkMode?: boolean;
+  onSubTabChange?: (subTab: SubTab) => void;
 }
 
-export default function MechanicalCalc({ restoredParams, onSaveCalculation, autoCalculate, isDarkMode }: MechanicalCalcProps) {
+export default function MechanicalCalc({ restoredParams, onSaveCalculation, autoCalculate, isDarkMode, onSubTabChange }: MechanicalCalcProps) {
   const { t } = useLanguage();
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
   const [subTab, setSubTab] = useState<SubTab>('ductSizing'); // Default to the highly advanced requested module!
+
+  useEffect(() => {
+    onSubTabChange?.(subTab);
+  }, [subTab, onSubTabChange]);
   const [showCoolingRef, setShowCoolingRef] = useState(false);
   const [projectType, setProjectType] = useState<'Commercial' | 'Residential' | 'Industrial' | 'Healthcare'>('Commercial');
 
@@ -237,82 +243,7 @@ export default function MechanicalCalc({ restoredParams, onSaveCalculation, auto
       ) : subTab === 'fanDuty' ? (
         <SystemPerformanceCalc qOutdoorAirProp={ventilationLps} />
       ) : subTab === 'formulas' ? (
-        <FormulaVisualizer
-          category="Mechanical & HVAC"
-          formulas={[
-                        {
-              id: 'ventilation',
-              title: 'Eq 1 — Breathing Zone Outdoor Airflow',
-              description: 'Calculates the breathing zone outdoor airflow based on occupant and floor area components.',
-              equation: 'V_{bz} = (R_p \cdot P_z) + (R_a \cdot A_z)',
-              variables: [
-                { symbol: 'V_{bz}', meaning: 'Breathing zone outdoor airflow' },
-                { symbol: 'R_p', meaning: 'Outdoor airflow rate required per person' },
-                { symbol: 'P_z', meaning: 'Zone population (number of people)' },
-                { symbol: 'R_a', meaning: 'Outdoor airflow rate required per unit area' },
-                { symbol: 'A_z', meaning: 'Net occupiable zone floor area' }
-              ]
-            },
-            {
-              id: 'zone_outdoor_air',
-              title: 'Eq 2 — Zone Outdoor Airflow',
-              description: 'Calculates the required zone outdoor airflow by applying the zone air distribution effectiveness.',
-              equation: 'V_{oz} = \frac{V_{bz}}{E_z}',
-              variables: [
-                { symbol: 'V_{oz}', meaning: 'Zone outdoor airflow required' },
-                { symbol: 'V_{bz}', meaning: 'Breathing zone outdoor airflow' },
-                { symbol: 'E_z', meaning: 'Zone air distribution effectiveness' }
-              ]
-            },
-            {
-              id: 'exhaust_airflow',
-              title: 'Minimum Exhaust Airflow',
-              description: 'Calculates the required exhaust airflow using the area-based exhaust rate (e.g., for restrooms or kitchens).',
-              equation: 'Q_{exh} = R_a \cdot A_z',
-              variables: [
-                { symbol: 'Q_{exh}', meaning: 'Required exhaust airflow' },
-                { symbol: 'R_a', meaning: 'Exhaust airflow rate required per unit area' },
-                { symbol: 'A_z', meaning: 'Net occupiable zone floor area' }
-              ]
-            },
-            {
-              id: 'sensible_heat',
-              title: 'Sensible Heat Load (Air)',
-              description: 'Calculates the sensible cooling or heating capacity required to change the temperature of the air.',
-              equation: 'Q_s = 1.2 \\cdot q_v \\cdot \\Delta T',
-              variables: [
-                { symbol: 'Q_s', meaning: 'Sensible heat load (W)' },
-                { symbol: 'q_v', meaning: 'Air volume flow rate (L/s)' },
-                { symbol: '\\Delta T', meaning: 'Temperature difference (°C)' }
-              ]
-            },
-            {
-              id: 'darcy_weisbach',
-              title: 'Duct Pressure Drop (Darcy-Weisbach)',
-              description: 'Calculates frictional pressure loss in ducts and pipes.',
-              equation: '\\Delta P = f \\cdot \\frac{L}{D_h} \\cdot \\frac{\\rho V^2}{2}',
-              variables: [
-                { symbol: '\\Delta P', meaning: 'Pressure loss (Pa)' },
-                { symbol: 'f', meaning: 'Friction factor (dimensionless)' },
-                { symbol: 'L', meaning: 'Length of duct (m)' },
-                { symbol: 'D_h', meaning: 'Hydraulic diameter (m)' },
-                { symbol: '\\rho', meaning: 'Density of air (kg/m³)' },
-                { symbol: 'V', meaning: 'Air velocity (m/s)' }
-              ]
-            },
-            {
-              id: 'continuity',
-              title: 'Continuity Equation (Duct Sizing)',
-              description: 'Relates air volume flow rate to duct cross-sectional area and velocity.',
-              equation: 'q_v = A \\cdot V',
-              variables: [
-                { symbol: 'q_v', meaning: 'Volume flow rate (m³/s)' },
-                { symbol: 'A', meaning: 'Cross-sectional area (m²)' },
-                { symbol: 'V', meaning: 'Air velocity (m/s)' }
-              ]
-            }
-          ]}
-        />
+        <InteractiveFormulaReferenceCard activeTab="mechanical" defaultExpanded={true} />
       ) : subTab === 'ductSizing' ? (
         <DuctSizingCalc restoredParams={restoredParams} onSaveCalculation={onSaveCalculation} autoCalculate={autoCalculate} />
       ) : (

@@ -16,6 +16,7 @@ import { useLanguage } from '../lib/translations';
 import { exportFireToCsv } from '../lib/exportCsv';
 import FireReferenceModal from "./FireReferenceModal";
 import FormulaVisualizer from './FormulaVisualizer';
+import InteractiveFormulaReferenceCard from './InteractiveFormulaReferenceCard';
 
 type HazardClass = 'light' | 'ordinary' | 'extra';
 type SubTab = 'equipment' | 'sizing' | 'pump' | 'formulas';
@@ -628,46 +629,7 @@ export default function FireCalc({ restoredParams, onSaveCalculation, autoCalcul
         <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 shadow-xl space-y-6 google-pro-border-red">
           
           {subTab === 'formulas' && (
-            <FormulaVisualizer
-              category="Fire Protection"
-              formulas={[
-                {
-                  id: 'k_factor',
-                  title: 'Sprinkler Flow Rate (K-Factor)',
-                  description: 'Calculates water discharge from a sprinkler head based on orifice size (K-Factor) and residual pressure.',
-                  equation: 'Q = K \\cdot \\sqrt{P}',
-                  variables: [
-                    { symbol: 'Q', meaning: 'Flow rate (GPM or L/min)' },
-                    { symbol: 'K', meaning: 'Discharge coefficient (K-Factor)' },
-                    { symbol: 'P', meaning: 'Residual pressure (psi or bar)' }
-                  ]
-                },
-                {
-                  id: 'pump_whp',
-                  title: 'Pump Water Horsepower (US)',
-                  description: 'Calculates the hydraulic power imparted to the water by the fire pump.',
-                  equation: 'WHP = \\frac{Q \\cdot H \\cdot SG}{3960}',
-                  variables: [
-                    { symbol: 'WHP', meaning: 'Water Horsepower (HP)' },
-                    { symbol: 'Q', meaning: 'Total flow rate (GPM)' },
-                    { symbol: 'H', meaning: 'Total dynamic head (ft)' },
-                    { symbol: 'SG', meaning: 'Specific gravity (1.0 for water)' },
-                    { symbol: '3960', meaning: 'Conversion constant (US units)' }
-                  ]
-                },
-                {
-                  id: 'bhp',
-                  title: 'Brake Horsepower (Motor Sizing)',
-                  description: 'Calculates the required motor power to drive the fire pump at the specified hydraulic efficiency.',
-                  equation: 'BHP = \\frac{WHP}{\\eta_{pump}}',
-                  variables: [
-                    { symbol: 'BHP', meaning: 'Brake Horsepower (HP)' },
-                    { symbol: 'WHP', meaning: 'Water Horsepower (HP)' },
-                    { symbol: '\\eta_{pump}', meaning: 'Pump hydraulic efficiency' }
-                  ]
-                }
-              ]}
-            />
+            <InteractiveFormulaReferenceCard activeTab="fire" defaultExpanded={true} />
           )}
 
           {subTab === 'equipment' && (
