@@ -22,6 +22,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
   const exhaustRates = StandardDataProvider.get621ExhaustRates(edition);
   const isMetric = unitSystem === 'metric';
 
+  const [complianceProcedure, setComplianceProcedure] = useState<'prescriptive' | 'performance'>('prescriptive');
   const [rows, setRows] = useState<ExhaustRow[]>([
     {
       id: '1',
@@ -71,7 +72,8 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
         designExhaust: dExhaust,
         operationMode: r.operationMode || 'continuous',
         unitSystem: isMetric ? 'metric' : 'ip',
-        parkingGarageOpenSides50PercentOrMore: r.parkingGarageOpenSides50PercentOrMore
+        parkingGarageOpenSides50PercentOrMore: r.parkingGarageOpenSides50PercentOrMore,
+        calculationProcedure: complianceProcedure
       });
 
       return { row: r, result: res, exhaustType };
@@ -80,7 +82,7 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
     const status = VentilationValidationService.aggregateStatus(calcRows.map(r => r.result.status));
 
     return { calcRows, status };
-  }, [rows, isMetric, exhaustRates, edition]);
+  }, [rows, isMetric, exhaustRates, edition, complianceProcedure]);
 
   const headerStatus: EngineeringStatus =
     results.status === 'PASS' ? 'PASS' :
@@ -89,19 +91,66 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
     results.status === 'INCOMPLETE' ? 'INCOMPLETE' :
     results.status === 'NOT_VERIFIED' ? 'NOT_VERIFIED' : 'NOT_READY_FOR_ENGINEERING_USE';
 
+  const headerMessage = complianceProcedure === 'performance'
+    ? 'ASHRAE 62.1 Section 6.5.2 Performance Compliance Path (Status: PERFORMANCE_PATH_UNIMPLEMENTED) - Independent evaluation required'
+    : `ASHRAE 62.1-${edition} Prescriptive Exhaust (Section 6.5.1, Table 6-2) - ${results.status === 'PASS' ? 'All exhaust requirements met' : 'Check prescriptive requirements'}`;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-          Calculation Basis: ASHRAE 62.1-2022 + Addendum x (Tables 6-2 & 6-3)
+          Basis: ANSI/ASHRAE Standard 62.1-2022 + Addendum x (Section 6.5.1 Prescriptive)
+        </div>
+
+        {/* Explicit Compliance Path Switcher */}
+        <div className="flex items-center gap-2 bg-slate-900/80 p-1 rounded-lg border border-slate-800 text-xs">
+          <span className="text-slate-400 px-2 font-medium">Compliance Path:</span>
+          <button
+            type="button"
+            id="path-prescriptive-btn"
+            onClick={() => setComplianceProcedure('prescriptive')}
+            className={`px-2.5 py-1 rounded font-medium transition-colors ${
+              complianceProcedure === 'prescriptive'
+                ? 'bg-cyan-600 text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Prescriptive (6.5.1)
+          </button>
+          <button
+            type="button"
+            id="path-performance-btn"
+            onClick={() => setComplianceProcedure('performance')}
+            className={`px-2.5 py-1 rounded font-medium transition-colors ${
+              complianceProcedure === 'performance'
+                ? 'bg-rose-600 text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Performance (6.5.2)
+          </button>
         </div>
       </div>
 
       <EngineeringStatusHeader
         status={headerStatus}
-        message={`ASHRAE 62.1-${edition} Prescriptive Exhaust (Section 6.5.1, Table 6-2) - ${results.status === 'PASS' ? 'All exhaust requirements met' : 'Check prescriptive requirements'}`}
+        message={headerMessage}
       />
+
+      {/* Explicit Performance Path Unimplemented Warning Banner */}
+      {complianceProcedure === 'performance' && (
+        <div className="bg-rose-950/40 border border-rose-800/70 p-4 rounded-xl text-xs space-y-2">
+          <div className="flex items-center gap-2 text-rose-300 font-bold uppercase tracking-wider">
+            <ShieldAlert className="w-4 h-4 text-rose-400" />
+            <span>Section 6.5.2 Performance Compliance Path — PERFORMANCE_PATH_UNIMPLEMENTED</span>
+          </div>
+          <p className="text-slate-300 leading-relaxed">
+            The calculation engine does not generate fabricated performance calculations or fall back silently to Table 6-2.
+            Section 6.5.2 requires an independent engineering evaluation including contaminant source quantification, dispersion modeling, and documented compliance with allowable concentration limits.
+          </p>
+        </div>
+      )}
 
       <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
         <div className="flex items-center justify-between mb-6">
@@ -271,6 +320,11 @@ export default function Ashrae621ExhaustCalc({ edition = '2022' }: { edition?: s
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-800/40 text-[10px] font-mono">
+                      {result.compliancePath === 'PERFORMANCE'
+                        ? 'Path: 6.5.2 Performance'
+                        : `Rate: ${result.rateStatus}`}
+                    </span>
                     <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300">
                       Air Class {result.airClass ?? 'N/A'}
                     </span>

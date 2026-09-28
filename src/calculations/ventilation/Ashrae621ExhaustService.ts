@@ -1,10 +1,22 @@
 import { ValidationStatus } from './VentilationValidationService';
 import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
 import { DataProvenanceValidationService } from './DataProvenanceValidationService';
+import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 import { ft2ToM2, m2ToFt2 } from '../../lib/UnitConversionService';
 
 export type ExhaustOperationMode = 'continuous' | 'intermittent';
 export type ExhaustUnitSystem = 'metric' | 'ip';
+export type ExhaustCompliancePath = 'PRESCRIPTIVE' | 'PERFORMANCE';
+export type ExhaustPathStatus = 
+  | 'SUPPORTED' 
+  | 'PERFORMANCE_PATH_UNIMPLEMENTED' 
+  | 'BLOCKED' 
+  | 'NOT_EVALUATED';
+export type ExhaustRateStatus = 
+  | 'PRESCRIPTIVE' 
+  | 'SPECIAL_REQUIREMENT' 
+  | 'NOT_APPLICABLE' 
+  | 'PERFORMANCE_PATH_UNIMPLEMENTED';
 
 export interface ExhaustInput {
   expectedStandard: string;
@@ -15,7 +27,10 @@ export interface ExhaustInput {
   operationMode?: ExhaustOperationMode; // 'continuous' (default) or 'intermittent'
   unitSystem?: ExhaustUnitSystem; // 'metric' (default, L/s) or 'ip' (cfm)
   parkingGarageOpenSides50PercentOrMore?: boolean; // Section 6.5.1 Exception 1
-  calculationProcedure?: 'prescriptive' | 'performance';
+  calculationProcedure?: 'prescriptive' | 'performance' | string;
+  compliancePath?: 'prescriptive' | 'performance' | 'PRESCRIPTIVE' | 'PERFORMANCE' | string;
+  section?: string;
+  referenceSection?: string;
 }
 
 export interface ExhaustResult {
@@ -31,6 +46,12 @@ export interface ExhaustResult {
   rateAppliedMetric: number | null;
   rateAppliedIp: number | null;
   status: ValidationStatus;
+  rateStatus: ExhaustRateStatus;
+  compliancePath: ExhaustCompliancePath;
+  pathStatus: ExhaustPathStatus;
+  state?: ExhaustPathStatus | ExhaustRateStatus;
+  instructionalMessage?: string;
+  message?: string;
   isSpecialStandard: boolean;
   specialStandardReference?: string;
   recirculationClassification: string;
@@ -59,9 +80,202 @@ function getRecirculationClassification(airClass: number | null | undefined): st
 }
 
 export class Ashrae621ExhaustService {
+  /**
+   * Reports the active compliance path support for ASHRAE 62.1 exhaust.
+   * Explicitly notes that Section 6.5.1 Prescriptive is SUPPORTED,
+   * while Section 6.5.2 Performance is PERFORMANCE_PATH_UNIMPLEMENTED.
+   */
+  static getCompliancePathReport(): {
+    prescriptivePath: {
+      status: 'SUPPORTED';
+      section: '6.5.1';
+      basis: string;
+      description: string;
+    };
+    performancePath: {
+      status: 'PERFORMANCE_PATH_UNIMPLEMENTED';
+      section: '6.5.2';
+      description: string;
+      requirement: string;
+    };
+  } {
+    return {
+      prescriptivePath: {
+        status: 'SUPPORTED',
+        section: '6.5.1',
+        basis: 'ANSI/ASHRAE Standard 62.1-2022 + Addendum x (Tables 6-2 & 6-3)',
+        description: 'Prescriptive exhaust airflow calculation and Air Class classification.'
+      },
+      performancePath: {
+        status: 'PERFORMANCE_PATH_UNIMPLEMENTED',
+        section: '6.5.2',
+        description: 'Performance Compliance Path for exhaust systems is not implemented in this module.',
+        requirement: 'Section 6.5.2 requires an independent engineering evaluation with contaminant modeling and concentration limit verification.'
+      }
+    };
+  }
+
+  /**
+   * Evaluates if any part of the exhaust request involves ASHRAE 62.1 Section 6.5.2 (Performance Path).
+   */
+  static isPerformancePathRequest(input?: Partial<ExhaustInput> | null): boolean {
+    if (!input) return false;
+
+    const checkStr = (val: unknown): boolean => {
+      if (typeof val !== 'string') return false;
+      const lower = val.trim().toLowerCase();
+      return (
+        lower === 'performance' ||
+        lower === '6.5.2' ||
+        lower.includes('6.5.2') ||
+        lower.includes('performance')
+      );
+    };
+
+    if (checkStr(input.calculationProcedure)) return true;
+    if (checkStr(input.compliancePath)) return true;
+    if (checkStr(input.section)) return true;
+    if (checkStr(input.referenceSection)) return true;
+    if (checkStr((input as any).path)) return true;
+    if (checkStr((input as any).procedure)) return true;
+    if (checkStr((input as any).method)) return true;
+
+    if (input.exhaustType) {
+      const et = input.exhaustType as any;
+      if (checkStr(et.procedure)) return true;
+      if (checkStr(et.calculationProcedure)) return true;
+      if (checkStr(et.compliancePath)) return true;
+      if (checkStr(et.referenceSection)) return true;
+      if (checkStr(et.section)) return true;
+      if (typeof et.reference === 'string' && (et.reference.includes('6.5.2') || et.reference.toLowerCase().includes('performance'))) return true;
+      if (typeof et.id === 'string' && (et.id.includes('6.5.2') || et.id.toLowerCase().includes('performance_path'))) return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Builds the explicit un-implemented result for Section 6.5.2 requests.
+   * Returns a 'PERFORMANCE_PATH_UNIMPLEMENTED' state and provides an instructional message
+   * that engineering evaluation is required.
+   */
+  static createPerformancePathUnimplementedResult(input?: Partial<ExhaustInput>): ExhaustResult {
+    const operationMode: ExhaustOperationMode = input?.operationMode || 'continuous';
+    const isDesignValid = typeof input?.designExhaust === 'number' && Number.isFinite(input.designExhaust) && input.designExhaust >= 0;
+    const exhaustType = input?.exhaustType ?? null;
+    const airClass = exhaustType?.airClass ?? exhaustType?.exhaustClass ?? null;
+    const exhaustClass = exhaustType?.exhaustClass ?? exhaustType?.airClass ?? null;
+
+    const instructionalMessage =
+      'ASHRAE 62.1-2022 Section 6.5.2 Performance Compliance Path requires an independent engineering evaluation. An independent engineering evaluation is required including contaminant source quantification, dispersion modeling, and documented compliance with allowable concentration limits. Performance exhaust calculation is not implemented in this module; calculations must not fall back to Table 6-2 or synthesize unverified airflows.';
+
+    return {
+      requiredExhaust: null,
+      requiredExhaustMetric: null,
+      requiredExhaustIp: null,
+      designExhaust: isDesignValid ? input!.designExhaust : (input?.designExhaust ?? null),
+      unitType: exhaustType?.unitType || 'special',
+      exhaustClass,
+      airClass,
+      operationMode,
+      rateApplied: null,
+      rateAppliedMetric: null,
+      rateAppliedIp: null,
+      status: 'BLOCKED',
+      rateStatus: 'PERFORMANCE_PATH_UNIMPLEMENTED',
+      compliancePath: 'PERFORMANCE',
+      pathStatus: 'PERFORMANCE_PATH_UNIMPLEMENTED',
+      state: 'PERFORMANCE_PATH_UNIMPLEMENTED',
+      instructionalMessage,
+      message: 'Engineering evaluation required: Section 6.5.2 Performance Compliance Path is not implemented in this module.',
+      isSpecialStandard: Boolean(exhaustType?.isSpecialStandard),
+      specialStandardReference: exhaustType?.specialStandardReference,
+      recirculationClassification: getRecirculationClassification(airClass),
+      referenceSection: '6.5.2',
+      referenceTable: 'None (Section 6.5.2)',
+      complianceNotes: [
+        'Performance Exhaust Path 6.5.2 requires specialized contaminant generation and concentration analysis and is not implemented or verified in the prescriptive engine.',
+        'Section 6.5.2 Performance Compliance Path status: PERFORMANCE_PATH_UNIMPLEMENTED. Independent engineering evaluation is required. Calculations must not fall back silently to Table 6-2 or convert a performance-path request into a prescriptive calculation.',
+        'Instructional notice: Engineering evaluation is required for Section 6.5.2 compliance. Contaminant emission rates and indoor air quality concentration limits must be verified by a licensed professional engineer.'
+      ]
+    };
+  }
+
+  /**
+   * Explicit handler for Performance Compliance Path requests (Section 6.5.2).
+   * Always returns non-PASS (BLOCKED) with PERFORMANCE_PATH_UNIMPLEMENTED status.
+   */
+  static requestPerformancePath(input?: Partial<ExhaustInput>): ExhaustResult {
+    return this.createPerformancePathUnimplementedResult(input);
+  }
+
+  /**
+   * Explicit handler for any request involving Section 6.5.2.
+   * Returns a 'PERFORMANCE_PATH_UNIMPLEMENTED' state and provides an instructional message
+   * that engineering evaluation is required.
+   */
+  static calculateSection652(input?: Partial<ExhaustInput>): ExhaustResult {
+    return this.createPerformancePathUnimplementedResult(input);
+  }
+
+  /**
+   * Enforces the Prescriptive compliance path for verified Table 6-2 numeric rates.
+   * If the request involves Section 6.5.2, returns the PERFORMANCE_PATH_UNIMPLEMENTED state.
+   */
+  static enforcePrescriptivePath(input: ExhaustInput): ExhaustResult | null {
+    if (this.isPerformancePathRequest(input)) {
+      return this.createPerformancePathUnimplementedResult(input);
+    }
+    return null;
+  }
+
   static calculate(input: ExhaustInput): ExhaustResult {
     const operationMode: ExhaustOperationMode = input.operationMode || 'continuous';
     const unitSystem: ExhaustUnitSystem = input.unitSystem || 'metric';
+
+    // 0. Performance Compliance Path Check (Section 6.5.2)
+    // Section 6.5.2 requires an independent engineering evaluation. It is NOT implemented in the prescriptive engine.
+    if (this.isPerformancePathRequest(input)) {
+      return this.createPerformancePathUnimplementedResult(input);
+    }
+
+    // 0b. Path Enforcement: Table 6-2 strictly enforces the Section 6.5.1 Prescriptive Path
+    if (input.compliancePath) {
+      const normPath = input.compliancePath.trim().toUpperCase();
+      if (normPath !== 'PRESCRIPTIVE' && normPath !== '6.5.1') {
+        const exhaustType = input.exhaustType;
+        const airClass = exhaustType?.airClass ?? exhaustType?.exhaustClass ?? null;
+        const exhaustClass = exhaustType?.exhaustClass ?? exhaustType?.airClass ?? null;
+        return {
+          requiredExhaust: null,
+          requiredExhaustMetric: null,
+          requiredExhaustIp: null,
+          designExhaust: input.designExhaust ?? null,
+          unitType: exhaustType?.unitType || 'unknown',
+          exhaustClass,
+          airClass,
+          operationMode,
+          rateApplied: null,
+          rateAppliedMetric: null,
+          rateAppliedIp: null,
+          status: 'BLOCKED',
+          rateStatus: 'SPECIAL_REQUIREMENT',
+          compliancePath: 'PRESCRIPTIVE',
+          pathStatus: 'BLOCKED',
+          state: 'BLOCKED',
+          instructionalMessage: `Unsupported compliance path '${input.compliancePath}'. Verified Table 6-2 rates strictly enforce the 'PRESCRIPTIVE' path (Section 6.5.1). Any performance-based approach requires Section 6.5.2 engineering evaluation.`,
+          message: `Unsupported compliance path '${input.compliancePath}'. Prescriptive path enforced.`,
+          isSpecialStandard: Boolean(exhaustType?.isSpecialStandard),
+          specialStandardReference: exhaustType?.specialStandardReference,
+          recirculationClassification: getRecirculationClassification(airClass),
+          referenceSection: '6.5.1',
+          referenceTable: exhaustType?.referenceTable || 'Table 6-2',
+          complianceNotes: [
+            `Compliance path '${input.compliancePath}' is unsupported. Verified Table 6-2 rates strictly enforce the 'PRESCRIPTIVE' path (Section 6.5.1). Any performance-based approach requires Section 6.5.2 engineering evaluation.`
+          ]
+        };
+      }
+    }
 
     // 1. Missing exhaust type check
     if (!input.exhaustType) {
@@ -78,6 +292,9 @@ export class Ashrae621ExhaustService {
         rateAppliedMetric: null,
         rateAppliedIp: null,
         status: 'NOT_EVALUATED',
+        rateStatus: 'NOT_APPLICABLE',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'NOT_EVALUATED',
         isSpecialStandard: false,
         recirculationClassification: 'Air Class unclassified.',
         referenceSection: '6.5.1',
@@ -89,15 +306,23 @@ export class Ashrae621ExhaustService {
     const exhaustType = input.exhaustType;
     const airClass = exhaustType.airClass ?? exhaustType.exhaustClass ?? null;
     const exhaustClass = exhaustType.exhaustClass ?? exhaustType.airClass ?? null;
+    const referenceSection = exhaustType.referenceSection || '6.5.1';
+    const referenceTable = exhaustType.referenceTable || 'Table 6-2';
+    const recirculationClassification = getRecirculationClassification(airClass);
+
+    // Identify Table 6-3 airstreams / sources
+    const isTable63Source = 
+      referenceTable === 'Table 6-3' ||
+      (exhaustType as any).referenceTable === 'Table 6-3' ||
+      ((exhaustType as any).description !== undefined && exhaustType.rate === undefined && exhaustType.continuousRate === undefined);
+
     const isSpecialStandard = Boolean(
       exhaustType.isSpecialStandard ||
       exhaustType.unitType === 'special' ||
       exhaustType.rateStatus === 'SPECIAL_REQUIREMENT' ||
-      exhaustType.rate === null
+      exhaustType.rate === null ||
+      isTable63Source
     );
-    const referenceSection = exhaustType.referenceSection || '6.5.1';
-    const referenceTable = exhaustType.referenceTable || 'Table 6-2';
-    const recirculationClassification = getRecirculationClassification(airClass);
 
     // Air Class vs Exhaust Class consistency guard
     if (exhaustType.airClass !== undefined && exhaustType.exhaustClass !== undefined && exhaustType.airClass !== exhaustType.exhaustClass) {
@@ -114,6 +339,9 @@ export class Ashrae621ExhaustService {
         rateAppliedMetric: null,
         rateAppliedIp: null,
         status: 'BLOCKED',
+        rateStatus: 'SPECIAL_REQUIREMENT',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'BLOCKED',
         isSpecialStandard,
         specialStandardReference: exhaustType.specialStandardReference,
         recirculationClassification,
@@ -123,46 +351,18 @@ export class Ashrae621ExhaustService {
       };
     }
 
-    // Explicitly block Performance Exhaust Path 6.5.2 (unsupported in prescriptive engine)
-    if (input.calculationProcedure === 'performance' || referenceSection === '6.5.2' || (exhaustType as any).procedure === 'performance') {
-      return {
-        requiredExhaust: null,
-        requiredExhaustMetric: null,
-        requiredExhaustIp: null,
-        designExhaust: input.designExhaust ?? null,
-        unitType: exhaustType.unitType,
-        exhaustClass,
-        airClass,
-        operationMode,
-        rateApplied: null,
-        rateAppliedMetric: null,
-        rateAppliedIp: null,
-        status: 'BLOCKED',
-        isSpecialStandard,
-        specialStandardReference: exhaustType.specialStandardReference,
-        recirculationClassification,
-        referenceSection: '6.5.2',
-        referenceTable: 'None (Section 6.5.2)',
-        complianceNotes: ['Performance Exhaust Path 6.5.2 requires specialized contaminant generation and concentration analysis and is not implemented or verified in the prescriptive engine.']
-      };
-    }
-
-    // 2. Provenance validation
-    const provResult = DataProvenanceValidationService.validateExhaustData(
-      exhaustType,
-      input.expectedStandard,
-      input.expectedEdition
-    );
-
-    // Blocked result safety
-    if (!provResult.valid || provResult.status === 'BLOCKED') {
+    // 2. Table 6-3 Airstreams or Sources Handling
+    // Table 6-3 designates Air Class classification only. It NEVER invents numeric exhaust rates.
+    // Calculations MUST NOT return PASS for numeric airflow merely because engineer entered a large number.
+    if (isTable63Source) {
+      const specialRef = exhaustType.specialStandardReference || (exhaustType as any).description || 'Governing Standard / Project EHS Evaluation';
       const isDesignValid = typeof input.designExhaust === 'number' && Number.isFinite(input.designExhaust) && input.designExhaust >= 0;
       return {
         requiredExhaust: null,
         requiredExhaustMetric: null,
         requiredExhaustIp: null,
         designExhaust: isDesignValid ? input.designExhaust : null,
-        unitType: exhaustType.unitType,
+        unitType: exhaustType.unitType || 'special',
         exhaustClass,
         airClass,
         operationMode,
@@ -170,6 +370,66 @@ export class Ashrae621ExhaustService {
         rateAppliedMetric: null,
         rateAppliedIp: null,
         status: 'BLOCKED',
+        rateStatus: 'NOT_APPLICABLE',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'SUPPORTED',
+        isSpecialStandard: true,
+        specialStandardReference: specialRef,
+        recirculationClassification,
+        combustionCondition: exhaustType.combustionCondition,
+        notes: exhaustType.notes,
+        exceptions: exhaustType.exceptions,
+        referenceSection: '6.5.1',
+        referenceTable: 'Table 6-3',
+        complianceNotes: [
+          `Table 6-3 designates Air Class classification only (Class ${airClass ?? 'unclassified'}).`,
+          'Table 6-3 does not prescribe numeric exhaust airflow rates; supplementary engineering references are preserved.',
+          `Required exhaust airflow must be engineered in accordance with governing standards (${specialRef}).`,
+          'Calculation cannot return PASS for numeric airflow based solely on Table 6-3 classification, regardless of entered design airflow.'
+        ]
+      };
+    }
+
+    // 3. Provenance and Authenticity Validation
+    const provResult = DataProvenanceValidationService.validateExhaustData(
+      exhaustType,
+      input.expectedStandard,
+      input.expectedEdition
+    );
+
+    const isUnknownSource = 
+      !exhaustType.id || 
+      exhaustType.id === 'unknown' || 
+      exhaustType.id.startsWith('unknown_') ||
+      (exhaustType as any).sourceType === 'UNKNOWN';
+
+    // Blocked result safety (unverified or unknown exhaust source)
+    if (!provResult.valid || provResult.status === 'BLOCKED' || exhaustType.verificationStatus !== 'VERIFIED' || isUnknownSource) {
+      const isDesignValid = typeof input.designExhaust === 'number' && Number.isFinite(input.designExhaust) && input.designExhaust >= 0;
+      const reasons = [...(provResult.reasons || [])];
+      if (isUnknownSource && !reasons.includes('Unknown exhaust source')) {
+        reasons.push(`Unknown exhaust source '${exhaustType.id || 'unidentified'}' is not recognized in ASHRAE 62.1 Table 6-2 or Table 6-3`);
+      }
+      if (exhaustType.verificationStatus !== 'VERIFIED' && !reasons.includes('Unverified exhaust data')) {
+        reasons.push('Unverified exhaust data: verificationStatus is not VERIFIED');
+      }
+
+      return {
+        requiredExhaust: null,
+        requiredExhaustMetric: null,
+        requiredExhaustIp: null,
+        designExhaust: isDesignValid ? input.designExhaust : null,
+        unitType: exhaustType.unitType || 'unknown',
+        exhaustClass,
+        airClass,
+        operationMode,
+        rateApplied: null,
+        rateAppliedMetric: null,
+        rateAppliedIp: null,
+        status: 'BLOCKED',
+        rateStatus: exhaustType.rateStatus || 'SPECIAL_REQUIREMENT',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'BLOCKED',
         isSpecialStandard,
         specialStandardReference: exhaustType.specialStandardReference,
         recirculationClassification,
@@ -178,7 +438,7 @@ export class Ashrae621ExhaustService {
         exceptions: exhaustType.exceptions,
         referenceSection,
         referenceTable,
-        complianceNotes: [`Exhaust data blocked by provenance validation: ${provResult.reasons.join('; ')}`]
+        complianceNotes: [`Exhaust data blocked: ${reasons.join('; ')}`]
       };
     }
 
@@ -201,7 +461,7 @@ export class Ashrae621ExhaustService {
       complianceNotes.push('Commercial cooking exhaust safety: Prescriptive Table 6-2 rate (3.5 L/s·m², Air Class 2) provides minimum general room exhaust only. Per ASHRAE 62.1-2022 Section 6.5.1.2.3 (Addendum x), kitchen exhaust hoods shall comply with ANSI/ASHRAE Standard 154 (external/local code requirements such as NFPA 96 may apply separately as project requirements).');
     }
 
-    // 3. Quantity validation
+    // 4. Quantity validation
     if (input.qty === null || input.qty === undefined || Number.isNaN(input.qty)) {
       const status: ValidationStatus = (typeof input.qty === 'number' && Number.isNaN(input.qty)) ? 'FAIL' : 'INCOMPLETE';
       return {
@@ -217,6 +477,9 @@ export class Ashrae621ExhaustService {
         rateAppliedMetric: null,
         rateAppliedIp: null,
         status,
+        rateStatus: 'PRESCRIPTIVE',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'SUPPORTED',
         isSpecialStandard,
         specialStandardReference: exhaustType.specialStandardReference,
         recirculationClassification,
@@ -242,6 +505,9 @@ export class Ashrae621ExhaustService {
         rateAppliedMetric: null,
         rateAppliedIp: null,
         status: 'FAIL',
+        rateStatus: 'PRESCRIPTIVE',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'SUPPORTED',
         isSpecialStandard,
         specialStandardReference: exhaustType.specialStandardReference,
         recirculationClassification,
@@ -254,7 +520,7 @@ export class Ashrae621ExhaustService {
       };
     }
 
-    // 4. Design exhaust validation
+    // 5. Design exhaust validation
     if (input.designExhaust === null || input.designExhaust === undefined) {
       return {
         requiredExhaust: null,
@@ -269,6 +535,9 @@ export class Ashrae621ExhaustService {
         rateAppliedMetric: null,
         rateAppliedIp: null,
         status: 'INCOMPLETE',
+        rateStatus: 'PRESCRIPTIVE',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'SUPPORTED',
         isSpecialStandard,
         specialStandardReference: exhaustType.specialStandardReference,
         recirculationClassification,
@@ -294,6 +563,9 @@ export class Ashrae621ExhaustService {
         rateAppliedMetric: null,
         rateAppliedIp: null,
         status: 'FAIL',
+        rateStatus: 'PRESCRIPTIVE',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'SUPPORTED',
         isSpecialStandard,
         specialStandardReference: exhaustType.specialStandardReference,
         recirculationClassification,
@@ -306,7 +578,7 @@ export class Ashrae621ExhaustService {
       };
     }
 
-    // 5. Special Standard handling (NFPA 33, ASHRAE 15, etc.) - CRITICAL RESULT SAFETY FIX
+    // 6. Special Standard handling (NFPA 33, ASHRAE 15, etc.) - CRITICAL RESULT SAFETY
     // Table 6-2 row does not provide a numeric prescriptive rate. Calculation MUST NOT return PASS simply because positive design exhaust was entered.
     if (isSpecialStandard || exhaustType.rate === null || exhaustType.rateStatus === 'SPECIAL_REQUIREMENT') {
       const specialRef = exhaustType.specialStandardReference || 'Referenced Standard';
@@ -326,6 +598,9 @@ export class Ashrae621ExhaustService {
         rateAppliedMetric: null,
         rateAppliedIp: null,
         status: 'BLOCKED',
+        rateStatus: 'SPECIAL_REQUIREMENT',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'BLOCKED',
         isSpecialStandard: true,
         specialStandardReference: specialRef,
         recirculationClassification,
@@ -338,7 +613,7 @@ export class Ashrae621ExhaustService {
       };
     }
 
-    // 6. Intermittent exhaust eligibility verification
+    // 7. Intermittent exhaust eligibility verification
     if (operationMode === 'intermittent') {
       const permitsIntermittent = exhaustType.intermittentRate !== null && exhaustType.intermittentRate !== undefined;
       if (!permitsIntermittent) {
@@ -355,6 +630,9 @@ export class Ashrae621ExhaustService {
           rateAppliedMetric: null,
           rateAppliedIp: null,
           status: 'FAIL',
+          rateStatus: 'PRESCRIPTIVE',
+          compliancePath: 'PRESCRIPTIVE',
+          pathStatus: 'SUPPORTED',
           isSpecialStandard: false,
           recirculationClassification,
           combustionCondition: exhaustType.combustionCondition,
@@ -370,7 +648,7 @@ export class Ashrae621ExhaustService {
       }
     }
 
-    // 7. Parking Garage Exception 1 handling (Section 6.5.1 Exception 1 / Table 6-2 Note b)
+    // 8. Parking Garage Exception 1 handling (Section 6.5.1 Exception 1 / Table 6-2 Note b)
     const isParkingGarage = exhaustType.id === 'parking_garages' || exhaustType.id === 'parking_garage';
     if (isParkingGarage && input.parkingGarageOpenSides50PercentOrMore === true) {
       complianceNotes.push(
@@ -389,6 +667,9 @@ export class Ashrae621ExhaustService {
         rateAppliedMetric: 0,
         rateAppliedIp: 0,
         status: 'PASS',
+        rateStatus: 'PRESCRIPTIVE',
+        compliancePath: 'PRESCRIPTIVE',
+        pathStatus: 'SUPPORTED',
         isSpecialStandard: false,
         specialStandardReference: exhaustType.specialStandardReference,
         recirculationClassification,
@@ -406,7 +687,7 @@ export class Ashrae621ExhaustService {
       );
     }
 
-    // 8. Rate determination
+    // 9. Prescriptive Rate Determination
     let rateMetric: number;
     let rateIp: number;
 
@@ -441,7 +722,7 @@ export class Ashrae621ExhaustService {
       requiredExhaustIp = rateIp * areaFt2;
     }
 
-    // 9. Result status determination
+    // 10. Result status determination
     let status: ValidationStatus = 'PASS';
     if (input.designExhaust < requiredExhaust) {
       status = 'FAIL';
@@ -467,6 +748,10 @@ export class Ashrae621ExhaustService {
       rateAppliedMetric: rateMetric,
       rateAppliedIp: rateIp,
       status,
+      rateStatus: 'PRESCRIPTIVE',
+      compliancePath: 'PRESCRIPTIVE',
+      pathStatus: 'SUPPORTED',
+      state: 'SUPPORTED',
       isSpecialStandard: false,
       specialStandardReference: exhaustType.specialStandardReference,
       recirculationClassification,
@@ -475,7 +760,10 @@ export class Ashrae621ExhaustService {
       exceptions: exhaustType.exceptions,
       referenceSection,
       referenceTable,
-      complianceNotes,
+      complianceNotes: [
+        ...complianceNotes,
+        'Compliance path enforced: Section 6.5.1 PRESCRIPTIVE path for verified Table 6-2 numeric rates.'
+      ],
       parkingGarageOpenSides50PercentOrMore: input.parkingGarageOpenSides50PercentOrMore
     };
   }
