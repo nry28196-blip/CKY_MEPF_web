@@ -208,7 +208,8 @@ describe('ASHRAE 62.1-2022 Zone Calculation Chain - Golden Numerical Tests (A th
       area: 100,
       designOccupancy: 5,
       useDefaultOccupancy: false,
-      ezConfig: ezHeating
+      ezConfig: ezHeating,
+      supplyTempRelationship: 'heating_gte_8c'
     });
 
     expect(result.status).toBe('PASS');

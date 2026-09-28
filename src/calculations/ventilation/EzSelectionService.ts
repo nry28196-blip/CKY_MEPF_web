@@ -56,9 +56,21 @@ export interface EzSelectionCriteria {
 
 export interface EzValidationConditions {
   supplyTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
+  spaceTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
+  supplyAirCondition?: 'cool' | 'warm' | 'isothermal' | 'any' | null;
   verticalThrowMet?: boolean | null;
+  returnHeightM?: number | null;
+  returnHeightGt55m?: boolean | null;
   returnHeightGte55m?: boolean | null;
   supplyJetVelocityMet?: boolean | null;
+  makeupAirDistance?: 'greater_than_half_length' | 'less_than_half_length' | null;
+  isDirectMakeupExhaust?: boolean;
+  isPersonalizedVentilation?: boolean;
+  personalizedPrerequisites?: PersonalizedVentilationPrerequisites;
+  personalizedPrerequisitesMet?: boolean | null;
+  personalizedSystemType?: 'ceiling_cool' | 'ceiling_warm' | 'stratified_nonaspirating' | 'stratified_aspirating' | null;
+  stratifiedPrerequisites?: StratifiedSystemPrerequisites;
+  stratifiedPrerequisitesMet?: boolean | null;
 }
 
 export interface EzResolutionResult {
@@ -893,7 +905,351 @@ export class EzSelectionService {
   }
 
   /**
+   * Validates Section 6.2.1.2.1 Stratified System Prerequisites.
+   */
+  static validateStratifiedPrerequisites(conditions?: EzValidationConditions): { valid: boolean; status: ValidationStatus; reasons: string[] } {
+    if (!conditions) {
+      return {
+        valid: false,
+        status: 'INCOMPLETE',
+        reasons: ['Stratified system prerequisites under ASHRAE 62.1-2022 Section 6.2.1.2.1 must be verified (supply temp at least 2°C below room, return height > 2.8 m, no mechanical mixing, protected from impinging airstreams).']
+      };
+    }
+
+    const sReq = conditions.stratifiedPrerequisites;
+    if (sReq) {
+      let supplyTempConditionMet: boolean | null = null;
+      const hasNumericTemp = typeof sReq.tempDiffRoomSupplyC === 'number';
+      const hasBoolTemp = typeof sReq.supplyTempBelowRoomGte2C === 'boolean';
+
+      if (hasNumericTemp && hasBoolTemp) {
+        const numericMet = (sReq.tempDiffRoomSupplyC as number) >= 2.0;
+        if (numericMet !== sReq.supplyTempBelowRoomGte2C) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Contradictory stratified prerequisites: supply temperature difference (${sReq.tempDiffRoomSupplyC}°C) contradicts supplyTempBelowRoomGte2C (${sReq.supplyTempBelowRoomGte2C}).`]
+          };
+        }
+        if (!numericMet) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Section 6.2.1.2.1 violation: supply air temperature difference (${sReq.tempDiffRoomSupplyC}°C) is less than required 2°C below room temperature.`]
+          };
+        }
+        supplyTempConditionMet = true;
+      } else if (hasNumericTemp) {
+        if ((sReq.tempDiffRoomSupplyC as number) < 2.0) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Section 6.2.1.2.1 violation: supply air temperature difference (${sReq.tempDiffRoomSupplyC}°C) is less than required 2°C below room temperature.`]
+          };
+        }
+        supplyTempConditionMet = true;
+      } else if (hasBoolTemp) {
+        if (sReq.supplyTempBelowRoomGte2C === false) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: ['Section 6.2.1.2.1 violation: supply air is not at least 2°C below room temperature.']
+          };
+        }
+        supplyTempConditionMet = true;
+      }
+
+      let returnOpeningConditionMet: boolean | null = null;
+      const hasNumericHeight = typeof sReq.returnOpeningHeightM === 'number';
+      const hasBoolHeight = typeof sReq.returnOpeningHeightGt28m === 'boolean';
+
+      if (hasNumericHeight && hasBoolHeight) {
+        const numericMet = (sReq.returnOpeningHeightM as number) > 2.8;
+        if (numericMet !== sReq.returnOpeningHeightGt28m) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Contradictory stratified prerequisites: return opening height (${sReq.returnOpeningHeightM} m) contradicts returnOpeningHeightGt28m (${sReq.returnOpeningHeightGt28m}).`]
+          };
+        }
+        if (!numericMet) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Section 6.2.1.2.1 violation: return opening height (${sReq.returnOpeningHeightM} m) is not greater than 2.8 m above floor.`]
+          };
+        }
+        returnOpeningConditionMet = true;
+      } else if (hasNumericHeight) {
+        if ((sReq.returnOpeningHeightM as number) <= 2.8) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Section 6.2.1.2.1 violation: return opening height (${sReq.returnOpeningHeightM} m) is not greater than 2.8 m above floor.`]
+          };
+        }
+        returnOpeningConditionMet = true;
+      } else if (hasBoolHeight) {
+        if (sReq.returnOpeningHeightGt28m === false) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: ['Section 6.2.1.2.1 violation: return opening height is not greater than 2.8 m above floor.']
+          };
+        }
+        returnOpeningConditionMet = true;
+      }
+
+      if (sReq.noMechanicalMixingDevices === false) {
+        return {
+          valid: false, status: 'FAIL',
+          reasons: ['Section 6.2.1.2.1 violation: mechanical mixing devices are present in the space.']
+        };
+      }
+
+      if (sReq.protectedFromImpingingAirstreams === false) {
+        return {
+          valid: false, status: 'FAIL',
+          reasons: ['Section 6.2.1.2.1 violation: stratified zone is not protected from impinging airstreams.']
+        };
+      }
+
+      if (conditions.stratifiedPrerequisitesMet === false) {
+        return {
+          valid: false, status: 'FAIL',
+          reasons: ['Contradictory stratified prerequisites: structured prerequisites provided but stratifiedPrerequisitesMet is false.']
+        };
+      }
+
+      if (supplyTempConditionMet === null) {
+        return {
+          valid: false, status: 'INCOMPLETE',
+          reasons: ['Stratified system prerequisite missing: supply air temperature difference must be verified (at least 2°C below room temperature).']
+        };
+      }
+
+      if (returnOpeningConditionMet === null) {
+        return {
+          valid: false, status: 'INCOMPLETE',
+          reasons: ['Stratified system prerequisite missing: return opening height must be verified (> 2.8 m above floor).']
+        };
+      }
+
+      if (sReq.noMechanicalMixingDevices !== true) {
+        return {
+          valid: false, status: 'INCOMPLETE',
+          reasons: ['Stratified system prerequisite missing: must verify no mechanical mixing devices are present.']
+        };
+      }
+
+      if (sReq.protectedFromImpingingAirstreams !== true) {
+        return {
+          valid: false, status: 'INCOMPLETE',
+          reasons: ['Stratified system prerequisite missing: must verify protection from impinging airstreams from adjacent zones.']
+        };
+      }
+
+      return { valid: true, status: 'PASS', reasons: [] };
+    } else if (conditions.stratifiedPrerequisitesMet === false) {
+      return {
+        valid: false, status: 'FAIL',
+        reasons: ['Stratified system prerequisites under Section 6.2.1.2.1 not satisfied.']
+      };
+    } else if (conditions.stratifiedPrerequisitesMet === true) {
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    return {
+      valid: false,
+      status: 'INCOMPLETE',
+      reasons: ['Stratified system prerequisites under ASHRAE 62.1-2022 Section 6.2.1.2.1 must be verified (supply temp at least 2°C below room, return height > 2.8 m, no mechanical mixing, protected from impinging airstreams).']
+    };
+  }
+
+  /**
+   * Validates Section 6.2.1.2.2 Personalized Ventilation Prerequisites.
+   */
+  static validatePersonalizedPrerequisites(conditions?: EzValidationConditions): { valid: boolean; status: ValidationStatus; reasons: string[] } {
+    if (!conditions) {
+      return {
+        valid: false,
+        status: 'INCOMPLETE',
+        reasons: ['Personalized ventilation prerequisites under ASHRAE 62.1-2022 Section 6.2.1.2.2 must be verified (personalized air in breathing zone, head region velocity <= 0.25 m/s, return opening height > 2.8 m).']
+      };
+    }
+
+    if (conditions.isPersonalizedVentilation === false) {
+      return {
+        valid: false,
+        status: 'FAIL',
+        reasons: ['Contradictory personalized configuration: isPersonalizedVentilation is false but a personalized ventilation configuration was specified.']
+      };
+    }
+
+    const pReq = conditions.personalizedPrerequisites;
+    if (pReq) {
+      if (pReq.airDistributedInBreathingZone === undefined || pReq.airDistributedInBreathingZone === null) {
+        return {
+          valid: false, status: 'INCOMPLETE',
+          reasons: ['Personalized ventilation prerequisite missing: airDistributedInBreathingZone must be verified.']
+        };
+      }
+      if (pReq.airDistributedInBreathingZone === false) {
+        return {
+          valid: false, status: 'FAIL',
+          reasons: ['Section 6.2.1.2.2 violation: personalized air is not distributed in the breathing zone.']
+        };
+      }
+
+      let velocityConditionMet: boolean | null = null;
+      const hasNumericVel = typeof pReq.headRegionVelocityMs === 'number';
+      const hasBoolVel = typeof pReq.headRegionVelocityMet === 'boolean';
+
+      if (hasNumericVel && hasBoolVel) {
+        const numericMet = (pReq.headRegionVelocityMs as number) <= 0.25;
+        if (numericMet !== pReq.headRegionVelocityMet) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Contradictory personalized prerequisites: occupant head region velocity (${pReq.headRegionVelocityMs} m/s) contradicts headRegionVelocityMet (${pReq.headRegionVelocityMet}).`]
+          };
+        }
+        if (!numericMet) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Section 6.2.1.2.2 violation: velocity at occupant head region (${pReq.headRegionVelocityMs} m/s) exceeds 0.25 m/s limit.`]
+          };
+        }
+        velocityConditionMet = true;
+      } else if (hasNumericVel) {
+        if ((pReq.headRegionVelocityMs as number) > 0.25) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Section 6.2.1.2.2 violation: velocity at occupant head region (${pReq.headRegionVelocityMs} m/s) exceeds 0.25 m/s limit.`]
+          };
+        }
+        velocityConditionMet = true;
+      } else if (hasBoolVel) {
+        if (pReq.headRegionVelocityMet === false) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: ['Section 6.2.1.2.2 violation: velocity at occupant head region exceeds 0.25 m/s limit.']
+          };
+        }
+        velocityConditionMet = true;
+      }
+
+      if (velocityConditionMet === null) {
+        return {
+          valid: false, status: 'INCOMPLETE',
+          reasons: ['Personalized ventilation prerequisite missing: velocity at occupant head region must be verified (<= 0.25 m/s).']
+        };
+      }
+
+      let returnOpeningConditionMet: boolean | null = null;
+      const hasNumericHeight = typeof pReq.returnOpeningHeightM === 'number';
+      const hasBoolHeight = typeof pReq.returnOpeningHeightGt28m === 'boolean';
+
+      if (hasNumericHeight && hasBoolHeight) {
+        const numericMet = (pReq.returnOpeningHeightM as number) > 2.8;
+        if (numericMet !== pReq.returnOpeningHeightGt28m) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Contradictory personalized prerequisites: return opening height (${pReq.returnOpeningHeightM} m) contradicts returnOpeningHeightGt28m (${pReq.returnOpeningHeightGt28m}).`]
+          };
+        }
+        if (!numericMet) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Section 6.2.1.2.2 violation: return opening height (${pReq.returnOpeningHeightM} m) is not greater than 2.8 m above floor.`]
+          };
+        }
+        returnOpeningConditionMet = true;
+      } else if (hasNumericHeight) {
+        if ((pReq.returnOpeningHeightM as number) <= 2.8) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: [`Section 6.2.1.2.2 violation: return opening height (${pReq.returnOpeningHeightM} m) is not greater than 2.8 m above floor.`]
+          };
+        }
+        returnOpeningConditionMet = true;
+      } else if (hasBoolHeight) {
+        if (pReq.returnOpeningHeightGt28m === false) {
+          return {
+            valid: false, status: 'FAIL',
+            reasons: ['Section 6.2.1.2.2 violation: return opening height is not greater than 2.8 m above floor.']
+          };
+        }
+        returnOpeningConditionMet = true;
+      }
+
+      if (returnOpeningConditionMet === null) {
+        return {
+          valid: false, status: 'INCOMPLETE',
+          reasons: ['Personalized ventilation prerequisite missing: return opening height must be verified (> 2.8 m above floor).']
+        };
+      }
+
+      if (conditions.personalizedPrerequisitesMet === false) {
+        return {
+          valid: false, status: 'FAIL',
+          reasons: ['Contradictory personalized prerequisites: structured prerequisites provided but personalizedPrerequisitesMet is false.']
+        };
+      }
+
+      return { valid: true, status: 'PASS', reasons: [] };
+    } else if (conditions.personalizedPrerequisitesMet === false) {
+      return {
+        valid: false, status: 'FAIL',
+        reasons: ['Personalized ventilation prerequisites under Section 6.2.1.2.2 not satisfied.']
+      };
+    } else if (conditions.personalizedPrerequisitesMet === true) {
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    return {
+      valid: false,
+      status: 'INCOMPLETE',
+      reasons: ['Personalized ventilation prerequisites under ASHRAE 62.1-2022 Section 6.2.1.2.2 must be verified (personalized air in breathing zone, head region velocity <= 0.25 m/s, return opening height > 2.8 m).']
+    };
+  }
+
+  /**
+   * Resolves return opening height and checks for contradictions between numeric and boolean representations.
+   */
+  static resolveReturnHeight(conditions?: EzValidationConditions): { isReturnGt55m: boolean | null; status?: ValidationStatus; reason?: string } {
+    if (!conditions) {
+      return { isReturnGt55m: null };
+    }
+
+    const hasNumericReturnHeight = typeof conditions.returnHeightM === 'number';
+    const hasBoolGt55 = typeof conditions.returnHeightGt55m === 'boolean';
+    const hasBoolGte55 = typeof conditions.returnHeightGte55m === 'boolean';
+
+    if (hasBoolGt55 && hasBoolGte55 && conditions.returnHeightGt55m !== conditions.returnHeightGte55m) {
+      return {
+        isReturnGt55m: null,
+        status: 'FAIL',
+        reason: 'Contradictory return height criteria: returnHeightGt55m does not match returnHeightGte55m.'
+      };
+    }
+
+    const boolReturnGt55 = hasBoolGt55 ? conditions.returnHeightGt55m! : (hasBoolGte55 ? conditions.returnHeightGte55m! : null);
+
+    if (hasNumericReturnHeight && boolReturnGt55 !== null) {
+      const numericGt55 = (conditions.returnHeightM as number) > 5.5;
+      if (numericGt55 !== boolReturnGt55) {
+        return {
+          isReturnGt55m: null,
+          status: 'FAIL',
+          reason: `Contradictory return height criteria: returnHeightM (${conditions.returnHeightM} m) ${numericGt55 ? '> 5.5 m' : '<= 5.5 m'} contradicts boolean indicator (${boolReturnGt55}).`
+        };
+      }
+      return { isReturnGt55m: numericGt55 };
+    } else if (hasNumericReturnHeight) {
+      return { isReturnGt55m: (conditions.returnHeightM as number) > 5.5 };
+    } else if (boolReturnGt55 !== null) {
+      return { isReturnGt55m: boolReturnGt55 };
+    }
+
+    return { isReturnGt55m: null };
+  }
+
+  /**
    * Validates an existing Ez configuration and its associated operating conditions.
+   * Inspects repository metadata to determine whether the configuration has qualifying conditions,
+   * requiring explicit condition evidence and rejecting missing/contradictory/unverified configurations.
    */
   static validateEzConfiguration(ezConfig: Ashrae621Ez | null, conditions?: EzValidationConditions): { valid: boolean; status: ValidationStatus; reasons: string[] } {
     if (!ezConfig) {
@@ -905,7 +1261,7 @@ export class EzSelectionService {
     }
 
     if (ezConfig.verificationStatus === 'NOT_VERIFIED' || ezConfig.id === 'ez-unidirectional-flow' || ezConfig.distributionCategory === 'unidirectional') {
-      return { valid: false, status: 'BLOCKED', reasons: ['Unverified / non-production Table 6-4 Configuration (ez-unidirectional-flow is NOT_VERIFIED)'] };
+      return { valid: false, status: 'BLOCKED', reasons: ['Unverified / non-production Table 6-4 Configuration (ez-unidirectional-flow is NOT_VERIFIED / UNIMPLEMENTED)'] };
     }
 
     if (ezConfig.verificationStatus === 'INVALID') {
@@ -923,36 +1279,245 @@ export class EzSelectionService {
       return { valid: true, status: 'NOT_VERIFIED', reasons: ['Manual Engineering Override - Non-standard basis'] };
     }
 
-    // Check configuration conditional requirements if conditions object is explicitly provided
-    if (conditions) {
-      if (ezConfig.supplyAirCondition === 'cool' && conditions.supplyTempRelationship && conditions.supplyTempRelationship !== 'cooling') {
-        return { valid: false, status: 'FAIL', reasons: ['Configuration requires cooling supply air'] };
+    // 1. Personalized Ventilation Configuration (Table 6-4 & Section 6.2.1.2.2)
+    if (ezConfig.isPersonalized || ezConfig.distributionCategory === 'personalized' || ezConfig.id.startsWith('ez-personalized-')) {
+      // Check supply air temperature condition consistency FIRST (reject contradictory temperature as FAIL)
+      if (ezConfig.supplyAirCondition === 'cool') {
+        const isWarm = conditions?.supplyAirCondition === 'warm' ||
+                       conditions?.supplyTempRelationship === 'heating_gte_8c' ||
+                       conditions?.supplyTempRelationship === 'heating_lt_8c' ||
+                       conditions?.spaceTempRelationship === 'heating_gte_8c' ||
+                       conditions?.spaceTempRelationship === 'heating_lt_8c';
+        if (isWarm) {
+          return { valid: false, status: 'FAIL', reasons: [`Contradictory configuration: ${ezConfig.id} personalized ventilation requires cooling supply air.`] };
+        }
+      } else if (ezConfig.supplyAirCondition === 'warm') {
+        const isCool = conditions?.supplyAirCondition === 'cool' ||
+                       conditions?.supplyTempRelationship === 'cooling' ||
+                       conditions?.spaceTempRelationship === 'cooling';
+        if (isCool) {
+          return { valid: false, status: 'FAIL', reasons: [`Contradictory configuration: ${ezConfig.id} personalized ventilation requires warm supply air.`] };
+        }
       }
-      if (ezConfig.supplyAirCondition === 'warm' && conditions.supplyTempRelationship && conditions.supplyTempRelationship === 'cooling') {
+
+      const pValidation = this.validatePersonalizedPrerequisites(conditions);
+      if (!pValidation.valid) {
+        return pValidation;
+      }
+
+      if (conditions?.personalizedSystemType) {
+        if (ezConfig.id === 'ez-personalized-ceiling-cool' && conditions.personalizedSystemType !== 'ceiling_cool') {
+          return { valid: false, status: 'FAIL', reasons: [`Contradictory configuration: ${ezConfig.id} requires ceiling_cool system type but ${conditions.personalizedSystemType} was provided.`] };
+        }
+        if (ezConfig.id === 'ez-personalized-ceiling-warm' && conditions.personalizedSystemType !== 'ceiling_warm') {
+          return { valid: false, status: 'FAIL', reasons: [`Contradictory configuration: ${ezConfig.id} requires ceiling_warm system type but ${conditions.personalizedSystemType} was provided.`] };
+        }
+        if (ezConfig.id === 'ez-personalized-strat-nonaspirating' && conditions.personalizedSystemType !== 'stratified_nonaspirating') {
+          return { valid: false, status: 'FAIL', reasons: [`Contradictory configuration: ${ezConfig.id} requires stratified_nonaspirating system type but ${conditions.personalizedSystemType} was provided.`] };
+        }
+        if (ezConfig.id === 'ez-personalized-strat-aspirating' && conditions.personalizedSystemType !== 'stratified_aspirating') {
+          return { valid: false, status: 'FAIL', reasons: [`Contradictory configuration: ${ezConfig.id} requires stratified_aspirating system type but ${conditions.personalizedSystemType} was provided.`] };
+        }
+      }
+
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    // 2. Stratified Distribution Configuration (Table 6-4 & Section 6.2.1.2.1)
+    if ((ezConfig.isStratified || (ezConfig.distributionCategory as string) === 'stratified') && !ezConfig.isPersonalized) {
+      // Supply temp condition: stratified cooling requires cooling air (reject contradictory warm air as FAIL)
+      const isWarm = conditions?.supplyAirCondition === 'warm' ||
+                     conditions?.supplyTempRelationship === 'heating_gte_8c' ||
+                     conditions?.supplyTempRelationship === 'heating_lt_8c' ||
+                     conditions?.spaceTempRelationship === 'heating_gte_8c' ||
+                     conditions?.spaceTempRelationship === 'heating_lt_8c';
+      if (isWarm) {
+        return {
+          valid: false,
+          status: 'FAIL',
+          reasons: ['Contradictory stratified configuration: stratified distribution requires cooling supply air.']
+        };
+      }
+
+      // Return air height contradiction between numeric and boolean (FAIL)
+      const returnHeightRes = this.resolveReturnHeight(conditions);
+      if (returnHeightRes.status === 'FAIL') {
+        return { valid: false, status: 'FAIL', reasons: [returnHeightRes.reason!] };
+      }
+
+      // Vertical throw contradiction (FAIL)
+      if (conditions?.verticalThrowMet !== undefined && conditions?.verticalThrowMet !== null) {
+        if (ezConfig.verticalThrowCondition?.includes('>= 0.25') && conditions.verticalThrowMet !== true) {
+          return {
+            valid: false,
+            status: 'FAIL',
+            reasons: ['Configuration requires vertical throw >= 0.25 m/s (60 fpm) at 1.4 m above floor']
+          };
+        }
+        if (ezConfig.verticalThrowCondition?.includes('< 0.25') && conditions.verticalThrowMet !== false) {
+          return {
+            valid: false,
+            status: 'FAIL',
+            reasons: ['Configuration requires vertical throw < 0.25 m/s (60 fpm) at 1.4 m above floor']
+          };
+        }
+      }
+
+      // Return height contradiction against configuration (FAIL)
+      if (returnHeightRes.isReturnGt55m !== null) {
+        if (ezConfig.returnAirHeightCondition?.includes('<= 5.5') && returnHeightRes.isReturnGt55m === true) {
+          return {
+            valid: false,
+            status: 'FAIL',
+            reasons: ['Configuration requires return height <= 5.5 m (18 ft)']
+          };
+        }
+        if ((ezConfig.returnAirHeightCondition?.includes('> 5.5') || ezConfig.returnAirHeightCondition?.includes('> 18')) && returnHeightRes.isReturnGt55m === false) {
+          return {
+            valid: false,
+            status: 'FAIL',
+            reasons: ['Configuration requires return height > 5.5 m (18 ft)']
+          };
+        }
+      }
+
+      // Stratified prerequisites check
+      const sValidation = this.validateStratifiedPrerequisites(conditions);
+      if (!sValidation.valid) {
+        return sValidation;
+      }
+
+      // Vertical throw condition presence check (INCOMPLETE if omitted)
+      if (conditions?.verticalThrowMet === undefined || conditions?.verticalThrowMet === null) {
+        return {
+          valid: false,
+          status: 'INCOMPLETE',
+          reasons: ['Missing vertical throw condition (requires throw velocity >= 0.25 m/s or < 0.25 m/s at 1.4 m)']
+        };
+      }
+
+      // Return air height condition presence check (INCOMPLETE if omitted)
+      if (returnHeightRes.isReturnGt55m === null) {
+        return {
+          valid: false,
+          status: 'INCOMPLETE',
+          reasons: ['Missing return height condition (requires return height <= 5.5 m or > 5.5 m)']
+        };
+      }
+
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    // 3. Conditional Warm Air Configurations
+    if (ezConfig.id === 'ez-2') {
+      const tempRel = conditions?.supplyTempRelationship || conditions?.spaceTempRelationship;
+      if (!tempRel || tempRel === 'none') {
+        return { valid: false, status: 'INCOMPLETE', reasons: ['Missing supply temperature relationship'] };
+      }
+      if (tempRel !== 'heating_gte_8c') {
+        return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air >= 8°C above space temperature'] };
+      }
+      if (conditions?.supplyAirCondition === 'cool') {
         return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air'] };
       }
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
 
-      // Stratified cooling requires vertical throw and return height
-      if (ezConfig.id === 'ez-3' || ezConfig.id === 'ez-floor-cool-strat-h-gte55m' || ezConfig.id === 'ez-floor-cool-strat-case1') {
-        if (conditions.verticalThrowMet === null || conditions.verticalThrowMet === undefined) {
-          return { valid: false, status: 'INCOMPLETE', reasons: ['Missing vertical throw'] };
-        }
-        if (conditions.returnHeightGte55m === null || conditions.returnHeightGte55m === undefined) {
-          return { valid: false, status: 'INCOMPLETE', reasons: ['Missing return height'] };
-        }
+    if (ezConfig.id === 'ez-ceil-warm-lt8c-highvel') {
+      const tempRel = conditions?.supplyTempRelationship || conditions?.spaceTempRelationship;
+      if (!tempRel || tempRel === 'none') {
+        return { valid: false, status: 'INCOMPLETE', reasons: ['Missing supply temperature relationship'] };
+      }
+      if (tempRel !== 'heating_lt_8c') {
+        return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air < 8°C above space temperature'] };
+      }
+      if (conditions?.supplyJetVelocityMet === undefined || conditions?.supplyJetVelocityMet === null) {
+        return { valid: false, status: 'INCOMPLETE', reasons: ['Missing supply jet velocity condition'] };
+      }
+      if (conditions.supplyJetVelocityMet !== true) {
+        return { valid: false, status: 'FAIL', reasons: ['Configuration requires supply jet velocity >= 0.8 m/s within 1.4 m of floor'] };
+      }
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    if (ezConfig.id === 'ez-ceil-warm-lt8c-lowvel') {
+      const tempRel = conditions?.supplyTempRelationship || conditions?.spaceTempRelationship;
+      if (!tempRel || tempRel === 'none') {
+        return { valid: false, status: 'INCOMPLETE', reasons: ['Missing supply temperature relationship'] };
+      }
+      if (tempRel !== 'heating_lt_8c') {
+        return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air < 8°C above space temperature'] };
+      }
+      if (conditions?.supplyJetVelocityMet === undefined || conditions?.supplyJetVelocityMet === null) {
+        return { valid: false, status: 'INCOMPLETE', reasons: ['Missing supply jet velocity condition'] };
+      }
+      if (conditions.supplyJetVelocityMet !== false) {
+        return { valid: false, status: 'FAIL', reasons: ['Configuration requires supply jet velocity < 0.8 m/s within 1.4 m of floor'] };
+      }
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    if (ezConfig.id === 'ez-floor-warm-ceil-ret') {
+      if (conditions?.supplyJetVelocityMet === undefined || conditions?.supplyJetVelocityMet === null) {
+        return { valid: false, status: 'INCOMPLETE', reasons: ['Missing supply jet velocity condition (150 fpm / 0.8 m/s supply jet reaches 1.4 m or higher above floor)'] };
+      }
+      if (conditions.supplyJetVelocityMet !== true) {
+        return { valid: false, status: 'FAIL', reasons: ['Configuration requires 150 fpm (0.8 m/s) supply jet reaches 4.5 ft (1.4 m) or higher above floor'] };
+      }
+      const tempRel = conditions?.supplyTempRelationship || conditions?.spaceTempRelationship;
+      if (tempRel === 'cooling' || conditions?.supplyAirCondition === 'cool') {
+        return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air'] };
+      }
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    // 4. Makeup Air Configurations
+    if (ezConfig.distributionCategory === 'makeup' || ezConfig.id === 'ez-makeup-more-half-length' || ezConfig.id === 'ez-makeup-direct-exhaust') {
+      if (!conditions?.makeupAirDistance) {
+        return {
+          valid: false,
+          status: 'INCOMPLETE',
+          reasons: ['Missing makeup supply outlet location relative to half the length of the space from exhaust/return.']
+        };
       }
 
-      // Warm ceiling supply with ceiling return requires temperature relationship
-      if (ezConfig.id === 'ez-2' || ezConfig.id === 'ez-ceil-warm-lt8c-highvel' || ezConfig.id === 'ez-ceil-warm-lt8c-lowvel') {
-        if (conditions.supplyTempRelationship === null || conditions.supplyTempRelationship === undefined) {
-          return { valid: false, status: 'INCOMPLETE', reasons: ['Missing supply temperature relationship'] };
-        }
+      if (ezConfig.id === 'ez-makeup-more-half-length' && conditions.makeupAirDistance !== 'greater_than_half_length') {
+        return {
+          valid: false,
+          status: 'FAIL',
+          reasons: ['Contradictory makeup supply outlet location: configuration requires outlet located > 0.5 space length from exhaust/return.']
+        };
       }
 
-      // Low diff ceiling supply requires jet velocity condition
-      if (ezConfig.id === 'ez-ceil-warm-lt8c-highvel' || ezConfig.id === 'ez-ceil-warm-lt8c-lowvel') {
-        if (conditions.supplyJetVelocityMet === null || conditions.supplyJetVelocityMet === undefined) {
-          return { valid: false, status: 'INCOMPLETE', reasons: ['Missing supply jet velocity condition'] };
+      if (ezConfig.id === 'ez-makeup-direct-exhaust' && conditions.makeupAirDistance !== 'less_than_half_length') {
+        return {
+          valid: false,
+          status: 'FAIL',
+          reasons: ['Contradictory makeup supply outlet location: configuration requires outlet located <= 0.5 space length from exhaust/return or drawn before mixing.']
+        };
+      }
+
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    // 5. General Temperature Contradictions for other configurations (e.g., ez-1, ez-ceil-warm-floor-ret, ez-floor-warm-floor-ret)
+    if (conditions) {
+      if (ezConfig.supplyAirCondition === 'cool') {
+        const isWarm = conditions.supplyAirCondition === 'warm' ||
+                       conditions.supplyTempRelationship === 'heating_gte_8c' ||
+                       conditions.supplyTempRelationship === 'heating_lt_8c' ||
+                       conditions.spaceTempRelationship === 'heating_gte_8c' ||
+                       conditions.spaceTempRelationship === 'heating_lt_8c';
+        if (isWarm) {
+          return { valid: false, status: 'FAIL', reasons: ['Configuration requires cooling supply air'] };
+        }
+      }
+      if (ezConfig.supplyAirCondition === 'warm') {
+        const isCool = conditions.supplyAirCondition === 'cool' ||
+                       conditions.supplyTempRelationship === 'cooling' ||
+                       conditions.spaceTempRelationship === 'cooling';
+        if (isCool) {
+          return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air'] };
         }
       }
     }

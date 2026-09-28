@@ -1128,10 +1128,681 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
       ezConfig: get2022Ez('ez-3'),
       supplyTempRelationship: 'cooling',
       verticalThrowMet: false,
-      returnHeightGte55m: false
+      returnHeightGte55m: false,
+      stratifiedPrerequisitesMet: true
     });
     expect(validCool.status).toBe('PASS');
     expect(validCool.ez).toBe(1.2);
+  });
+
+  describe('REGRESSION: Mandatory Physical Qualification Enforcement (No Direct Ez Injection Bypass)', () => {
+    // 1. Stratified Distribution Safety Gate (Table 6-4 & Section 6.2.1.2.1)
+    describe('Stratified Distribution Safety Gate', () => {
+      it('rejects directly injected verified ez-3 with missing prerequisite evidence as INCOMPLETE in calculateZone', () => {
+        // Direct injection of verified Table 6-4 ez-3 with no conditions
+        const result = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3')
+        });
+        expect(result.status).toBe('INCOMPLETE');
+        expect(result.voz).toBeNull();
+      });
+
+      it('rejects directly injected ez-3 when stratified prerequisites are omitted in calculateZone', () => {
+        const result = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: false,
+          returnHeightGte55m: false
+          // stratifiedPrerequisitesMet omitted
+        });
+        expect(result.status).toBe('INCOMPLETE');
+        expect(result.reason).toContain('Stratified system prerequisites');
+        expect(result.voz).toBeNull();
+      });
+
+      it('rejects directly injected ez-3 when vertical throw is omitted in calculateZone', () => {
+        const result = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          returnHeightGte55m: false,
+          stratifiedPrerequisitesMet: true
+          // verticalThrowMet omitted
+        });
+        expect(result.status).toBe('INCOMPLETE');
+        expect(result.reason).toContain('vertical throw');
+        expect(result.voz).toBeNull();
+      });
+
+      it('rejects directly injected ez-3 when return height is omitted in calculateZone', () => {
+        const result = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: false,
+          stratifiedPrerequisitesMet: true
+          // returnHeight omitted
+        });
+        expect(result.status).toBe('INCOMPLETE');
+        expect(result.reason).toContain('return height');
+        expect(result.voz).toBeNull();
+      });
+
+      it('rejects directly injected ez-3 when prerequisites FAIL (compact or structured) in calculateZone', () => {
+        // Compact failed
+        const compactFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: false,
+          returnHeightGte55m: false,
+          stratifiedPrerequisitesMet: false
+        });
+        expect(compactFail.status).toBe('FAIL');
+
+        // Structured failed (temperature difference < 2C)
+        const structTempFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: false,
+          returnHeightGte55m: false,
+          stratifiedPrerequisites: {
+            tempDiffRoomSupplyC: 1.5,
+            returnOpeningHeightM: 3.0,
+            noMechanicalMixingDevices: true,
+            protectedFromImpingingAirstreams: true
+          }
+        });
+        expect(structTempFail.status).toBe('FAIL');
+
+        // Structured failed (return opening <= 2.8m)
+        const structHeightFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: false,
+          returnHeightGte55m: false,
+          stratifiedPrerequisites: {
+            tempDiffRoomSupplyC: 3.0,
+            returnOpeningHeightM: 2.7,
+            noMechanicalMixingDevices: true,
+            protectedFromImpingingAirstreams: true
+          }
+        });
+        expect(structHeightFail.status).toBe('FAIL');
+      });
+
+      it('rejects directly injected ez-3 on CONTRADICTORY prerequisites in calculateZone', () => {
+        // Contradictory temperature (warm air for stratified cooling)
+        const warmFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'heating_gte_8c',
+          verticalThrowMet: false,
+          returnHeightGte55m: false,
+          stratifiedPrerequisitesMet: true
+        });
+        expect(warmFail.status).toBe('FAIL');
+
+        // Contradictory vertical throw for ez-3 (requires vertical throw < 0.25 m/s, so verticalThrowMet must be false)
+        const throwFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: true,
+          returnHeightGte55m: false,
+          stratifiedPrerequisitesMet: true
+        });
+        expect(throwFail.status).toBe('FAIL');
+
+        // Contradictory return height for ez-3 (requires return height <= 5.5 m, so returnHeightGte55m must be false)
+        const heightFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: false,
+          returnHeightGte55m: true,
+          stratifiedPrerequisitesMet: true
+        });
+        expect(heightFail.status).toBe('FAIL');
+
+        // Contradictory numeric and boolean return height
+        const numBoolContradiction = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: false,
+          returnHeightM: 6.0,
+          returnHeightGt55m: false,
+          stratifiedPrerequisitesMet: true
+        });
+        expect(numBoolContradiction.status).toBe('FAIL');
+      });
+
+      it('allows directly injected ez-3 when VALID prerequisite evidence is provided in calculateZone', () => {
+        const allowed = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3'),
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: false,
+          returnHeightGte55m: false,
+          stratifiedPrerequisitesMet: true
+        });
+        expect(allowed.status).toBe('PASS');
+        expect(allowed.ez).toBe(1.2);
+        expect(allowed.voz).toBeGreaterThan(0);
+      });
+    });
+
+    // 2. Personalized Ventilation Safety Gate (Table 6-4 & Section 6.2.1.2.2)
+    describe('Personalized Ventilation Safety Gate', () => {
+      it('rejects directly injected verified personalized config with missing prerequisite evidence as INCOMPLETE in calculateZone', () => {
+        // ez-personalized-ceiling-cool with no condition inputs
+        const result = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-cool')
+        });
+        expect(result.status).toBe('INCOMPLETE');
+        expect(result.voz).toBeNull();
+      });
+
+      it('rejects directly injected personalized config when prerequisites FAIL in calculateZone', () => {
+        // Compact failed
+        const compactFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-cool'),
+          supplyTempRelationship: 'cooling',
+          personalizedPrerequisitesMet: false
+        });
+        expect(compactFail.status).toBe('FAIL');
+
+        // Structured failed (breathing zone distribution false)
+        const structBzFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-cool'),
+          supplyTempRelationship: 'cooling',
+          personalizedPrerequisites: {
+            airDistributedInBreathingZone: false,
+            headRegionVelocityMs: 0.20,
+            returnOpeningHeightM: 3.0
+          }
+        });
+        expect(structBzFail.status).toBe('FAIL');
+
+        // Structured failed (velocity > 0.25 m/s)
+        const structVelFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-cool'),
+          supplyTempRelationship: 'cooling',
+          personalizedPrerequisites: {
+            airDistributedInBreathingZone: true,
+            headRegionVelocityMs: 0.35,
+            returnOpeningHeightM: 3.0
+          }
+        });
+        expect(structVelFail.status).toBe('FAIL');
+      });
+
+      it('rejects directly injected personalized config on CONTRADICTORY prerequisites in calculateZone', () => {
+        // Warm supply air to ceiling-cool personalized
+        const warmFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-cool'),
+          supplyTempRelationship: 'heating_gte_8c',
+          personalizedPrerequisitesMet: true
+        });
+        expect(warmFail.status).toBe('FAIL');
+
+        // Cool supply air to ceiling-warm personalized
+        const coolFail = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-warm'),
+          supplyTempRelationship: 'cooling',
+          personalizedPrerequisitesMet: true
+        });
+        expect(coolFail.status).toBe('FAIL');
+
+        // Numeric velocity contradicts boolean indicator
+        const velContradiction = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-cool'),
+          supplyTempRelationship: 'cooling',
+          personalizedPrerequisites: {
+            airDistributedInBreathingZone: true,
+            headRegionVelocityMs: 0.30,
+            headRegionVelocityMet: true,
+            returnOpeningHeightM: 3.0
+          }
+        });
+        expect(velContradiction.status).toBe('FAIL');
+      });
+
+      it('allows directly injected personalized config when VALID prerequisite evidence is provided in calculateZone', () => {
+        const allowedCool = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-cool'),
+          supplyTempRelationship: 'cooling',
+          personalizedPrerequisitesMet: true
+        });
+        expect(allowedCool.status).toBe('PASS');
+        expect(allowedCool.ez).toBe(1.40);
+        expect(allowedCool.voz).toBeGreaterThan(0);
+
+        const allowedWarm = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-warm'),
+          supplyTempRelationship: 'heating_gte_8c',
+          personalizedPrerequisitesMet: true
+        });
+        expect(allowedWarm.status).toBe('PASS');
+        expect(allowedWarm.ez).toBe(1.40);
+      });
+    });
+
+    // 3. Conditional Warm-Air Configurations Safety Gate
+    describe('Conditional Warm-Air Configurations Safety Gate', () => {
+      it('rejects directly injected ez-2 (>= 8C diff) when condition is missing as INCOMPLETE in calculateZone', () => {
+        const result = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-2')
+        });
+        expect(result.status).toBe('INCOMPLETE');
+        expect(result.reason).toContain('supply temperature relationship');
+      });
+
+      it('rejects directly injected ez-2 on WRONG condition as FAIL in calculateZone', () => {
+        // Wrong condition: heating_lt_8c
+        const lt8c = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-2'),
+          supplyTempRelationship: 'heating_lt_8c'
+        });
+        expect(lt8c.status).toBe('FAIL');
+
+        // Wrong condition: cooling
+        const cooling = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-2'),
+          supplyTempRelationship: 'cooling'
+        });
+        expect(cooling.status).toBe('FAIL');
+      });
+
+      it('allows directly injected ez-2 when correct condition heating_gte_8c is provided', () => {
+        const result = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-2'),
+          supplyTempRelationship: 'heating_gte_8c'
+        });
+        expect(result.status).toBe('PASS');
+        expect(result.ez).toBe(0.8);
+      });
+
+      it('enforces velocity condition on ez-ceil-warm-lt8c-highvel (missing -> INCOMPLETE, wrong -> FAIL, valid -> PASS)', () => {
+        // Missing velocity
+        const missing = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-ceil-warm-lt8c-highvel'),
+          supplyTempRelationship: 'heating_lt_8c'
+        });
+        expect(missing.status).toBe('INCOMPLETE');
+
+        // Wrong velocity
+        const wrong = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-ceil-warm-lt8c-highvel'),
+          supplyTempRelationship: 'heating_lt_8c',
+          supplyJetVelocityMet: false
+        });
+        expect(wrong.status).toBe('FAIL');
+
+        // Valid
+        const valid = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-ceil-warm-lt8c-highvel'),
+          supplyTempRelationship: 'heating_lt_8c',
+          supplyJetVelocityMet: true
+        });
+        expect(valid.status).toBe('PASS');
+        expect(valid.ez).toBe(1.0);
+      });
+
+      it('enforces velocity condition on ez-floor-warm-ceil-ret (missing -> INCOMPLETE, wrong -> FAIL, valid -> PASS)', () => {
+        // Missing velocity
+        const missing = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-floor-warm-ceil-ret'),
+          supplyTempRelationship: 'heating_gte_8c'
+        });
+        expect(missing.status).toBe('INCOMPLETE');
+
+        // Wrong velocity
+        const wrong = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-floor-warm-ceil-ret'),
+          supplyTempRelationship: 'heating_gte_8c',
+          supplyJetVelocityMet: false
+        });
+        expect(wrong.status).toBe('FAIL');
+
+        // Valid
+        const valid = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-floor-warm-ceil-ret'),
+          supplyTempRelationship: 'heating_gte_8c',
+          supplyJetVelocityMet: true
+        });
+        expect(valid.status).toBe('PASS');
+        expect(valid.ez).toBe(0.7);
+      });
+    });
+
+    // 4. Makeup Configurations Safety Gate
+    describe('Makeup Configurations Safety Gate', () => {
+      it('rejects directly injected makeup config when distance condition is missing as INCOMPLETE in calculateZone', () => {
+        const result = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-makeup-more-half-length')
+        });
+        expect(result.status).toBe('INCOMPLETE');
+        expect(result.reason).toContain('Missing makeup supply outlet location');
+      });
+
+      it('rejects directly injected makeup config on CONTRADICTORY distance condition as FAIL in calculateZone', () => {
+        // ez-makeup-more-half-length with less_than_half_length
+        const contraFar = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-makeup-more-half-length'),
+          makeupAirDistance: 'less_than_half_length'
+        });
+        expect(contraFar.status).toBe('FAIL');
+
+        // ez-makeup-direct-exhaust with greater_than_half_length
+        const contraNear = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-makeup-direct-exhaust'),
+          makeupAirDistance: 'greater_than_half_length'
+        });
+        expect(contraNear.status).toBe('FAIL');
+      });
+
+      it('allows directly injected makeup config when qualifying distance condition matches', () => {
+        const allowedFar = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-makeup-more-half-length'),
+          makeupAirDistance: 'greater_than_half_length'
+        });
+        expect(allowedFar.status).toBe('PASS');
+        expect(allowedFar.ez).toBe(0.8);
+
+        const allowedNear = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-makeup-direct-exhaust'),
+          makeupAirDistance: 'less_than_half_length'
+        });
+        expect(allowedNear.status).toBe('PASS');
+        expect(allowedNear.ez).toBe(0.5);
+      });
+    });
+
+    // 5. Unidirectional Configuration Safety Gate
+    describe('Unidirectional Configuration Safety Gate', () => {
+      it('always blocks ez-unidirectional-flow in both EzSelectionService and calculateZone', () => {
+        // Direct EzSelectionService resolution
+        const resolution = EzSelectionService.resolveEzFromCriteria({
+          distributionCategory: 'unidirectional'
+        });
+        expect(resolution.status).toBe('BLOCKED');
+
+        // Direct validateEzConfiguration
+        const validation = EzSelectionService.validateEzConfiguration(get2022Ez('ez-unidirectional-flow'));
+        expect(validation.valid).toBe(false);
+        expect(validation.status).toBe('BLOCKED');
+
+        // Direct calculateZone injection
+        const result = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-unidirectional-flow')
+        });
+        expect(result.status).toBe('BLOCKED');
+        expect(result.voz).toBeNull();
+      });
+    });
+
+    // 6. Ez Numeric Value Inference Prevention
+    describe('Numeric Ez Value Inference Prevention', () => {
+      it('never silently infers qualifying physical conditions from the numeric Ez value itself', () => {
+        // Caller injects ez-3 with numeric Ez=1.20, but no conditions
+        const resStrat = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-3')
+        });
+        // Must NOT infer verticalThrowMet=false or returnHeight<=5.5 or stratifiedPrerequisitesMet=true
+        expect(resStrat.status).toBe('INCOMPLETE');
+        expect(resStrat.voz).toBeNull();
+
+        // Caller injects ez-personalized-ceiling-cool with numeric Ez=1.40, but no conditions
+        const resPersonal = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-personalized-ceiling-cool')
+        });
+        // Must NOT infer personalizedPrerequisitesMet=true
+        expect(resPersonal.status).toBe('INCOMPLETE');
+        expect(resPersonal.voz).toBeNull();
+
+        // Caller injects ez-2 with numeric Ez=0.80, but no conditions
+        const resWarm = Ashrae621ZoneService.calculateZone({
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: get2022Ez('ez-2')
+        });
+        // Must NOT infer heating_gte_8c
+        expect(resWarm.status).toBe('INCOMPLETE');
+        expect(resWarm.voz).toBeNull();
+      });
+    });
   });
 
   it('marks manual override with NOT_VERIFIED status in resolution and BLOCKED in safety gate', () => {

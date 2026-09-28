@@ -15,6 +15,7 @@ export interface ExhaustInput {
   operationMode?: ExhaustOperationMode; // 'continuous' (default) or 'intermittent'
   unitSystem?: ExhaustUnitSystem; // 'metric' (default, L/s) or 'ip' (cfm)
   parkingGarageOpenSides50PercentOrMore?: boolean; // Section 6.5.1 Exception 1
+  calculationProcedure?: 'prescriptive' | 'performance';
 }
 
 export interface ExhaustResult {
@@ -119,6 +120,30 @@ export class Ashrae621ExhaustService {
         referenceSection,
         referenceTable,
         complianceNotes: [`Record invalid: airClass (${exhaustType.airClass}) diverges from exhaustClass (${exhaustType.exhaustClass}).`]
+      };
+    }
+
+    // Explicitly block Performance Exhaust Path 6.5.2 (unsupported in prescriptive engine)
+    if (input.calculationProcedure === 'performance' || referenceSection === '6.5.2' || (exhaustType as any).procedure === 'performance') {
+      return {
+        requiredExhaust: null,
+        requiredExhaustMetric: null,
+        requiredExhaustIp: null,
+        designExhaust: input.designExhaust ?? null,
+        unitType: exhaustType.unitType,
+        exhaustClass,
+        airClass,
+        operationMode,
+        rateApplied: null,
+        rateAppliedMetric: null,
+        rateAppliedIp: null,
+        status: 'BLOCKED',
+        isSpecialStandard,
+        specialStandardReference: exhaustType.specialStandardReference,
+        recirculationClassification,
+        referenceSection: '6.5.2',
+        referenceTable: 'None (Section 6.5.2)',
+        complianceNotes: ['Performance Exhaust Path 6.5.2 requires specialized contaminant generation and concentration analysis and is not implemented or verified in the prescriptive engine.']
       };
     }
 

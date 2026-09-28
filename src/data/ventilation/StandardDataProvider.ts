@@ -24,6 +24,10 @@ export class StandardDataProvider {
     return ASHRAE_62_1_PRODUCTION_BASIS;
   }
 
+  static getProductionScope(): ProductionStandardBasis {
+    return ASHRAE_62_1_PRODUCTION_BASIS;
+  }
+
   // Production methods guaranteed to return 2022 baseline data:
   static getProduction621SpaceTypes(): Ashrae621SpaceType[] {
     return ASHRAE_621_2022_SPACE_TYPES;

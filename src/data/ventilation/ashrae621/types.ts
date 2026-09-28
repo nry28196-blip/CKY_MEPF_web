@@ -254,22 +254,28 @@ export interface EzProvenance {
 // Active scope identifier for production engineering
 export const ACTIVE_62_1_2022_SCOPE = "ANSI/ASHRAE Standard 62.1-2022 + Addendum j";
 
-export interface ProductionStandardBasis {
-  standard: 'ASHRAE 62.1';
-  edition: '2022';
-  mainBasis: string;
-  exhaustBasis: string;
-  publishedAddendaApplied: readonly string[];
+export { 
+  type CalculationProductionStatus,
+  type SupportedCalculationPath,
+  type BlockedCalculationPath,
+  type ScopeValidationResult,
+  type ProductionCalculationScope,
+  VENTILATION_SUPPORTED_PATHS,
+  VENTILATION_BLOCKED_PATHS,
+  VENTILATION_PRODUCTION_SCOPE,
+  ProductionScopeService
+} from '../../../calculations/scope/ProductionCalculationScope';
+
+import { 
+  ProductionCalculationScope, 
+  VENTILATION_PRODUCTION_SCOPE 
+} from '../../../calculations/scope/ProductionCalculationScope';
+
+export interface ProductionStandardBasis extends ProductionCalculationScope {
   activeScopeIdentifier: string;
-  notes: string;
 }
 
 export const ASHRAE_62_1_PRODUCTION_BASIS: ProductionStandardBasis = {
-  standard: 'ASHRAE 62.1',
-  edition: '2022',
-  mainBasis: 'ANSI/ASHRAE Standard 62.1-2022 + Addendum j',
-  exhaustBasis: 'ANSI/ASHRAE Standard 62.1-2022 + Addendum x',
-  publishedAddendaApplied: ['Addendum j', 'Addendum x'],
-  activeScopeIdentifier: 'ANSI/ASHRAE Standard 62.1-2022 + Addendum j (Exhaust: Addendum x)',
-  notes: 'Main ventilation calculations conform to ANSI/ASHRAE Standard 62.1-2022 with published Addendum j (air density factor Ep); prescriptive exhaust conforms to ANSI/ASHRAE Standard 62.1-2022 with published Addendum x. No other 2022 addenda or 2025 provisions are activated.'
+  ...VENTILATION_PRODUCTION_SCOPE,
+  activeScopeIdentifier: 'ANSI/ASHRAE Standard 62.1-2022 + Addendum j (Exhaust: Addendum x)'
 };

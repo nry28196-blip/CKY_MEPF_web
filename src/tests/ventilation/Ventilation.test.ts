@@ -106,12 +106,13 @@ const makeVerified = (item: any) => {
     const result = VentilationEngine.runSingleZone({
       zone: {
         expectedStandard: 'ASHRAE 62.1',
-      expectedEdition: '2022',
-      spaceType: verifiedOffice,
+        expectedEdition: '2022',
+        spaceType: verifiedOffice,
         area: 100,
         designOccupancy: 5,
         useDefaultOccupancy: false,
-        ezConfig: makeVerified(ezHeating)
+        ezConfig: makeVerified(ezHeating),
+        supplyTempRelationship: 'heating_gte_8c'
       },
       density: { elevation: 0, temperature: 20 }
     });

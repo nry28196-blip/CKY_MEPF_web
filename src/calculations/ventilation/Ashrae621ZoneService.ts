@@ -2,7 +2,7 @@ import { AuditStatus } from '../../types';
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
 import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/types';
 import { DataProvenanceValidationService } from './DataProvenanceValidationService';
-import { EzSelectionService } from './EzSelectionService';
+import { EzSelectionService, EzValidationConditions, PersonalizedVentilationPrerequisites, StratifiedSystemPrerequisites } from './EzSelectionService';
 
 export interface AuditTrailItem {
   symbol: string;
@@ -33,9 +33,22 @@ export interface ZoneVentilationInput {
   useDefaultOccupancy: boolean;
   ezConfig: Ashrae621Ez | null;
   supplyTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
+  spaceTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
+  supplyAirCondition?: 'cool' | 'warm' | 'isothermal' | 'any' | null;
   verticalThrowMet?: boolean | null;
+  returnHeightM?: number | null;
+  returnHeightGt55m?: boolean | null;
   returnHeightGte55m?: boolean | null;
   supplyJetVelocityMet?: boolean | null;
+  makeupAirDistance?: 'greater_than_half_length' | 'less_than_half_length' | null;
+  isDirectMakeupExhaust?: boolean;
+  isPersonalizedVentilation?: boolean;
+  personalizedPrerequisites?: PersonalizedVentilationPrerequisites;
+  personalizedPrerequisitesMet?: boolean | null;
+  personalizedSystemType?: 'ceiling_cool' | 'ceiling_warm' | 'stratified_nonaspirating' | 'stratified_aspirating' | null;
+  stratifiedPrerequisites?: StratifiedSystemPrerequisites;
+  stratifiedPrerequisitesMet?: boolean | null;
+  ezConditions?: EzValidationConditions;
   eRho?: number;
   epDensity?: number;
 }
@@ -114,22 +127,29 @@ export class Ashrae621ZoneService {
       }
     }
 
-    // Validate Table 6-4 Ez conditions if condition inputs are explicitly provided or if manual override
-    const hasConditionInputs = input.supplyTempRelationship !== undefined || 
-                               input.verticalThrowMet !== undefined || 
-                               input.returnHeightGte55m !== undefined || 
-                               input.supplyJetVelocityMet !== undefined;
+    // Establish that the selected Table 6-4 Ez (or manual override) is valid for the physical configuration
+    const conditions: EzValidationConditions = {
+      supplyTempRelationship: input.supplyTempRelationship ?? input.ezConditions?.supplyTempRelationship,
+      spaceTempRelationship: input.spaceTempRelationship ?? input.ezConditions?.spaceTempRelationship,
+      supplyAirCondition: input.supplyAirCondition ?? input.ezConditions?.supplyAirCondition,
+      verticalThrowMet: input.verticalThrowMet ?? input.ezConditions?.verticalThrowMet,
+      returnHeightM: input.returnHeightM ?? input.ezConditions?.returnHeightM,
+      returnHeightGt55m: input.returnHeightGt55m ?? input.ezConditions?.returnHeightGt55m,
+      returnHeightGte55m: input.returnHeightGte55m ?? input.ezConditions?.returnHeightGte55m,
+      supplyJetVelocityMet: input.supplyJetVelocityMet ?? input.ezConditions?.supplyJetVelocityMet,
+      makeupAirDistance: input.makeupAirDistance ?? input.ezConditions?.makeupAirDistance,
+      isDirectMakeupExhaust: input.isDirectMakeupExhaust ?? input.ezConditions?.isDirectMakeupExhaust,
+      isPersonalizedVentilation: input.isPersonalizedVentilation ?? input.ezConditions?.isPersonalizedVentilation,
+      personalizedPrerequisites: input.personalizedPrerequisites ?? input.ezConditions?.personalizedPrerequisites,
+      personalizedPrerequisitesMet: input.personalizedPrerequisitesMet ?? input.ezConditions?.personalizedPrerequisitesMet,
+      personalizedSystemType: input.personalizedSystemType ?? input.ezConditions?.personalizedSystemType,
+      stratifiedPrerequisites: input.stratifiedPrerequisites ?? input.ezConditions?.stratifiedPrerequisites,
+      stratifiedPrerequisitesMet: input.stratifiedPrerequisitesMet ?? input.ezConditions?.stratifiedPrerequisitesMet,
+    };
 
-    if (hasConditionInputs || input.ezConfig.isManualOverride) {
-      const ezConfigValidation = EzSelectionService.validateEzConfiguration(input.ezConfig, {
-        supplyTempRelationship: input.supplyTempRelationship,
-        verticalThrowMet: input.verticalThrowMet,
-        returnHeightGte55m: input.returnHeightGte55m,
-        supplyJetVelocityMet: input.supplyJetVelocityMet
-      });
-      if (!ezConfigValidation.valid) {
-        return this.emptyResult(ezConfigValidation.status, ezConfigValidation.reasons[0]);
-      }
+    const ezConfigValidation = EzSelectionService.validateEzConfiguration(input.ezConfig, conditions);
+    if (!ezConfigValidation.valid) {
+      return this.emptyResult(ezConfigValidation.status, ezConfigValidation.reasons[0]);
     }
 
     const az = input.area;
