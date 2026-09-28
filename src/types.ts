@@ -20,3 +20,6 @@ export enum AuditStatus {
   BLOCKED = 'BLOCKED',
   ESTIMATED = 'ESTIMATED'
 }
+
+export * from './calculations/audit';
+
