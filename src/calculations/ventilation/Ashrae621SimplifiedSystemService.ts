@@ -44,6 +44,7 @@ export interface SimplifiedSystemResult {
   d: number;
   ev: number;
   vou: number;
+  vot: number | null; // Outdoor Air Intake Flow Vot = Vou / Ev
   vps: number | null;
   vpsDesignBasis?: string;
   designCondition?: string;
@@ -97,7 +98,7 @@ export class Ashrae621SimplifiedSystemService {
       });
       const finalStatus = VentilationValidationService.aggregateStatus(statuses);
       return {
-        sumPz, ps, d: 0, ev: 0, vou: 0,
+        sumPz, ps, d: 0, ev: 0, vou: 0, vot: null,
         vps: input.vps ?? null,
         vpsDesignBasis,
         designCondition,
@@ -307,6 +308,7 @@ export class Ashrae621SimplifiedSystemService {
     }
 
     const finalStatus = VentilationValidationService.aggregateStatus(statuses);
+    const finalVot = finalStatus === 'PASS' && ev > 0 ? vou / ev : null;
 
     return {
       sumPz,
@@ -314,6 +316,7 @@ export class Ashrae621SimplifiedSystemService {
       d,
       ev,
       vou,
+      vot: finalVot,
       vps,
       vpsDesignBasis,
       designCondition,

@@ -152,9 +152,17 @@ export class EngineeringAuditService {
     const warnings: string[] = [...(params.warnings || [])];
     const unsupportedItems: string[] = [...(params.unsupportedItems || [])];
 
-    // Rule 1: Check for NOT_VERIFIED or INVALID inputs
-    // Any input with NOT_VERIFIED or INVALID provenance MUST NOT permit a PASS status.
+    // Rule 1: Check for User Overrides, NOT_VERIFIED, or INVALID inputs
+    // CRITICAL: A USER_OVERRIDE must NEVER become authoritative standard data merely because a justification was supplied.
     for (const [key, prov] of Object.entries(params.provenance)) {
+      if (prov.isOverride || prov.engineeringStatus === 'USER_OVERRIDE') {
+        // Enforce: Overrides remain NOT_VERIFIED under standard production basis
+        if (prov.verificationStatus === 'VERIFIED') {
+          (prov as any).verificationStatus = 'NOT_VERIFIED';
+          warnings.push(`User override on '${prov.name}' (${key}) cannot be labeled VERIFIED standard data.`);
+        }
+      }
+
       if (prov.verificationStatus === 'NOT_VERIFIED' || prov.verificationStatus === 'INVALID') {
         if (validationStatus === 'PASS') {
           validationStatus = 'BLOCKED';
@@ -273,24 +281,32 @@ export class EngineeringAuditService {
       engineeringStatus: 'USER_SUPPLIED'
     };
 
+    const appliedPz = result.pz ?? (input.useDefaultOccupancy ? null : (input.designOccupancy ?? null));
+    const pzValid = appliedPz !== null && typeof appliedPz === 'number' && Number.isFinite(appliedPz) && appliedPz >= 0;
+
     provenance['pz'] = {
       key: 'pz',
       name: 'Zone Population (Pz)',
-      value: input.designOccupancy,
+      value: appliedPz,
       unit: 'people',
       source: input.useDefaultOccupancy ? SourceType.ASHRAE_PUBLISHED : SourceType.PROJECT_SPECIFICATION,
-      verificationStatus: 'VERIFIED',
+      verificationStatus: pzValid ? 'VERIFIED' : 'INVALID',
       engineeringStatus: input.useDefaultOccupancy ? 'CODE_DEFAULT' : 'USER_SUPPLIED'
     };
 
     if (ez) {
+      // Manual overrides must ALWAYS remain NOT_VERIFIED under standard production basis
+      const ezVerificationStatus: VerificationStatus = isOverride
+        ? 'NOT_VERIFIED'
+        : (ez.verificationStatus || 'VERIFIED');
+
       provenance['ez'] = {
         key: 'ez',
         name: 'Zone Air Distribution Effectiveness (Ez)',
         value: ez.ez,
         unit: 'dimensionless',
         source: isOverride ? SourceType.USER_OVERRIDE : (ez.sourceType || SourceType.ASHRAE_PUBLISHED),
-        verificationStatus: isOverride ? (ez.manualOverrideBasis ? 'VERIFIED' : 'NOT_VERIFIED') : (ez.verificationStatus || 'VERIFIED'),
+        verificationStatus: ezVerificationStatus,
         engineeringStatus: isOverride ? 'USER_OVERRIDE' : 'ENGINEERING_STANDARD',
         reference: isOverride ? (ez.manualOverrideBasis || 'Manual Override') : (ez.reference || 'Table 6-4'),
         isOverride,

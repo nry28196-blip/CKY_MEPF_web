@@ -41,15 +41,15 @@ export default function AirBalanceCalc() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-          Calculation Basis: ASHRAE 62.1-2022 (Section 6.2.8 & System Balance)
+        <div className="text-xs font-mono font-bold text-amber-400 bg-amber-950/40 border border-amber-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+          Utility Basis: Volumetric Air-Balance Diagnostic (Non-ASHRAE Compliance Path)
         </div>
       </div>
 
       <EngineeringStatusHeader 
         status="NOT_READY_FOR_ENGINEERING_USE" 
-        message="This module performs simplified volumetric checks and does not yet compute full rigorous mass balance. Do not use for engineering sign-off."
+        message="Engineering Diagnostic Utility: Performs simplified volumetric flow checks only. This is not an ANSI/ASHRAE Standard 62.1 compliance path and cannot be used for official engineering sign-off."
         className="mb-4"
       />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
@@ -137,15 +137,15 @@ export default function AirBalanceCalc() {
                 <div className="space-y-4 font-mono text-sm">
                   <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                     <span className="text-slate-400 text-xs">Recirculated Air</span>
-                    <span className="text-white font-bold">{Math.round(systemResult.qRecirculated).toLocaleString()} {flowUnit}</span>
+                    <span className="text-white font-bold">{systemResult.qRecirculated !== null ? `${Math.round(systemResult.qRecirculated).toLocaleString()} ${flowUnit}` : '—'}</span>
                   </div>
                   <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                     <span className="text-slate-400 text-xs">Relief Air Required</span>
-                    <span className="text-amber-300 font-bold">{Math.round(systemResult.qRelief).toLocaleString()} {flowUnit}</span>
+                    <span className="text-amber-300 font-bold">{systemResult.qRelief !== null ? `${Math.round(systemResult.qRelief).toLocaleString()} ${flowUnit}` : '—'}</span>
                   </div>
                   <div className="flex justify-between items-center pt-1">
                     <span className="text-slate-400 text-xs">Total Air Leaving Bldg</span>
-                    <span className="text-rose-300 font-bold">{Math.round(systemResult.totalExhaustAndRelief).toLocaleString()} {flowUnit}</span>
+                    <span className="text-rose-300 font-bold">{systemResult.totalExhaustAndRelief !== null ? `${Math.round(systemResult.totalExhaustAndRelief).toLocaleString()} ${flowUnit}` : '—'}</span>
                   </div>
                 </div>
               </div>
@@ -161,12 +161,12 @@ export default function AirBalanceCalc() {
                     {systemResult.buildingPressure}
                   </p>
                   
-                  {systemResult.buildingPressure === 'Positive' && (
+                  {systemResult.qNetBuilding !== null && systemResult.buildingPressure === 'Positive' && (
                     <p className="text-sm text-sky-300 mt-3">
                       Building will exfiltrate {Math.round(systemResult.qNetBuilding).toLocaleString()} {flowUnit} through envelope.
                     </p>
                   )}
-                  {systemResult.buildingPressure === 'Negative' && (
+                  {systemResult.qNetBuilding !== null && systemResult.buildingPressure === 'Negative' && (
                     <p className="text-sm text-amber-300 mt-3">
                       Building requires {Math.round(Math.abs(systemResult.qNetBuilding)).toLocaleString()} {flowUnit} of unconditioned infiltration.
                     </p>
@@ -184,7 +184,18 @@ export default function AirBalanceCalc() {
                     </div>
                   )}
 
-                  {systemResult.isValid && systemResult.warnings.length > 0 && (
+                  {systemResult.reasons.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {systemResult.reasons.map((r, i) => (
+                        <div key={i} className="inline-flex items-center text-xs text-rose-400 bg-rose-400/10 border border-rose-400/30 px-3 py-1.5 rounded-lg">
+                          <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span className="text-left">{r}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {systemResult.warnings.length > 0 && (
                     <div className="mt-4 space-y-2">
                       {systemResult.warnings.map((warn, i) => (
                         <div key={i} className="inline-flex items-center text-xs text-amber-400 bg-amber-400/10 border border-amber-400/30 px-3 py-1.5 rounded-lg">
@@ -290,7 +301,7 @@ export default function AirBalanceCalc() {
                     
                     <div className="flex justify-between text-white font-bold pt-2">
                        <span>Net Airflow</span>
-                       <span className={roomNetColor}>{Math.round(roomResult.qNet).toLocaleString()} {flowUnit}</span>
+                       <span className={roomNetColor}>{roomResult.qNet !== null ? `${Math.round(roomResult.qNet).toLocaleString()} ${flowUnit}` : '—'}</span>
                     </div>
                  </div>
               </div>
@@ -301,12 +312,12 @@ export default function AirBalanceCalc() {
                 <p className={`text-3xl font-black font-mono tracking-tight drop-shadow-md z-10 uppercase ${roomNetColor}`}>
                   {roomResult.pressureRelationship}
                 </p>
-                {roomResult.pressureRelationship === 'Positive' && (
+                {roomResult.qNet !== null && roomResult.pressureRelationship === 'Positive' && roomResult.transferOut !== null && (
                   <p className="text-xs text-sky-300 mt-3 z-10 text-center">
                     Air will transfer OUT to adjacent spaces: {Math.round(roomResult.transferOut).toLocaleString()} {flowUnit}
                   </p>
                 )}
-                {roomResult.pressureRelationship === 'Negative' && (
+                {roomResult.qNet !== null && roomResult.pressureRelationship === 'Negative' && (
                   <p className="text-xs text-amber-300 mt-3 z-10 text-center">
                     Air must transfer IN from adjacent spaces: {Math.round(Math.abs(roomResult.qNet)).toLocaleString()} {flowUnit}
                   </p>
@@ -315,6 +326,11 @@ export default function AirBalanceCalc() {
                   <p className="text-xs text-slate-400 mt-3 z-10 text-center">
                     Room is neutrally balanced.
                   </p>
+                )}
+                {roomResult.reasons.length > 0 && (
+                  <div className="mt-3 text-xs text-rose-400 z-10 text-center">
+                    {roomResult.reasons.join(' ')}
+                  </div>
                 )}
               </div>
             </div>

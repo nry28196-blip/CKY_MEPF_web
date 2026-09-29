@@ -1,3 +1,16 @@
+/**
+ * @deprecated LEGACY DIAGNOSTIC ADVISORY VALIDATOR
+ * 
+ * DO NOT USE FOR AUTHORITATIVE ASHRAE 62.1 VENTILATION COMPLIANCE.
+ * 
+ * This legacy validator provides secondary advisory checks and UI warning messages.
+ * Authoritative compliance must always be evaluated using:
+ * - `VentilationValidationService`
+ * - `DataProvenanceValidationService`
+ * - `EzSelectionService`
+ * - `Ashrae621ZoneService`
+ */
+
 import { ZoneVentilationData, SystemOutdoorAirRequirements } from '../../models/VentilationModels';
 import { AirBalanceResult } from '../ventilation/AirBalanceService';
 
@@ -106,7 +119,7 @@ export class VentilationValidator {
     // Roughly 500 CFM or 250 L/s threshold for door opening difficulties
     const highPressureThreshold = isMetric ? 250 : 500; 
     
-    if (Math.abs(balance.qNet) > highPressureThreshold) {
+    if (balance.qNet !== null && Math.abs(balance.qNet) > highPressureThreshold) {
        messages.push({ 
          severity: 'warning', 
          code: 'B-01', 

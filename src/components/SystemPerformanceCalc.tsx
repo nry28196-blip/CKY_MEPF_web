@@ -59,6 +59,28 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-mono font-bold text-amber-400 bg-amber-950/40 border border-amber-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+          Utility Basis: Fan & Duct Aerodynamic Estimator (Non-ASHRAE 62.1 Compliance Procedure)
+        </div>
+      </div>
+
+      <EngineeringStatusHeader 
+        status="NOT_READY_FOR_ENGINEERING_USE" 
+        message="Engineering Diagnostic Utility: Estimates aerodynamic pressure drop and fan duty point. This is an equipment/distribution sizing tool, not an ANSI/ASHRAE Standard 62.1 ventilation compliance path."
+        className="mb-4"
+      />
+
+      {result.reasons.length > 0 && (
+        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl space-y-1">
+          <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">Invalid Engineering Input(s):</p>
+          {result.reasons.map((r, i) => (
+            <p key={i} className="text-xs text-rose-300 font-mono">• {r}</p>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Airflow & Environment */}
@@ -138,28 +160,28 @@ export default function SystemPerformanceCalc({ globalAltitude = 0, globalAirTem
             <div className="grid grid-cols-2 gap-4 border-b border-slate-800/60 pb-4">
               <div>
                 <p className="text-xs text-slate-500 font-bold uppercase mb-1">Standard Airflow</p>
-                <p className="text-xl font-mono text-slate-300 font-bold">{Math.round(result.qSupplyStandard).toLocaleString()} <span className="text-sm font-sans font-normal text-slate-500">{flowUnit}</span></p>
+                <p className="text-xl font-mono text-slate-300 font-bold">{result.qSupplyStandard !== null ? `${Math.round(result.qSupplyStandard).toLocaleString()} ` : '— '}<span className="text-sm font-sans font-normal text-slate-500">{flowUnit}</span></p>
               </div>
               <div>
                 <p className="text-xs text-sky-400 font-bold uppercase mb-1">Actual Airflow (Eρ Corrected)</p>
-                <p className="text-xl font-mono text-white font-bold">{Math.round(result.qSupplyActual).toLocaleString()} <span className="text-sm font-sans font-normal text-sky-400/70">{flowUnit}</span></p>
+                <p className="text-xl font-mono text-white font-bold">{result.qSupplyActual !== null ? `${Math.round(result.qSupplyActual).toLocaleString()} ` : '— '}<span className="text-sm font-sans font-normal text-sky-400/70">{flowUnit}</span></p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 border-b border-slate-800/60 pb-4">
               <div>
                 <p className="text-xs text-slate-500 font-bold uppercase mb-1">Total Static Pressure (SP)</p>
-                <p className="text-xl font-mono text-white font-bold">{(result.totalStaticPressure || 0).toFixed(2)} <span className="text-sm font-sans font-normal text-slate-500">{pressureUnit}</span></p>
+                <p className="text-xl font-mono text-white font-bold">{result.totalStaticPressure !== null ? result.totalStaticPressure.toFixed(2) : '—'} <span className="text-sm font-sans font-normal text-slate-500">{pressureUnit}</span></p>
               </div>
               <div>
                 <p className="text-xs text-amber-500 font-bold uppercase mb-1">Fan Power ({isMetric ? "kW" : "BHP"})</p>
-                <p className="text-xl font-mono text-white font-bold">{(result.fanBrakeHorsepower || 0).toFixed(2)} <span className="text-sm font-sans font-normal text-amber-500/70">{powerUnit}</span></p>
+                <p className="text-xl font-mono text-white font-bold">{result.fanBrakeHorsepower !== null ? result.fanBrakeHorsepower.toFixed(2) : '—'} <span className="text-sm font-sans font-normal text-amber-500/70">{powerUnit}</span></p>
               </div>
             </div>
 
             <div>
               <p className="text-xs text-emerald-400 font-bold uppercase mb-1">Motor Electrical Duty</p>
-              <p className="text-3xl font-black font-mono tracking-tight text-white">{(result.motorElectricalPower || 0).toFixed(2)} <span className="text-lg font-sans font-bold text-emerald-400/80">kW</span></p>
+              <p className="text-3xl font-black font-mono tracking-tight text-white">{result.motorElectricalPower !== null ? result.motorElectricalPower.toFixed(2) : '—'} <span className="text-lg font-sans font-bold text-emerald-400/80">kW</span></p>
             </div>
             
           </div>

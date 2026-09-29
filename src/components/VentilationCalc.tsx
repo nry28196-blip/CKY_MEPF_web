@@ -37,9 +37,9 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
       case 'exhaust':
         return 'ASHRAE 62.1-2022 (Commercial Exhaust)';
       case 'balance':
-        return 'ASHRAE 62.1-2022 (Air Balance)';
+        return 'Engineering Diagnostic Utility (Volumetric Air-Balance)';
       case 'kitchen':
-        return 'ASHRAE 154 / IMC 507 (Kitchen Hood)';
+        return 'ASHRAE 154 / IMC 507 (Kitchen Hood Diagnostic)';
       case 'standard':
       default:
         return 'ASHRAE 62.1-2022 (Commercial)';
@@ -69,7 +69,7 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
           {[
             { id: 'standard', label: 'Zone / VAV (ASHRAE 62.1)' },
             { id: 'exhaust', label: 'Commercial Exhaust' },
-            { id: 'balance', label: 'Air Balance' },
+            { id: 'balance', label: 'Air Balance (Diagnostic)' },
             { id: 'kitchen', label: 'Kitchen Hood' },
             { id: 'residential', label: 'Residential (62.2)' }
           ].map(mod => (

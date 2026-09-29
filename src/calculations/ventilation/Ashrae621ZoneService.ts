@@ -219,12 +219,14 @@ export class Ashrae621ZoneService {
       statuses.push('PASS');
     }
     const finalStatus = VentilationValidationService.aggregateStatus(statuses);
+    const authoritativeVoz = finalStatus === 'PASS' ? voz : null;
 
     return {
       spaceTypeId: input.spaceType.id,
       spaceTypeName: input.spaceType.name,
       airClass: input.spaceType.airClass,
-      az, pz, rp, ra, vbp, vba, vbz, ez, epDensity, voz,
+      az, pz, rp, ra, vbp, vba, vbz, ez, epDensity, 
+      voz: authoritativeVoz,
       occupancySource,
       occupancyDensityUsed,
       populationBeforeDisplayRounding,

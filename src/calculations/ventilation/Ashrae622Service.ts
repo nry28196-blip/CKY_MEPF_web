@@ -25,6 +25,8 @@ export interface Ashrae622WholeDwellingResult {
   qDeficit: number | null; // L/s
   qFan: number | null; // L/s
   status: ValidationStatus;
+  isAuthoritative: boolean;
+  isApprovedForEngineeringUse: boolean;
   message?: string;
 }
 
@@ -38,6 +40,8 @@ export class Ashrae622Service {
         qDeficit: null,
         qFan: null,
         status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false,
         message: `Calculation blocked: ASHRAE 62.2-${input.expectedEdition} is deferred. Active production standard is ASHRAE 62.2-2022.`
       };
     }
@@ -48,6 +52,8 @@ export class Ashrae622Service {
         qDeficit: null,
         qFan: null,
         status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false,
         message: `Calculation blocked: Invalid standard ${input.expectedStandard}. Expected ASHRAE 62.2.`
       };
     }
@@ -58,12 +64,22 @@ export class Ashrae622Service {
         qDeficit: null,
         qFan: null,
         status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false,
         message: `Calculation blocked: ASHRAE 62.2-${input.coefficients.edition} coefficients are deferred. Active production standard is ASHRAE 62.2-2022.`
       };
     }
 
     if (input.floorArea < 0 || isNaN(input.floorArea) || input.bedrooms < 0 || isNaN(input.bedrooms)) {
-      return { qTot: null, qInf: null, qDeficit: null, qFan: null, status: 'FAIL' };
+      return {
+        qTot: null,
+        qInf: null,
+        qDeficit: null,
+        qFan: null,
+        status: 'FAIL',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
+      };
     }
 
     // SI units formula using provided coefficients
@@ -90,7 +106,15 @@ export class Ashrae622Service {
             input.localExhaust.bathRequired === null || input.localExhaust.bathInstalled === null ||
             isNaN(input.localExhaust.kitchenRequired) || isNaN(input.localExhaust.kitchenInstalled) ||
             isNaN(input.localExhaust.bathRequired) || isNaN(input.localExhaust.bathInstalled)) {
-            return { qTot: null, qInf: null, qDeficit: null, qFan: null, status: 'INCOMPLETE' };
+            return {
+              qTot: null,
+              qInf: null,
+              qDeficit: null,
+              qFan: null,
+              status: 'INCOMPLETE',
+              isAuthoritative: false,
+              isApprovedForEngineeringUse: false
+            };
         }
         
       const kitchenDeficit = (input.localExhaust.kitchenRequired - input.localExhaust.kitchenInstalled) > 0 ? (input.localExhaust.kitchenRequired - input.localExhaust.kitchenInstalled) : 0;
@@ -102,12 +126,17 @@ export class Ashrae622Service {
     let qFan = qTot - qInf + qDeficit;
     if (qFan < 0) qFan = 0;
 
+    const isAuthoritative = status === 'PASS';
+    const isApprovedForEngineeringUse = isAuthoritative;
+
     return {
       qTot,
       qInf,
       qDeficit,
-      qFan,
-      status
+      qFan: (status === 'PASS' || status === 'WARNING') ? qFan : null,
+      status,
+      isAuthoritative,
+      isApprovedForEngineeringUse
     };
   }
 }
