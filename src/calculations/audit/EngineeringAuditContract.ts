@@ -128,6 +128,7 @@ export interface CreateAuditRecordParams {
     complianceSummary?: string;
   };
   validationStatus: ValidationStatus;
+  authoritativeEligible?: boolean;
   warnings?: string[];
   unsupportedItems?: string[];
   timestamp?: string;
@@ -142,6 +143,7 @@ export interface CreateAuditRecordParams {
  * - If inputs are NOT_VERIFIED, status cannot be converted to PASS.
  * - User/manual overrides are explicitly identified and logged.
  * - Active production basis is strictly documented.
+ * - Diagnostic utilities cannot produce authoritative or engineering-approved audit records.
  */
 export class EngineeringAuditService {
   /**
@@ -178,23 +180,51 @@ export class EngineeringAuditService {
       }
     }
 
-    // Rule 2: CRITICAL RULE - Numeric output alone must never imply engineering approval.
+    // Rule 2: Explicit Authority Policy
+    // A calculation is authoritative ONLY if:
+    // 1. authoritativeEligible !== false
+    // 2. Not explicitly flagged as a non-standard diagnostic utility
+    // 3. Calculation path ID does not represent a diagnostic utility
+    const isDiagnostic = 
+      params.authoritativeEligible === false ||
+      params.standard === 'Non-Standard Diagnostic Utility' ||
+      params.edition === 'Diagnostic' ||
+      params.calculationPath.id.includes('diagnostic');
+
+    // Rule 3: CRITICAL RULE - Numeric output alone must never imply engineering approval.
     // A BLOCKED, INCOMPLETE, FAIL, or NOT_VERIFIED result must not be presented as a compliant engineering result.
-    const isApprovedForEngineeringUse = validationStatus === 'PASS';
+    // Diagnostic utilities MUST NEVER become authoritative, even if calculation status is PASS.
+    const isApprovedForEngineeringUse = !isDiagnostic && validationStatus === 'PASS';
     const isAuthoritative = isApprovedForEngineeringUse;
 
-    // For non-PASS outcomes, suppress authoritative final numeric value to prevent false engineering acceptance
-    const finalValue = isAuthoritative ? params.finalResult.value : null;
+    // For authoritative calculations, non-PASS outcomes suppress numeric value.
+    // For diagnostic calculations, numeric diagnostic value may be retained if status is PASS, but isAuthoritative = false.
+    let finalValue: number | null = null;
+    if (isAuthoritative) {
+      finalValue = params.finalResult.value;
+    } else if (isDiagnostic && validationStatus === 'PASS') {
+      finalValue = params.finalResult.value; // Retained as non-authoritative diagnostic estimate
+    } else {
+      finalValue = null; // Non-PASS always withholds numeric result
+    }
 
     let complianceSummary = params.finalResult.complianceSummary;
-    if (!complianceSummary) {
-      if (isApprovedForEngineeringUse) {
-        complianceSummary = `COMPLIANT: Verified under ${params.revisionBasis} (${params.calculationPath.name}). Final value ${finalValue} ${params.finalResult.unit} satisfies design criteria.`;
-      } else {
-        complianceSummary = `NON-COMPLIANT (${validationStatus}): Calculation cannot be approved for engineering use. Not approved for engineering use. Authoritative numeric result is withheld.`;
+    if (isDiagnostic) {
+      if (!complianceSummary) {
+        complianceSummary = `DIAGNOSTIC (${validationStatus}): Non-authoritative engineering diagnostic utility only. Not approved for official code compliance or engineering sign-off.`;
+      } else if (!complianceSummary.includes('Diagnostic') && !complianceSummary.includes('Non-authoritative') && !complianceSummary.includes('not an ANSI/ASHRAE')) {
+        complianceSummary = `[DIAGNOSTIC - NON-AUTHORITATIVE] ${complianceSummary}`;
       }
-    } else if (!isApprovedForEngineeringUse && !complianceSummary.includes(validationStatus)) {
-      complianceSummary = `[${validationStatus}] ${complianceSummary} — Not approved for engineering use.`;
+    } else {
+      if (!complianceSummary) {
+        if (isApprovedForEngineeringUse) {
+          complianceSummary = `COMPLIANT: Verified under ${params.revisionBasis} (${params.calculationPath.name}). Final value ${finalValue} ${params.finalResult.unit} satisfies design criteria.`;
+        } else {
+          complianceSummary = `NON-COMPLIANT (${validationStatus}): Calculation cannot be approved for engineering use. Not approved for engineering use. Authoritative numeric result is withheld.`;
+        }
+      } else if (!isApprovedForEngineeringUse && !complianceSummary.includes(validationStatus)) {
+        complianceSummary = `[${validationStatus}] ${complianceSummary} — Not approved for engineering use.`;
+      }
     }
 
     const finalResult: FinalResultRecord = {
@@ -677,6 +707,7 @@ export class EngineeringAuditService {
       complianceSummary?: string;
     };
     validationStatus: ValidationStatus;
+    authoritativeEligible?: boolean;
     warnings?: string[];
     unsupportedItems?: string[];
   }): CalculationAuditRecord {

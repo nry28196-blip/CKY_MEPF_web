@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { AirBalanceService, AirBalanceInput, SystemBalanceInput } from '../../calculations/ventilation/AirBalanceService';
 import { SystemPerformanceService, SystemPerformanceInput } from '../../calculations/ventilation/SystemPerformanceService';
+import { KitchenVentilationService } from '../../calculations/ventilation/KitchenVentilationService';
 import { VentilationValidator as ThermalSanityValidator } from '../../validation/VentilationValidator';
 import { VentilationValidator as DiagnosticAdvisoryValidator } from '../../calculations/validation/VentilationValidator';
+import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
+import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
+import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
+import { EzSelectionService } from '../../calculations/ventilation/EzSelectionService';
+import { VentilationEngine } from '../../lib/VentilationEngine';
+import { EngineeringAuditService } from '../../calculations/audit/EngineeringAuditContract';
+import { SourceType } from '../../data/ventilation/ashrae621/types';
 
 describe('VENTILATION ENGINEERING DIAGNOSTIC & UTILITY SAFETY GATES', () => {
   describe('AirBalanceService Safety & Constraint Lifecycle', () => {
@@ -72,6 +80,9 @@ describe('VENTILATION ENGINEERING DIAGNOSTIC & UTILITY SAFETY GATES', () => {
       expect(result.complianceNotice).toContain('Not an ANSI/ASHRAE Standard 62.1 compliance determination');
       expect(result.auditRecord).toBeDefined();
       expect(result.auditRecord?.system).toBe('Ventilation');
+      // Critical check for Section 1: Nested audit record must NEVER be authoritative for diagnostic utilities!
+      expect(result.auditRecord?.isApprovedForEngineeringUse).toBe(false);
+      expect(result.auditRecord?.finalResult.isAuthoritative).toBe(false);
     });
 
     it('rejects system air balance with INCOMPLETE when inputs are missing', () => {
@@ -158,6 +169,8 @@ describe('VENTILATION ENGINEERING DIAGNOSTIC & UTILITY SAFETY GATES', () => {
       expect(result.isAuthoritative).toBe(false);
       expect(result.isApprovedForEngineeringUse).toBe(false);
       expect(result.auditRecord).toBeDefined();
+      expect(result.auditRecord?.isApprovedForEngineeringUse).toBe(false);
+      expect(result.auditRecord?.finalResult.isAuthoritative).toBe(false);
     });
   });
 
@@ -266,6 +279,8 @@ describe('VENTILATION ENGINEERING DIAGNOSTIC & UTILITY SAFETY GATES', () => {
       expect(result.isAuthoritative).toBe(false);
       expect(result.isApprovedForEngineeringUse).toBe(false);
       expect(result.auditRecord).toBeDefined();
+      expect(result.auditRecord?.isApprovedForEngineeringUse).toBe(false);
+      expect(result.auditRecord?.finalResult.isAuthoritative).toBe(false);
     });
 
     it('calculates valid Imperial fan duty point with correct BHP and motor kW', () => {
@@ -356,6 +371,331 @@ describe('VENTILATION ENGINEERING DIAGNOSTIC & UTILITY SAFETY GATES', () => {
 
       expect(sysMessages.some(m => m.code === 'S-00' && m.severity === 'error')).toBe(true);
       expect(sysMessages.some(m => m.code === 'S-02' && m.severity === 'warning')).toBe(true);
+    });
+  });
+
+  describe('KitchenVentilationService Diagnostic Safety & Constraints', () => {
+    it('returns INCOMPLETE with null outputs when required parameters are missing', () => {
+      const res = KitchenVentilationService.calculate({
+        hoodStandard: 'unlisted',
+        hoodType: 'wall',
+        duty: 'medium',
+        equipmentLength: null,
+        overhang: 0.3,
+        hoodDepth: 1.2,
+        ductVelocity: 7.6,
+        isMetric: true
+      });
+      expect(res.status).toBe('INCOMPLETE');
+      expect(res.exhaustAirflow).toBeNull();
+      expect(res.ductArea).toBeNull();
+      expect(res.isAuthoritative).toBe(false);
+      expect(res.isApprovedForEngineeringUse).toBe(false);
+      expect(res.complianceNotice).toContain('Diagnostic');
+    });
+
+    it('returns FAIL with null outputs for negative equipment length or non-finite inputs', () => {
+      const resNeg = KitchenVentilationService.calculate({
+        hoodStandard: 'unlisted',
+        hoodType: 'wall',
+        duty: 'medium',
+        equipmentLength: -3,
+        overhang: 0.3,
+        hoodDepth: 1.2,
+        ductVelocity: 7.6,
+        isMetric: true
+      });
+      expect(resNeg.status).toBe('FAIL');
+      expect(resNeg.exhaustAirflow).toBeNull();
+      expect(resNeg.isAuthoritative).toBe(false);
+
+      const resNaN = KitchenVentilationService.calculate({
+        hoodStandard: 'unlisted',
+        hoodType: 'wall',
+        duty: 'medium',
+        equipmentLength: NaN,
+        overhang: 0.3,
+        hoodDepth: 1.2,
+        ductVelocity: 7.6,
+        isMetric: true
+      });
+      expect(resNaN.status).toBe('FAIL');
+      expect(resNaN.exhaustAirflow).toBeNull();
+    });
+
+    it('rejects disallowed unlisted hood combinations per IMC 507 with FAIL', () => {
+      // Extra heavy duty on backshelf or eyebrow is rate 0 (not permitted)
+      const resDisallowed = KitchenVentilationService.calculate({
+        hoodStandard: 'unlisted',
+        hoodType: 'backshelf',
+        duty: 'extra',
+        equipmentLength: 3,
+        overhang: 0.3,
+        hoodDepth: 1.2,
+        ductVelocity: 7.6,
+        isMetric: true
+      });
+      expect(resDisallowed.status).toBe('FAIL');
+      expect(resDisallowed.exhaustAirflow).toBeNull();
+      expect(resDisallowed.reasons.some(r => r.includes('not permitted'))).toBe(true);
+    });
+
+    it('calculates valid unlisted kitchen exhaust with PASS, non-authoritative flags, and diagnostic audit record', () => {
+      const res = KitchenVentilationService.calculate({
+        hoodStandard: 'unlisted',
+        hoodType: 'wall',
+        duty: 'medium',
+        equipmentLength: 3,
+        overhang: 0.3,
+        hoodDepth: 1.2,
+        ductVelocity: 7.6,
+        isMetric: true
+      });
+      expect(res.status).toBe('PASS');
+      expect(res.exhaustAirflow).toBeGreaterThan(0);
+      expect(res.ductArea).toBeGreaterThan(0);
+      // Critical Section 1 & 4 checks
+      expect(res.isAuthoritative).toBe(false);
+      expect(res.isApprovedForEngineeringUse).toBe(false);
+      expect(res.complianceNotice).toContain('Diagnostic');
+      expect(res.auditRecord).toBeDefined();
+      expect(res.auditRecord?.isApprovedForEngineeringUse).toBe(false);
+      expect(res.auditRecord?.finalResult.isAuthoritative).toBe(false);
+    });
+
+    it('calculates listed hood with PASS and identifies manufacturer data in audit', () => {
+      const res = KitchenVentilationService.calculate({
+        hoodStandard: 'listed',
+        hoodType: 'wall',
+        duty: 'heavy',
+        equipmentLength: 3,
+        overhang: 0.3,
+        hoodDepth: 1.2,
+        listedFlowPerLength: 300, // L/s-m
+        ductVelocity: 7.6,
+        isMetric: true
+      });
+      expect(res.status).toBe('PASS');
+      expect(res.isAuthoritative).toBe(false);
+      expect(res.auditRecord?.provenance['listedRate'].source).toBe(SourceType.PROJECT_SPECIFICATION);
+    });
+
+    it('calculates performance hood with PASS and identifies capture velocity diagnostic estimate', () => {
+      const res = KitchenVentilationService.calculate({
+        hoodStandard: 'performance',
+        hoodType: 'wall',
+        duty: 'heavy',
+        equipmentLength: 3,
+        overhang: 0.3,
+        hoodDepth: 1.2,
+        captureVelocity: 0.4, // m/s
+        ductVelocity: 7.6,
+        isMetric: true
+      });
+      expect(res.status).toBe('PASS');
+      expect(res.isAuthoritative).toBe(false);
+      expect(res.warnings.some(w => w.includes('Diagnostic estimate'))).toBe(true);
+    });
+  });
+
+  describe('Authoritative Calculations Audit Authority Preservation (Section 1)', () => {
+    it('preserves authoritative status for verified ASHRAE 62.1 single-zone PASS calculations', () => {
+      const ezCooling = StandardDataProvider.get621EzValues('2022').find(e => e.id === 'ez-1')!;
+      const spaceOffice = StandardDataProvider.get621SpaceTypes('2022').find(s => s.id === 'office')!;
+      
+      const singleZoneResult = VentilationEngine.runSingleZone({
+        edition: '2022',
+        density: {
+          elevation: 0,
+          temperature: 20,
+          humidityRatio: 0.01
+        },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: spaceOffice,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: true,
+          ezConfig: ezCooling
+        }
+      });
+
+      expect(singleZoneResult.status).toBe('PASS');
+      expect(singleZoneResult.finalDesignOutdoorAir).toBeGreaterThan(0);
+      expect(singleZoneResult.auditRecord).toBeDefined();
+      // Must be authoritative for genuine ASHRAE 62.1 production path!
+      expect(singleZoneResult.auditRecord?.isApprovedForEngineeringUse).toBe(true);
+      expect(singleZoneResult.auditRecord?.finalResult.isAuthoritative).toBe(true);
+      expect(singleZoneResult.auditRecord?.finalResult.value).toBe(singleZoneResult.finalDesignOutdoorAir);
+    });
+
+    it('preserves authoritative status for verified ASHRAE 62.1 prescriptive exhaust PASS calculations', () => {
+      const publicToilet = StandardDataProvider.get621ExhaustRates('2022').find(e => e.id === 'toilet_public')!;
+      const exhaustResult = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        exhaustType: publicToilet,
+        qty: 2,
+        designExhaust: 50,
+        operationMode: 'continuous',
+        unitSystem: 'metric'
+      });
+
+      expect(exhaustResult.status).toBe('PASS');
+      const audit = EngineeringAuditService.fromExhaustCalculation({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        exhaustType: publicToilet,
+        qty: 2,
+        designExhaust: 50
+      }, exhaustResult);
+
+      expect(audit.validationStatus).toBe('PASS');
+      expect(audit.isApprovedForEngineeringUse).toBe(true);
+      expect(audit.finalResult.isAuthoritative).toBe(true);
+      expect(audit.finalResult.value).toBe(exhaustResult.requiredExhaust);
+    });
+
+    it('prevents manual Ez override from becoming authoritative', () => {
+      const manualEz = EzSelectionService.createManualOverride(1.15, 'CFD Project Report #1234');
+      const spaceOffice = StandardDataProvider.get621SpaceTypes('2022').find(s => s.id === 'office')!;
+
+      const zoneRes = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: spaceOffice,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: true,
+        ezConfig: manualEz
+      });
+
+      // Manual override produces BLOCKED
+      expect(zoneRes.status).toBe('BLOCKED');
+      const audit = EngineeringAuditService.fromZoneCalculation({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: spaceOffice,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: true,
+        ezConfig: manualEz
+      }, zoneRes);
+
+      expect(audit.isApprovedForEngineeringUse).toBe(false);
+      expect(audit.finalResult.isAuthoritative).toBe(false);
+      expect(audit.finalResult.value).toBeNull();
+    });
+  });
+
+  describe('Controlled Revision / Addenda Basis (Section 7)', () => {
+    it('rejects unapproved addendum in Ashrae621ZoneService with BLOCKED', () => {
+      const ezCooling = StandardDataProvider.get621EzValues('2022').find(e => e.id === 'ez-1')!;
+      const spaceOffice = StandardDataProvider.get621SpaceTypes('2022').find(s => s.id === 'office')!;
+
+      const res = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        expectedAddenda: ['k'], // Unapproved addendum!
+        spaceType: spaceOffice,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: true,
+        ezConfig: ezCooling
+      });
+
+      expect(res.status).toBe('BLOCKED');
+      expect(res.reason).toContain('Unapproved addenda');
+      expect(res.voz).toBeNull();
+    });
+
+    it('rejects unapproved addendum in Ashrae621ExhaustService with BLOCKED', () => {
+      const publicToilet = StandardDataProvider.get621ExhaustRates('2022').find(e => e.id === 'toilet_public')!;
+
+      const res = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        expectedAddenda: ['y'], // Unapproved exhaust addendum!
+        exhaustType: publicToilet,
+        qty: 2,
+        designExhaust: 50
+      });
+
+      expect(res.status).toBe('BLOCKED');
+      expect(res.instructionalMessage).toContain('Unapproved exhaust addenda');
+      expect(res.requiredExhaust).toBeNull();
+    });
+  });
+
+  describe('Default Ez ID & Multi-Zone UI Runtime Smoke Tests (Sections 2 & 3)', () => {
+    it('verifies default Ez resolves to verified ez-1 Table 6-4 ceiling cool air record', () => {
+      const ezValues = StandardDataProvider.get621EzValues('2022');
+      const defaultEz = ezValues.find(e => e.id === 'ez-1');
+
+      expect(defaultEz).toBeDefined();
+      expect(defaultEz?.ez).toBe(1.0);
+      expect(defaultEz?.verificationStatus).toBe('VERIFIED');
+      expect(defaultEz?.reference).toBe('Table 6-4');
+      expect(defaultEz?.name.toLowerCase()).toContain('ceiling supply of cool air');
+    });
+
+    it('proves multi-zone engine result exposes zoneResults and audit-trail extraction does not throw', () => {
+      const ezCooling = StandardDataProvider.get621EzValues('2022').find(e => e.id === 'ez-1')!;
+      const spaceOffice = StandardDataProvider.get621SpaceTypes('2022').find(s => s.id === 'office')!;
+
+      const mzResult = VentilationEngine.runMultiZone({
+        method: 'Simplified',
+        edition: '2022',
+        systemType: 'single_supply',
+        airDistributionType: 'CV',
+        systemPopulation: 10,
+        density: { elevation: 0, temperature: 20 },
+        zones: [
+          {
+            expectedStandard: 'ASHRAE 62.1',
+            expectedEdition: '2022',
+            spaceType: spaceOffice,
+            area: 100,
+            designOccupancy: 5,
+            useDefaultOccupancy: true,
+            ezConfig: ezCooling,
+            dMode: 'CV'
+          },
+          {
+            expectedStandard: 'ASHRAE 62.1',
+            expectedEdition: '2022',
+            spaceType: spaceOffice,
+            area: 100,
+            designOccupancy: 5,
+            useDefaultOccupancy: true,
+            ezConfig: ezCooling,
+            dMode: 'CV'
+          }
+        ]
+      });
+
+      expect(mzResult.status).toBe('PASS');
+      // Crucial Section 3 check: Property must be zoneResults, not zones
+      expect(mzResult.zoneResults).toBeDefined();
+      expect(Array.isArray(mzResult.zoneResults)).toBe(true);
+      expect(mzResult.zoneResults.length).toBe(2);
+
+      // Verify the UI audit-trail extraction logic does NOT throw:
+      const allAuditTrails: any[] = [];
+      expect(() => {
+        if (mzResult.zoneResults) {
+          mzResult.zoneResults.forEach(z => {
+            if (z?.auditTrail) allAuditTrails.push(...z.auditTrail);
+          });
+        }
+        if (mzResult.simplifiedSystem?.auditTrail) allAuditTrails.push(...mzResult.simplifiedSystem.auditTrail);
+        if (mzResult.alternativeSystem?.auditTrail) allAuditTrails.push(...mzResult.alternativeSystem.auditTrail);
+        if (mzResult.density?.auditTrail) allAuditTrails.push(...mzResult.density.auditTrail);
+        if (mzResult.auditTrail) allAuditTrails.push(...mzResult.auditTrail);
+      }).not.toThrow();
+
+      expect(allAuditTrails.length).toBeGreaterThan(0);
     });
   });
 });

@@ -3,6 +3,7 @@ import { DensityCorrectionService, DensityInput, DensityResult } from './Density
 import { ValidationStatus, VentilationValidationService } from '../calculations/ventilation/VentilationValidationService';
 import { Ashrae621SimplifiedSystemService, SimplifiedSystemInput, SimplifiedSystemResult } from '../calculations/ventilation/Ashrae621SimplifiedSystemService';
 import { Ashrae621AlternativeSystemService, AlternativeSystemInput, AlternativeSystemResult } from '../calculations/ventilation/Ashrae621AlternativeSystemService';
+import { CalculationAuditRecord, EngineeringAuditService } from '../calculations/audit/EngineeringAuditContract';
 
 export interface SingleZoneInput {
   edition?: "2019" | "2022" | "2025";
@@ -19,6 +20,7 @@ export interface SingleZoneResult {
   auditTrail: AuditTrailItem[];
   revisionState: string;
   status: ValidationStatus;
+  auditRecord?: CalculationAuditRecord;
 }
 
 export interface MultiZoneInput {
@@ -51,6 +53,7 @@ export interface MultiZoneResult {
   auditTrail: AuditTrailItem[];
   revisionState: string;
   status: ValidationStatus;
+  auditRecord?: CalculationAuditRecord;
 }
 
 export class VentilationEngine {
@@ -186,10 +189,18 @@ export class VentilationEngine {
     const statuses = [zoneResult.status, densityResult.status];
     const status = VentilationValidationService.aggregateStatus(statuses);
     
+    let auditRecord: CalculationAuditRecord | undefined;
+    try {
+      auditRecord = EngineeringAuditService.fromZoneCalculation(zoneInput, zoneResult);
+    } catch {
+      // Safe fallback
+    }
+
     if (status === 'FAIL' || status === 'INCOMPLETE' || status === 'NOT_VERIFIED' || status === 'BLOCKED') {
         return {
           zone: zoneResult, density: densityResult, voz: null, vot: null, 
-          finalDesignOutdoorAir: null, auditTrail: [], revisionState: input.zone?.spaceType?.revisionState.source || 'Unknown', status
+          finalDesignOutdoorAir: null, auditTrail: [], revisionState: input.zone?.spaceType?.revisionState.source || 'Unknown', status,
+          auditRecord
         };
     }
     
@@ -204,7 +215,8 @@ export class VentilationEngine {
       finalDesignOutdoorAir: vot,
       auditTrail,
       revisionState: input.zone?.spaceType?.revisionState.source || 'Unknown',
-      status
+      status,
+      auditRecord
     };
   }
 
@@ -415,6 +427,23 @@ export class VentilationEngine {
         if(finalStatus === 'PASS') finalStatus = 'INCOMPLETE';
     }
     
+    let auditRecord: CalculationAuditRecord | undefined;
+    try {
+      if (simplifiedSystem) {
+        auditRecord = EngineeringAuditService.fromSimplifiedSystem({
+          ps: input.systemPopulation,
+          zones: input.zones
+        }, simplifiedSystem);
+      } else if (alternativeSystem) {
+        auditRecord = EngineeringAuditService.fromAlternativeSystem({
+          ps: input.systemPopulation,
+          vps: input.vps
+        }, alternativeSystem);
+      }
+    } catch {
+      // Safe fallback
+    }
+
     return {
       zoneResults,
       density: densityResult,
@@ -431,7 +460,8 @@ export class VentilationEngine {
       finalDesignOutdoorAir: vot,
       auditTrail,
       revisionState: input.zones.length > 0 ? (input.zones[0].spaceType?.revisionState.source || 'Unknown') : 'Unknown',
-      status: finalStatus
+      status: finalStatus,
+      auditRecord
     };
   }
 }

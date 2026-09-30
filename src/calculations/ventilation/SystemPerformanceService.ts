@@ -333,6 +333,7 @@ export class SystemPerformanceService {
         complianceSummary: UTILITY_NOTICE
       },
       validationStatus: 'PASS',
+      authoritativeEligible: false,
       warnings: [...warnings, UTILITY_NOTICE]
     });
 

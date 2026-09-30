@@ -27,6 +27,8 @@ export interface ZoneVentilationInput {
   id?: string;
   expectedStandard: string;
   expectedEdition: string;
+  expectedAddenda?: string[];
+  addenda?: string[];
   spaceType: Ashrae621SpaceType | null;
   area: number; // m2
   designOccupancy: number | null;
@@ -90,6 +92,15 @@ export class Ashrae621ZoneService {
     }
     if (!input.ezConfig) {
       return this.emptyResult('INCOMPLETE', 'Missing Ez configuration');
+    }
+
+    // Check for unapproved addenda
+    const requestedAddenda = input.expectedAddenda || input.addenda;
+    if (requestedAddenda && requestedAddenda.length > 0) {
+      const unapproved = requestedAddenda.filter(a => a.toLowerCase() !== 'j');
+      if (unapproved.length > 0) {
+        return this.emptyResult('BLOCKED', `Unapproved addenda requested: [${unapproved.join(', ')}]. Controlled commercial basis is restricted to ANSI/ASHRAE Standard 62.1-2022 + Addendum j.`);
+      }
     }
 
     if (input.area === null || isNaN(input.area) || input.area <= 0 || !isFinite(input.area)) {

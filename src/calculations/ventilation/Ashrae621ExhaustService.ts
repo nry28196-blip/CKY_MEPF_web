@@ -21,6 +21,8 @@ export type ExhaustRateStatus =
 export interface ExhaustInput {
   expectedStandard: string;
   expectedEdition: string;
+  expectedAddenda?: string[];
+  addenda?: string[];
   exhaustType: Ashrae621ExhaustType | null;
   qty: number | null; // Quantity depending on unitType (e.g., m2, ft2, fixtures, rooms, showerheads)
   designExhaust: number | null; // User's design value in active unitSystem (L/s or cfm)
@@ -232,6 +234,42 @@ export class Ashrae621ExhaustService {
   static calculate(input: ExhaustInput): ExhaustResult {
     const operationMode: ExhaustOperationMode = input.operationMode || 'continuous';
     const unitSystem: ExhaustUnitSystem = input.unitSystem || 'metric';
+
+    // Check for unapproved addenda
+    const requestedAddenda = input.expectedAddenda || input.addenda;
+    if (requestedAddenda && requestedAddenda.length > 0) {
+      const unapproved = requestedAddenda.filter(a => a.toLowerCase() !== 'x');
+      if (unapproved.length > 0) {
+        const msg = `Unapproved exhaust addenda requested: [${unapproved.join(', ')}]. Controlled exhaust basis is restricted to ANSI/ASHRAE Standard 62.1-2022 + Addendum x.`;
+        const exhaustType = input.exhaustType;
+        const airClass = exhaustType?.airClass ?? exhaustType?.exhaustClass ?? null;
+        const exhaustClass = exhaustType?.exhaustClass ?? exhaustType?.airClass ?? null;
+        return {
+          requiredExhaust: null,
+          requiredExhaustMetric: null,
+          requiredExhaustIp: null,
+          designExhaust: input.designExhaust ?? null,
+          unitType: exhaustType?.unitType || 'unknown',
+          exhaustClass,
+          airClass,
+          operationMode,
+          rateApplied: null,
+          rateAppliedMetric: null,
+          rateAppliedIp: null,
+          status: 'BLOCKED',
+          rateStatus: 'NOT_APPLICABLE',
+          compliancePath: 'PRESCRIPTIVE',
+          pathStatus: 'BLOCKED',
+          instructionalMessage: msg,
+          message: msg,
+          isSpecialStandard: false,
+          recirculationClassification: getRecirculationClassification(airClass),
+          referenceSection: '6.5.1',
+          referenceTable: exhaustType?.referenceTable || 'Table 6-2',
+          complianceNotes: [msg]
+        };
+      }
+    }
 
     // 0. Performance Compliance Path Check (Section 6.5.2)
     // Section 6.5.2 requires an independent engineering evaluation. It is NOT implemented in the prescriptive engine.

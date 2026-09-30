@@ -7,11 +7,9 @@ import EngineeringWarning from './EngineeringWarning';
 import AuditTrailTable from './AuditTrailTable';
 import EngineeringStatusHeader from './common/EngineeringStatusHeader';
 
-import { VentilationEngine, MultiZoneInput, SingleZoneInput } from '../lib/VentilationEngine';
+import { VentilationEngine, MultiZoneInput, SingleZoneInput, SingleZoneResult, MultiZoneResult } from '../lib/VentilationEngine';
 import { UnitConversionService, ft2ToM2 } from "../lib/UnitConversionService";
 import { StandardDataProvider, AshraeEdition } from '../data/ventilation/StandardDataProvider';
-
-
 
 interface ZoneState {
   id: string;
@@ -44,6 +42,11 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
   const spaceTypes = StandardDataProvider.get621SpaceTypes(edition);
   const ezValues = StandardDataProvider.get621EzValues(edition);
 
+  // Authoritative default Ez: verified Table 6-4 ceiling cool air distribution (ez-1)
+  const defaultEzId = ezValues.find(e => e.id === 'ez-1' && e.verificationStatus === 'VERIFIED')?.id 
+    || ezValues.find(e => e.verificationStatus === 'VERIFIED')?.id 
+    || 'ez-1';
+
   const [altitude, setAltitude] = useState<number>(0);
   const [airTemp, setAirTemp] = useState<number>(isMetric ? 20 : 68);
 
@@ -55,7 +58,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
       area: isMetric ? 100 : 1000,
       occupants: 5,
       useDefaultOccupancy: true,
-      ezId: 'ez_cooling_ceiling',
+      ezId: 'ez-1',
       primaryAirflow: isMetric ? 400 : 800,
       vpzMin: '',
       ep: 1.0,
@@ -74,7 +77,7 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
         area: isMetric ? 100 : 1000,
         occupants: 5,
         useDefaultOccupancy: true,
-        ezId: 'ez_cooling_ceiling',
+        ezId: defaultEzId,
         primaryAirflow: isMetric ? 400 : 800,
         vpzMin: '',
         ep: 1.0,
@@ -182,14 +185,19 @@ export default function Ashrae621VentilationCalc({ onVentilationChange, edition 
   // Extract all audit trails for report
   const allAuditTrails = [];
   if (systemType === 'single') {
-    const sr = engineResult as any;
-    allAuditTrails.push(...sr.zone.auditTrail, ...sr.density.auditTrail, ...(sr.auditTrail || []));
+    const sr = engineResult as SingleZoneResult;
+    allAuditTrails.push(...(sr.zone?.auditTrail || []), ...(sr.density?.auditTrail || []), ...(sr.auditTrail || []));
   } else {
-    const mr = engineResult as any;
-    mr.zones.forEach((z: any) => allAuditTrails.push(...z.auditTrail));
-    if (mr.simplifiedSystem) allAuditTrails.push(...mr.simplifiedSystem.auditTrail);
-    if (mr.alternativeSystem) allAuditTrails.push(...mr.alternativeSystem.auditTrail);
-    allAuditTrails.push(...mr.density.auditTrail, ...(mr.auditTrail || []));
+    const mr = engineResult as MultiZoneResult;
+    if (mr.zoneResults) {
+      mr.zoneResults.forEach(z => {
+        if (z?.auditTrail) allAuditTrails.push(...z.auditTrail);
+      });
+    }
+    if (mr.simplifiedSystem?.auditTrail) allAuditTrails.push(...mr.simplifiedSystem.auditTrail);
+    if (mr.alternativeSystem?.auditTrail) allAuditTrails.push(...mr.alternativeSystem.auditTrail);
+    if (mr.density?.auditTrail) allAuditTrails.push(...mr.density.auditTrail);
+    if (mr.auditTrail) allAuditTrails.push(...mr.auditTrail);
   }
 
   return (

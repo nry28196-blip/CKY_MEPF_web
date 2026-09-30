@@ -17,7 +17,7 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
   const { t } = useLanguage();
   const { unitSystem } = useUnit();
   
-  const [ventMode, setVentMode] = useState<'standard' | 'exhaust' | 'balance' | 'kitchen' | 'residential'>(
+  const [ventMode, setVentMode] = useState<'standard' | 'exhaust' | 'balance' | 'kitchen' | 'residential' | 'system_perf'>(
     isResidentialStandard ? 'residential' : 'standard'
   );
   const [isRefModalOpen, setIsRefModalOpen] = useState(false);
@@ -33,16 +33,18 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
   const getActiveBaseline = () => {
     switch (ventMode) {
       case 'residential':
-        return 'ASHRAE 62.2-2022 (Residential)';
+        return 'ASHRAE 62.2-2022 [AUTHORITATIVE PRODUCTION CALCULATION - RESIDENTIAL]';
       case 'exhaust':
-        return 'ASHRAE 62.1-2022 (Commercial Exhaust)';
+        return 'ASHRAE 62.1-2022 + Addendum x [AUTHORITATIVE PRODUCTION CALCULATION - PRESCRIPTIVE]';
       case 'balance':
-        return 'Engineering Diagnostic Utility (Volumetric Air-Balance)';
+        return 'Volumetric Air-Balance Diagnostic Utility [NON-AUTHORITATIVE DIAGNOSTIC]';
       case 'kitchen':
-        return 'ASHRAE 154 / IMC 507 (Kitchen Hood Diagnostic)';
+        return 'Commercial Kitchen Hood Sizing Diagnostic [NON-AUTHORITATIVE DIAGNOSTIC]';
+      case 'system_perf':
+        return 'Fan & Duct Aerodynamic Performance Estimator [NON-AUTHORITATIVE DIAGNOSTIC]';
       case 'standard':
       default:
-        return 'ASHRAE 62.1-2022 (Commercial)';
+        return 'ASHRAE 62.1-2022 + Addendum j [AUTHORITATIVE PRODUCTION CALCULATION]';
     }
   };
 
@@ -53,13 +55,21 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
       {/* Active Standard Basis Banner */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 border border-slate-800 p-3 rounded-xl">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
-          <span className="text-xs font-mono font-bold text-cyan-300">
-            Active Baseline: {getActiveBaseline()}
+          <span className={`w-2.5 h-2.5 rounded-full ${
+            ventMode === 'standard' || ventMode === 'exhaust' || ventMode === 'residential'
+              ? 'bg-cyan-400'
+              : 'bg-amber-400'
+          }`}></span>
+          <span className={`text-xs font-mono font-bold ${
+            ventMode === 'standard' || ventMode === 'exhaust' || ventMode === 'residential'
+              ? 'text-cyan-300'
+              : 'text-amber-300'
+          }`}>
+            Active Mode: {getActiveBaseline()}
           </span>
         </div>
         <div className="text-[11px] font-mono text-slate-400">
-          Status: <span className="text-emerald-400 font-semibold">FROZEN TO 2022</span> | 2025: <span className="text-slate-500 font-semibold">DEFERRED</span>
+          Status: <span className="text-emerald-400 font-semibold">FROZEN TO 2022 BASIS</span> | Future/2025: <span className="text-slate-500 font-semibold">BLOCKED</span>
         </div>
       </div>
 
@@ -67,23 +77,31 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-wider">
           {[
-            { id: 'standard', label: 'Zone / VAV (ASHRAE 62.1)' },
-            { id: 'exhaust', label: 'Commercial Exhaust' },
-            { id: 'balance', label: 'Air Balance (Diagnostic)' },
-            { id: 'kitchen', label: 'Kitchen Hood' },
-            { id: 'residential', label: 'Residential (62.2)' }
+            { id: 'standard', label: 'Zone / VAV (ASHRAE 62.1)', isAuth: true },
+            { id: 'exhaust', label: 'Commercial Exhaust (62.1)', isAuth: true },
+            { id: 'balance', label: 'Air Balance (Diag)', isAuth: false },
+            { id: 'kitchen', label: 'Kitchen Hood (Diag)', isAuth: false },
+            { id: 'system_perf', label: 'Fan & Duct (Diag)', isAuth: false },
+            { id: 'residential', label: 'Residential (62.2)', isAuth: true }
           ].map(mod => (
             <button
               key={mod.id}
               type="button"
               onClick={() => setVentMode(mod.id as any)}
-              className={`px-3 py-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 transition-all cursor-pointer flex items-center gap-1.5 ${
                 ventMode === mod.id
-                  ? 'bg-cyan-950/30 text-cyan-400 border border-cyan-500/50 rounded-lg'
+                  ? mod.isAuth
+                    ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-500/50 rounded-lg'
+                    : 'bg-amber-950/40 text-amber-400 border border-amber-500/50 rounded-lg'
                   : 'text-slate-500 hover:text-slate-300 border border-transparent rounded-lg'
               }`}
             >
-              {mod.label}
+              <span>{mod.label}</span>
+              <span className={`text-[9px] px-1 py-0.2 rounded font-mono ${
+                mod.isAuth ? 'bg-cyan-900/60 text-cyan-300' : 'bg-amber-900/60 text-amber-300'
+              }`}>
+                {mod.isAuth ? 'PROD' : 'DIAG'}
+              </span>
             </button>
           ))}
         </div>
@@ -109,6 +127,7 @@ export default function VentilationCalc({ onVentilationChange, governingStandard
         {ventMode === 'exhaust' && <Ashrae621ExhaustCalc />}
         {ventMode === 'balance' && <AirBalanceCalc />}
         {ventMode === 'kitchen' && <KitchenVentilationCalc />}
+        {ventMode === 'system_perf' && <SystemPerformanceCalc />}
         {ventMode === 'residential' && <ResidentialVentilationCalc />}
       </div>
     </div>

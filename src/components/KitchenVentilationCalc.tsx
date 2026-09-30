@@ -1,20 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Wind, Activity, CheckCircle2, AlertTriangle, ChefHat, BookOpen, Calculator, Info, ThermometerSun, Maximize } from 'lucide-react';
 import { useLanguage } from '../lib/translations';
 import { useUnit } from '../lib/UnitContext';
-import { UnitConversionService } from '../lib/UnitConversionService';
 import TooltipLabel from './TooltipLabel';
+import EngineeringStatusHeader from './common/EngineeringStatusHeader';
+import AuditTrailTable from './AuditTrailTable';
+import { 
+  KitchenVentilationService, 
+  KitchenVentilationInput, 
+  KitchenVentilationResult, 
+  KitchenHoodStandard, 
+  KitchenHoodType, 
+  KitchenThermalDuty,
+  KITCHEN_DIAGNOSTIC_NOTICE 
+} from '../calculations/ventilation/KitchenVentilationService';
 
 export default function KitchenVentilationCalc() {
   const { t } = useLanguage();
   const { unitSystem } = useUnit();
   const isMetric = unitSystem === 'metric';
 
-  const [hoodStandard, setHoodStandard] = useState<'unlisted' | 'listed' | 'performance'>('unlisted');
+  const [hoodStandard, setHoodStandard] = useState<KitchenHoodStandard>('unlisted');
   
   // Base Parameters
-  const [hoodType, setHoodType] = useState<'wall' | 'single_island' | 'double_island' | 'backshelf' | 'eyebrow'>('wall');
-  const [duty, setDuty] = useState<'light' | 'medium' | 'heavy' | 'extra'>('medium');
+  const [hoodType, setHoodType] = useState<KitchenHoodType>('wall');
+  const [duty, setDuty] = useState<KitchenThermalDuty>('medium');
   const [equipmentLength, setEquipmentLength] = useState<number>(isMetric ? 3 : 10);
   const [overhang, setOverhang] = useState<number>(isMetric ? 0.3 : 1.0);
   
@@ -33,79 +43,36 @@ export default function KitchenVentilationCalc() {
 
   const [ductVelocity, setDuctVelocity] = useState<number>(isMetric ? 7.6 : 1500);
 
-  // IMC 507.5 Base Rates (CFM per linear foot of hood)
-  // [Hood Type][Duty] = CFM/ft
-  const imcRates = {
-    wall: { light: 200, medium: 300, heavy: 400, extra: 550 },
-    single_island: { light: 400, medium: 500, heavy: 600, extra: 700 },
-    double_island: { light: 250, medium: 300, heavy: 400, extra: 550 },
-    backshelf: { light: 250, medium: 300, heavy: 400, extra: 0 },
-    eyebrow: { light: 250, medium: 250, heavy: 250, extra: 0 },
-  };
-
   const lenUnit = isMetric ? 'm' : 'ft';
   const flowUnit = isMetric ? 'L/s' : 'CFM';
   const velUnit = isMetric ? 'm/s' : 'FPM';
   const areaUnit = isMetric ? 'cm²' : 'sq.in';
 
-  // State for results
-  const [exhaustAirflow, setExhaustAirflow] = useState<number>(0);
-  const [ductArea, setDuctArea] = useState<number>(0);
-  const [hoodLength, setHoodLength] = useState<number>(0);
-  const [faceVelocity, setFaceVelocity] = useState<number>(0);
-  
-  const notAllowed = hoodStandard === 'unlisted' && imcRates[hoodType][duty] === 0;
-  
   const totalMuaRatio = muaTransfer + muaCeiling + muaPerimeter + muaInternal;
 
-  useEffect(() => {
-    let cfm = 0;
-    
-    // Hood Length = Equipment Length + (2 * overhang for side overhangs, simplified)
-    const eqLenFt = isMetric ? equipmentLength * 3.28084 : equipmentLength;
-    const overhangFt = isMetric ? overhang * 3.28084 : overhang;
-    const depthFt = isMetric ? hoodDepth * 3.28084 : hoodDepth;
-    const hLenFt = eqLenFt + (2 * overhangFt);
-    
-    if (hoodStandard === 'unlisted') {
-      const baseRateCfm = imcRates[hoodType][duty];
-      cfm = hLenFt * baseRateCfm;
-    } else if (hoodStandard === 'listed') {
-      if (isMetric) {
-         const flowLs = listedFlowPerLength * (equipmentLength + 2*overhang);
-         cfm = flowLs * 2.11888;
-      } else {
-         cfm = listedFlowPerLength * hLenFt;
-      }
-    } else if (hoodStandard === 'performance') {
-      // Q = V * A
-      const faceAreaSqFt = hLenFt * depthFt;
-      const targetVelFpm = isMetric ? captureVelocity * 196.85 : captureVelocity;
-      cfm = targetVelFpm * faceAreaSqFt;
-    }
+  const input: KitchenVentilationInput = {
+    hoodStandard,
+    hoodType,
+    duty,
+    equipmentLength,
+    overhang,
+    hoodDepth,
+    captureVelocity,
+    listedFlowPerLength,
+    ductVelocity,
+    muaTransfer,
+    muaCeiling,
+    muaPerimeter,
+    muaInternal,
+    isMetric
+  };
 
-    // Convert back to metric if needed
-    const finalFlow = isMetric ? UnitConversionService.cfmToLs(cfm) : cfm;
-    setExhaustAirflow(finalFlow);
-    setHoodLength(isMetric ? UnitConversionService.ftToM(hLenFt) : hLenFt);
+  const result: KitchenVentilationResult = KitchenVentilationService.calculate(input);
 
-    // Calculate actual face velocity for unlisted/listed
-    const faceAreaSqFt = hLenFt * depthFt;
-    const actualVelFpm = faceAreaSqFt > 0 ? cfm / faceAreaSqFt : 0;
-    setFaceVelocity(isMetric ? actualVelFpm / 196.85 : actualVelFpm);
-
-    // Duct Area
-    if (ductVelocity > 0) {
-      if (isMetric) {
-         const m3s = finalFlow / 1000;
-         setDuctArea((m3s / ductVelocity) * 10000);
-      } else {
-         setDuctArea((finalFlow / ductVelocity) * 144);
-      }
-    } else {
-      setDuctArea(0);
-    }
-  }, [hoodStandard, hoodType, duty, equipmentLength, overhang, listedFlowPerLength, captureVelocity, hoodDepth, ductVelocity, isMetric]);
+  const exhaustAirflow = result.exhaustAirflow ?? 0;
+  const hoodLength = result.hoodLength ?? 0;
+  const faceVelocity = result.faceVelocity ?? 0;
+  const ductArea = result.ductArea ?? 0;
 
   const muaTotalFlow = exhaustAirflow * (totalMuaRatio / 100);
   const muaTransferFlow = exhaustAirflow * (muaTransfer / 100);
@@ -116,16 +83,39 @@ export default function KitchenVentilationCalc() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-          Calculation Basis: ANSI/ASHRAE Standard 154 / IMC 507 / NFPA 96
+        <div className="text-xs font-mono font-bold text-amber-400 bg-amber-950/40 border border-amber-800/60 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+          Utility Basis: Commercial Kitchen Hood Sizing Diagnostic (Non-ASHRAE 62.1 Path)
         </div>
       </div>
+
+      <EngineeringStatusHeader 
+        status="NOT_READY_FOR_ENGINEERING_USE" 
+        message="Engineering Diagnostic Utility: Commercial kitchen exhaust estimation based on IMC 507 / ASHRAE 154 guidelines. Not an official code compliance determination or engineering sign-off."
+        className="mb-4"
+      />
+
+      {result.reasons.length > 0 && (
+        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl space-y-1">
+          <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">Invalid Diagnostic Parameter(s):</p>
+          {result.reasons.map((r, i) => (
+            <p key={i} className="text-xs text-rose-300 font-mono">• {r}</p>
+          ))}
+        </div>
+      )}
+
+      {result.warnings.length > 0 && (
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-1">
+          {result.warnings.map((w, i) => (
+            <p key={i} className="text-[11px] text-amber-300 font-mono">• {w}</p>
+          ))}
+        </div>
+      )}
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
           <h3 className="text-sm font-semibold text-white mb-5 flex items-center">
             <ChefHat className="w-4 h-4 mr-2 text-rose-400" />
-            Kitchen Hood Parameters
+            Kitchen Hood Parameters (Diagnostic)
           </h3>
           
           <div className="flex bg-slate-950 p-1 rounded-lg mb-6 border border-slate-800">
@@ -133,19 +123,19 @@ export default function KitchenVentilationCalc() {
               onClick={() => setHoodStandard('unlisted')}
               className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded ${hoodStandard === 'unlisted' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-500 hover:text-slate-300'}`}
             >
-              Unlisted (IMC)
+              Unlisted (IMC 507)
             </button>
             <button 
               onClick={() => setHoodStandard('listed')}
               className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded ${hoodStandard === 'listed' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-500 hover:text-slate-300'}`}
             >
-              Listed
+              Listed (UL 710)
             </button>
             <button 
               onClick={() => setHoodStandard('performance')}
               className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded ${hoodStandard === 'performance' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-500 hover:text-slate-300'}`}
             >
-              C&C (F1704)
+              Capture Velocity (Diagnostic)
             </button>
           </div>
 
@@ -333,13 +323,15 @@ export default function KitchenVentilationCalc() {
             </div>
           </div>
  
-          {notAllowed ? (
+          {result.status !== 'PASS' ? (
             <div className="bg-red-950/20 border border-red-900/50 p-6 rounded-xl flex flex-col items-center justify-center text-center">
                <AlertTriangle className="w-10 h-10 text-red-500 mb-4" />
-               <h4 className="text-sm font-bold text-red-400 uppercase">Configuration Not Allowed</h4>
-               <p className="text-xs text-red-300 mt-2">
-                 Per IMC 507, {duty} duty equipment is not permitted under a {hoodType.replace('_', ' ')} hood.
-               </p>
+               <h4 className="text-sm font-bold text-red-400 uppercase">Calculation Blocked / Invalid</h4>
+               <div className="text-xs text-red-300 mt-2 space-y-1">
+                 {result.reasons.map((r, i) => (
+                   <p key={i}>• {r}</p>
+                 ))}
+               </div>
             </div>
           ) : (
             <>
