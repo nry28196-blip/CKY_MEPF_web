@@ -3,6 +3,7 @@ import { Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
 import { DataProvenanceValidationService } from './DataProvenanceValidationService';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 import { ft2ToM2, m2ToFt2 } from '../../lib/UnitConversionService';
+import { normalizeAddendumIdentifier } from '../scope/ProductionCalculationScope';
 
 export type ExhaustOperationMode = 'continuous' | 'intermittent';
 export type ExhaustUnitSystem = 'metric' | 'ip';
@@ -238,7 +239,7 @@ export class Ashrae621ExhaustService {
     // Check for unapproved addenda
     const requestedAddenda = input.expectedAddenda || input.addenda;
     if (requestedAddenda && requestedAddenda.length > 0) {
-      const unapproved = requestedAddenda.filter(a => a.toLowerCase() !== 'x');
+      const unapproved = requestedAddenda.filter(a => normalizeAddendumIdentifier(a) !== 'x');
       if (unapproved.length > 0) {
         const msg = `Unapproved exhaust addenda requested: [${unapproved.join(', ')}]. Controlled exhaust basis is restricted to ANSI/ASHRAE Standard 62.1-2022 + Addendum x.`;
         const exhaustType = input.exhaustType;

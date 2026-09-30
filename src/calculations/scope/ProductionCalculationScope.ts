@@ -295,7 +295,10 @@ export class ProductionScopeService {
    * Rejects unapproved addenda from the broader published standard universe.
    */
   static isAddendumAllowed(addendum: string): boolean {
-    return this.getVentilationScope().allowedAddenda.includes(addendum);
+    const norm = normalizeAddendumIdentifier(addendum);
+    return this.getVentilationScope().allowedAddenda.some(
+      allowed => normalizeAddendumIdentifier(allowed) === norm
+    );
   }
 
   /**
@@ -303,7 +306,11 @@ export class ProductionScopeService {
    */
   static validateAddendum(addendum: string): ScopeValidationResult {
     const scope = this.getVentilationScope();
-    if (scope.allowedAddenda.includes(addendum)) {
+    const norm = normalizeAddendumIdentifier(addendum);
+    const isAllowed = scope.allowedAddenda.some(
+      allowed => normalizeAddendumIdentifier(allowed) === norm
+    );
+    if (isAllowed) {
       return { allowed: true, status: 'PASS', reasons: [] };
     }
     return {
@@ -324,4 +331,26 @@ export class ProductionScopeService {
       throw new Error(`PRODUCTION_SCOPE_VIOLATION: ${validation.reasons.join('; ')}`);
     }
   }
+}
+
+/**
+ * Universal Addendum Identifier Normalization Helper.
+ * Normalizes equivalent representations of an addendum identifier to a canonical lowercase token.
+ * Examples:
+ * - "Addendum j" -> "j"
+ * - " addendum J " -> "j"
+ * - "J" -> "j"
+ * - "j" -> "j"
+ * - "Addendum x" -> "x"
+ * - "X" -> "x"
+ * - "x" -> "x"
+ */
+export function normalizeAddendumIdentifier(raw: string | null | undefined): string {
+  if (!raw || typeof raw !== 'string') return '';
+  const trimmed = raw.trim().toLowerCase();
+  const match = trimmed.match(/^(?:addend(?:um|a)[\s\-_:]*)?([a-z0-9]+)$/i);
+  if (match) {
+    return match[1].toLowerCase();
+  }
+  return trimmed;
 }

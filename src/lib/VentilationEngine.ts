@@ -21,6 +21,8 @@ export interface SingleZoneResult {
   revisionState: string;
   status: ValidationStatus;
   auditRecord?: CalculationAuditRecord;
+  isAuthoritative?: boolean;
+  isApprovedForEngineeringUse?: boolean;
 }
 
 export interface MultiZoneInput {
@@ -54,6 +56,8 @@ export interface MultiZoneResult {
   revisionState: string;
   status: ValidationStatus;
   auditRecord?: CalculationAuditRecord;
+  isAuthoritative?: boolean;
+  isApprovedForEngineeringUse?: boolean;
 }
 
 export class VentilationEngine {
@@ -87,7 +91,9 @@ export class VentilationEngine {
         finalDesignOutdoorAir: null,
         auditTrail: [],
         revisionState: 'OUTSIDE_SCOPE',
-        status: 'BLOCKED'
+        status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
       };
     }
 
@@ -117,7 +123,9 @@ export class VentilationEngine {
         finalDesignOutdoorAir: null,
         auditTrail: [],
         revisionState: 'DEFERRED_2025_NON_PRODUCTION',
-        status: 'BLOCKED'
+        status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
       };
     }
 
@@ -146,7 +154,9 @@ export class VentilationEngine {
         finalDesignOutdoorAir: null,
         auditTrail: [],
         revisionState: 'ARCHIVED_2019_NON_PRODUCTION',
-        status: 'BLOCKED'
+        status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
       };
     }
 
@@ -175,7 +185,9 @@ export class VentilationEngine {
         finalDesignOutdoorAir: null,
         auditTrail: [],
         revisionState: 'UNAPPROVED_EDITION_NON_PRODUCTION',
-        status: 'BLOCKED'
+        status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
       };
     }
     
@@ -192,19 +204,43 @@ export class VentilationEngine {
     let auditRecord: CalculationAuditRecord | undefined;
     try {
       auditRecord = EngineeringAuditService.fromZoneCalculation(zoneInput, zoneResult);
-    } catch {
-      // Safe fallback
+      if (!auditRecord || typeof auditRecord !== 'object') {
+        throw new Error('Audit record creation returned invalid data');
+      }
+    } catch (auditError) {
+      // FAIL-CLOSED: Authoritative production calculation CANNOT succeed if audit record creation fails.
+      return {
+        zone: {
+          ...zoneResult,
+          status: 'FAIL',
+          reason: `Audit generation failed: ${auditError instanceof Error ? auditError.message : String(auditError)}`
+        },
+        density: densityResult,
+        voz: null,
+        vot: null,
+        finalDesignOutdoorAir: null,
+        auditTrail: [],
+        revisionState: input.zone?.spaceType?.revisionState?.source || 'Unknown',
+        status: 'FAIL',
+        auditRecord: undefined,
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
+      };
     }
 
     if (status === 'FAIL' || status === 'INCOMPLETE' || status === 'NOT_VERIFIED' || status === 'BLOCKED') {
         return {
           zone: zoneResult, density: densityResult, voz: null, vot: null, 
-          finalDesignOutdoorAir: null, auditTrail: [], revisionState: input.zone?.spaceType?.revisionState.source || 'Unknown', status,
-          auditRecord
+          finalDesignOutdoorAir: null, auditTrail: [], revisionState: input.zone?.spaceType?.revisionState?.source || 'Unknown', status,
+          auditRecord,
+          isAuthoritative: false,
+          isApprovedForEngineeringUse: false
         };
     }
     
-    const voz = zoneResult.voz; 
+    const isAuth = status === 'PASS' && auditRecord.finalResult.isAuthoritative === true;
+    const isApproved = status === 'PASS' && auditRecord.isApprovedForEngineeringUse === true;
+    const voz = isAuth ? zoneResult.voz : null; 
     const vot = voz;
     
     return {
@@ -214,9 +250,11 @@ export class VentilationEngine {
       vot,
       finalDesignOutdoorAir: vot,
       auditTrail,
-      revisionState: input.zone?.spaceType?.revisionState.source || 'Unknown',
+      revisionState: input.zone?.spaceType?.revisionState?.source || 'Unknown',
       status,
-      auditRecord
+      auditRecord,
+      isAuthoritative: isAuth,
+      isApprovedForEngineeringUse: isApproved
     };
   }
 
@@ -244,7 +282,9 @@ export class VentilationEngine {
         finalDesignOutdoorAir: null,
         auditTrail: [],
         revisionState: 'OUTSIDE_SCOPE',
-        status: 'BLOCKED'
+        status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
       };
     }
 
@@ -267,7 +307,9 @@ export class VentilationEngine {
         finalDesignOutdoorAir: null,
         auditTrail: [],
         revisionState: 'DEFERRED_2025_NON_PRODUCTION',
-        status: 'BLOCKED'
+        status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
       };
     }
 
@@ -289,7 +331,9 @@ export class VentilationEngine {
         finalDesignOutdoorAir: null,
         auditTrail: [],
         revisionState: 'ARCHIVED_2019_NON_PRODUCTION',
-        status: 'BLOCKED'
+        status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
       };
     }
 
@@ -315,7 +359,9 @@ export class VentilationEngine {
         finalDesignOutdoorAir: null,
         auditTrail: [],
         revisionState: 'UNAPPROVED_EDITION_NON_PRODUCTION',
-        status: 'BLOCKED'
+        status: 'BLOCKED',
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
       };
     }
     
@@ -437,31 +483,60 @@ export class VentilationEngine {
       } else if (alternativeSystem) {
         auditRecord = EngineeringAuditService.fromAlternativeSystem({
           ps: input.systemPopulation,
-          vps: input.vps
+          vps: input.vps ?? alternativeSystem.vps
         }, alternativeSystem);
       }
-    } catch {
-      // Safe fallback
+      if (finalStatus === 'PASS' && (!auditRecord || typeof auditRecord !== 'object')) {
+        throw new Error('Audit record creation returned invalid data for multi-zone calculation');
+      }
+    } catch (auditError) {
+      // FAIL-CLOSED: Authoritative multi-zone production calculation CANNOT succeed if audit record creation fails.
+      return {
+        zoneResults,
+        density: densityResult,
+        simplifiedSystem: null,
+        alternativeSystem: null,
+        vou: null,
+        ev: null,
+        vps: input.vps ?? null,
+        vpsDesignBasis: input.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition',
+        designCondition: input.designCondition || 'Cooling design',
+        airDistributionType: input.airDistributionType || (input.zones.some(z => z.dMode === 'VAV') ? 'VAV' : 'CV'),
+        xs: null,
+        vot: null,
+        finalDesignOutdoorAir: null,
+        auditTrail: [],
+        revisionState: input.zones.length > 0 ? (input.zones[0].spaceType?.revisionState?.source || 'Unknown') : 'Unknown',
+        status: 'FAIL',
+        auditRecord: undefined,
+        isAuthoritative: false,
+        isApprovedForEngineeringUse: false
+      };
     }
+
+    const isAuthoritative = finalStatus === 'PASS' && (auditRecord?.finalResult.isAuthoritative === true);
+    const isApprovedForEngineeringUse = finalStatus === 'PASS' && (auditRecord?.isApprovedForEngineeringUse === true);
 
     return {
       zoneResults,
       density: densityResult,
       simplifiedSystem,
       alternativeSystem,
-      vou,
+      vou: isAuthoritative ? vou : null,
       ev,
       vps,
       vpsDesignBasis: input.vpsDesignBasis || 'Highest expected system primary airflow at analyzed design condition',
       designCondition: input.designCondition || 'Cooling design',
       airDistributionType: input.airDistributionType || (input.zones.some(z => z.dMode === 'VAV') ? 'VAV' : 'CV'),
       xs,
-      vot,
-      finalDesignOutdoorAir: vot,
+      vot: isAuthoritative ? vot : null,
+      finalDesignOutdoorAir: isAuthoritative ? vot : null,
       auditTrail,
-      revisionState: input.zones.length > 0 ? (input.zones[0].spaceType?.revisionState.source || 'Unknown') : 'Unknown',
+      revisionState: input.zones.length > 0 ? (input.zones[0].spaceType?.revisionState?.source || 'Unknown') : 'Unknown',
       status: finalStatus,
-      auditRecord
+      auditRecord,
+      isAuthoritative,
+      isApprovedForEngineeringUse
     };
   }
 }

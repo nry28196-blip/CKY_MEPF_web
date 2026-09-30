@@ -320,6 +320,7 @@ export class KitchenVentilationService {
         complianceSummary: KITCHEN_DIAGNOSTIC_NOTICE
       },
       validationStatus: 'PASS',
+      authorityPolicy: 'DIAGNOSTIC',
       authoritativeEligible: false,
       warnings: [...warnings, KITCHEN_DIAGNOSTIC_NOTICE]
     });

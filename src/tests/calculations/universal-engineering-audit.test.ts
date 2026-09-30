@@ -448,6 +448,7 @@ describe('PROMPT 5 — Universal Engineering Audit & Provenance Contract', () =>
           value: 22.5,
           unit: 'gpm'
         },
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
         validationStatus: 'PASS'
       });
 
@@ -513,6 +514,7 @@ describe('PROMPT 5 — Universal Engineering Audit & Provenance Contract', () =>
           value: 19450,
           unit: 'VA'
         },
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
         validationStatus: 'PASS'
       });
 
@@ -567,6 +569,7 @@ describe('PROMPT 5 — Universal Engineering Audit & Provenance Contract', () =>
           value: 225.0,
           unit: 'gpm'
         },
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
         validationStatus: 'PASS'
       });
 
@@ -574,6 +577,145 @@ describe('PROMPT 5 — Universal Engineering Audit & Provenance Contract', () =>
       expect(fireAudit.standard).toBe('NFPA 13');
       expect(fireAudit.validationStatus).toBe('PASS');
       expect(fireAudit.finalResult.value).toBe(225.0);
+    });
+  });
+
+  // =========================================================================
+  // 7. EXPLICIT AUTHORITY POLICY SAFETY CONTRACT
+  // =========================================================================
+  describe('7. Explicit Authority Policy Safety Contract', () => {
+    const baseParams = {
+      system: 'HVAC',
+      standard: 'ASHRAE 62.1',
+      edition: '2022',
+      revisionBasis: 'ANSI/ASHRAE Standard 62.1-2022',
+      calculationPath: {
+        id: 'test_path',
+        name: 'Test Path'
+      },
+      inputs: { x: 10 },
+      provenance: {
+        x: {
+          key: 'x',
+          name: 'Test Input',
+          value: 10,
+          unit: 'L/s',
+          source: SourceType.PROJECT_SPECIFICATION,
+          verificationStatus: 'VERIFIED' as const,
+          engineeringStatus: 'USER_SUPPLIED' as const
+        }
+      },
+      equations: [],
+      intermediateResults: [],
+      finalResult: {
+        symbol: 'V',
+        name: 'Volume Flow',
+        value: 100,
+        unit: 'L/s'
+      }
+    };
+
+    it('1. PASS + explicit authoritative production -> authoritative', () => {
+      const audit = EngineeringAuditService.createAuditRecord({
+        ...baseParams,
+        validationStatus: 'PASS',
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION'
+      });
+      expect(audit.isApprovedForEngineeringUse).toBe(true);
+      expect(audit.finalResult.isAuthoritative).toBe(true);
+      expect(audit.finalResult.value).toBe(100);
+    });
+
+    it('2. PASS + diagnostic -> not authoritative', () => {
+      const audit = EngineeringAuditService.createAuditRecord({
+        ...baseParams,
+        validationStatus: 'PASS',
+        authorityPolicy: 'DIAGNOSTIC'
+      });
+      expect(audit.isApprovedForEngineeringUse).toBe(false);
+      expect(audit.finalResult.isAuthoritative).toBe(false);
+      expect(audit.finalResult.value).toBe(100); // Retained as non-authoritative diagnostic
+      expect(audit.finalResult.complianceSummary).toContain('DIAGNOSTIC');
+    });
+
+    it('3. PASS + authority policy omitted -> not authoritative (fail-safe default)', () => {
+      const audit = EngineeringAuditService.createAuditRecord({
+        ...baseParams,
+        validationStatus: 'PASS'
+        // authorityPolicy omitted!
+      });
+      expect(audit.isApprovedForEngineeringUse).toBe(false);
+      expect(audit.finalResult.isAuthoritative).toBe(false);
+      expect(audit.finalResult.value).toBeNull();
+    });
+
+    it('4. FAIL + production -> not authoritative', () => {
+      const audit = EngineeringAuditService.createAuditRecord({
+        ...baseParams,
+        validationStatus: 'FAIL',
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION'
+      });
+      expect(audit.isApprovedForEngineeringUse).toBe(false);
+      expect(audit.finalResult.isAuthoritative).toBe(false);
+      expect(audit.finalResult.value).toBeNull();
+    });
+
+    it('5. WARNING + production -> not authoritative', () => {
+      const audit = EngineeringAuditService.createAuditRecord({
+        ...baseParams,
+        validationStatus: 'WARNING',
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION'
+      });
+      expect(audit.isApprovedForEngineeringUse).toBe(false);
+      expect(audit.finalResult.isAuthoritative).toBe(false);
+      expect(audit.finalResult.value).toBeNull();
+    });
+
+    it('6. INCOMPLETE + production -> not authoritative', () => {
+      const audit = EngineeringAuditService.createAuditRecord({
+        ...baseParams,
+        validationStatus: 'INCOMPLETE',
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION'
+      });
+      expect(audit.isApprovedForEngineeringUse).toBe(false);
+      expect(audit.finalResult.isAuthoritative).toBe(false);
+      expect(audit.finalResult.value).toBeNull();
+    });
+
+    it('7. BLOCKED + production -> not authoritative', () => {
+      const audit = EngineeringAuditService.createAuditRecord({
+        ...baseParams,
+        validationStatus: 'BLOCKED',
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION'
+      });
+      expect(audit.isApprovedForEngineeringUse).toBe(false);
+      expect(audit.finalResult.isAuthoritative).toBe(false);
+      expect(audit.finalResult.value).toBeNull();
+    });
+
+    it('8. NOT_VERIFIED + production -> not authoritative', () => {
+      const audit = EngineeringAuditService.createAuditRecord({
+        ...baseParams,
+        validationStatus: 'NOT_VERIFIED',
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION'
+      });
+      expect(audit.isApprovedForEngineeringUse).toBe(false);
+      expect(audit.finalResult.isAuthoritative).toBe(false);
+      expect(audit.finalResult.value).toBeNull();
+    });
+
+    it('ensures diagnostic calculations cannot be upgraded by outer calculations', () => {
+      const diagAudit = EngineeringAuditService.createAuditRecord({
+        ...baseParams,
+        calculationPath: {
+          id: 'test_diagnostic',
+          name: 'Diagnostic Sub-Calculation'
+        },
+        validationStatus: 'PASS',
+        authorityPolicy: 'DIAGNOSTIC'
+      });
+      expect(diagAudit.isApprovedForEngineeringUse).toBe(false);
+      expect(diagAudit.finalResult.isAuthoritative).toBe(false);
     });
   });
 });

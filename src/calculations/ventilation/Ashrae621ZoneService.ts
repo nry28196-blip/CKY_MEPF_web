@@ -3,6 +3,7 @@ import { ValidationStatus, VentilationValidationService } from './VentilationVal
 import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/types';
 import { DataProvenanceValidationService } from './DataProvenanceValidationService';
 import { EzSelectionService, EzValidationConditions, PersonalizedVentilationPrerequisites, StratifiedSystemPrerequisites } from './EzSelectionService';
+import { normalizeAddendumIdentifier } from '../scope/ProductionCalculationScope';
 
 export interface AuditTrailItem {
   symbol: string;
@@ -97,7 +98,7 @@ export class Ashrae621ZoneService {
     // Check for unapproved addenda
     const requestedAddenda = input.expectedAddenda || input.addenda;
     if (requestedAddenda && requestedAddenda.length > 0) {
-      const unapproved = requestedAddenda.filter(a => a.toLowerCase() !== 'j');
+      const unapproved = requestedAddenda.filter(a => normalizeAddendumIdentifier(a) !== 'j');
       if (unapproved.length > 0) {
         return this.emptyResult('BLOCKED', `Unapproved addenda requested: [${unapproved.join(', ')}]. Controlled commercial basis is restricted to ANSI/ASHRAE Standard 62.1-2022 + Addendum j.`);
       }

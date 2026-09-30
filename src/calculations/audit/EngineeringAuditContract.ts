@@ -87,6 +87,8 @@ export interface CalculationPathRecord {
   readonly description?: string;
 }
 
+export type AuditAuthorityPolicy = 'AUTHORITATIVE_PRODUCTION' | 'DIAGNOSTIC';
+
 /**
  * Universal Calculation Audit Record
  * 
@@ -98,6 +100,7 @@ export interface CalculationAuditRecord {
   readonly edition: string;
   readonly revisionBasis: string;
   readonly calculationPath: CalculationPathRecord;
+  readonly authorityPolicy?: AuditAuthorityPolicy;
   readonly inputs: Record<string, number | string | boolean | null>;
   readonly provenance: Record<string, InputProvenanceRecord>;
   readonly equations: CalculationEquationRecord[];
@@ -128,6 +131,7 @@ export interface CreateAuditRecordParams {
     complianceSummary?: string;
   };
   validationStatus: ValidationStatus;
+  authorityPolicy?: AuditAuthorityPolicy;
   authoritativeEligible?: boolean;
   warnings?: string[];
   unsupportedItems?: string[];
@@ -182,19 +186,25 @@ export class EngineeringAuditService {
 
     // Rule 2: Explicit Authority Policy
     // A calculation is authoritative ONLY if:
-    // 1. authoritativeEligible !== false
-    // 2. Not explicitly flagged as a non-standard diagnostic utility
-    // 3. Calculation path ID does not represent a diagnostic utility
+    // 1. Explicit production authorization is declared: params.authorityPolicy === 'AUTHORITATIVE_PRODUCTION'
+    //    (If authorityPolicy is omitted, fail-safe default MUST be: NOT AUTHORITATIVE).
+    // 2. params.authoritativeEligible !== false
+    // 3. Not explicitly flagged as a non-standard diagnostic utility
+    // 4. Calculation path ID does not represent a diagnostic utility
+    // 5. validationStatus === 'PASS'
+    const isExplicitlyAuthoritative = params.authorityPolicy === 'AUTHORITATIVE_PRODUCTION';
     const isDiagnostic = 
+      params.authorityPolicy === 'DIAGNOSTIC' ||
       params.authoritativeEligible === false ||
       params.standard === 'Non-Standard Diagnostic Utility' ||
+      params.standard === 'Non-Standard Utility' ||
       params.edition === 'Diagnostic' ||
       params.calculationPath.id.includes('diagnostic');
 
     // Rule 3: CRITICAL RULE - Numeric output alone must never imply engineering approval.
     // A BLOCKED, INCOMPLETE, FAIL, or NOT_VERIFIED result must not be presented as a compliant engineering result.
     // Diagnostic utilities MUST NEVER become authoritative, even if calculation status is PASS.
-    const isApprovedForEngineeringUse = !isDiagnostic && validationStatus === 'PASS';
+    const isApprovedForEngineeringUse = isExplicitlyAuthoritative && !isDiagnostic && validationStatus === 'PASS';
     const isAuthoritative = isApprovedForEngineeringUse;
 
     // For authoritative calculations, non-PASS outcomes suppress numeric value.
@@ -202,14 +212,14 @@ export class EngineeringAuditService {
     let finalValue: number | null = null;
     if (isAuthoritative) {
       finalValue = params.finalResult.value;
-    } else if (isDiagnostic && validationStatus === 'PASS') {
+    } else if (params.authorityPolicy === 'DIAGNOSTIC' && validationStatus === 'PASS') {
       finalValue = params.finalResult.value; // Retained as non-authoritative diagnostic estimate
     } else {
-      finalValue = null; // Non-PASS always withholds numeric result
+      finalValue = null; // Non-PASS or unapproved omitted authority withholds numeric result
     }
 
     let complianceSummary = params.finalResult.complianceSummary;
-    if (isDiagnostic) {
+    if (params.authorityPolicy === 'DIAGNOSTIC' || isDiagnostic) {
       if (!complianceSummary) {
         complianceSummary = `DIAGNOSTIC (${validationStatus}): Non-authoritative engineering diagnostic utility only. Not approved for official code compliance or engineering sign-off.`;
       } else if (!complianceSummary.includes('Diagnostic') && !complianceSummary.includes('Non-authoritative') && !complianceSummary.includes('not an ANSI/ASHRAE')) {
@@ -242,6 +252,7 @@ export class EngineeringAuditService {
       edition: params.edition,
       revisionBasis: params.revisionBasis,
       calculationPath: params.calculationPath,
+      authorityPolicy: params.authorityPolicy || 'DIAGNOSTIC',
       inputs: params.inputs,
       provenance: params.provenance,
       equations: params.equations,
@@ -379,6 +390,7 @@ export class EngineeringAuditService {
         section: 'Section 6.2.1 & 6.2.2',
         description: 'Breathing zone outdoor airflow and zone outdoor airflow determination'
       },
+      authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
       inputs: {
         spaceType: space?.id || null,
         area: input.area,
@@ -473,6 +485,7 @@ export class EngineeringAuditService {
         section: 'Section 6.2.4.2 & Appendix A',
         description: 'Simplified multiple-zone recirculating system outdoor air intake determination'
       },
+      authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
       inputs: {
         ps: input.ps,
         zonesCount: input.zones?.length ?? 0
@@ -510,11 +523,11 @@ export class EngineeringAuditService {
       vps: {
         key: 'vps',
         name: 'System Supply Airflow (Vps)',
-        value: input.vps ?? null,
+        value: input.vps ?? result.vps ?? null,
         unit: 'L/s',
-        source: SourceType.PROJECT_SPECIFICATION,
-        verificationStatus: (input.vps === null || input.vps === undefined) ? 'NOT_VERIFIED' : 'VERIFIED',
-        engineeringStatus: 'USER_SUPPLIED'
+        source: (input.vps !== undefined && input.vps !== null) ? SourceType.PROJECT_SPECIFICATION : 'DERIVED',
+        verificationStatus: ((input.vps ?? result.vps) === null || (input.vps ?? result.vps) === undefined) ? 'NOT_VERIFIED' : 'VERIFIED',
+        engineeringStatus: (input.vps !== undefined && input.vps !== null) ? 'USER_SUPPLIED' : 'DERIVED'
       }
     };
 
@@ -562,6 +575,7 @@ export class EngineeringAuditService {
         section: 'Section 6.2.4.3 & Normative Appendix A',
         description: 'Alternative multiple-zone recirculating system outdoor air intake determination'
       },
+      authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
       inputs: {
         ps: input.ps,
         vps: input.vps
@@ -665,6 +679,7 @@ export class EngineeringAuditService {
         name: isPerformance ? 'Section 6.5.2 Performance Path' : 'Section 6.5.1 Prescriptive Path',
         section: isPerformance ? '6.5.2' : '6.5.1'
       },
+      authorityPolicy: isPerformance ? 'DIAGNOSTIC' : 'AUTHORITATIVE_PRODUCTION',
       inputs: {
         exhaustType: exhaust?.id || null,
         qty: input.qty,
@@ -707,9 +722,11 @@ export class EngineeringAuditService {
       complianceSummary?: string;
     };
     validationStatus: ValidationStatus;
+    authorityPolicy?: AuditAuthorityPolicy;
     authoritativeEligible?: boolean;
     warnings?: string[];
     unsupportedItems?: string[];
+    timestamp?: string;
   }): CalculationAuditRecord {
     return this.createAuditRecord(params);
   }

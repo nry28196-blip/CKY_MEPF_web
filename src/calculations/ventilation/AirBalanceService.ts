@@ -223,6 +223,7 @@ export class AirBalanceService {
         complianceSummary: DIAGNOSTIC_NOTICE
       },
       validationStatus: 'PASS',
+      authorityPolicy: 'DIAGNOSTIC',
       authoritativeEligible: false,
       warnings: [...warnings, DIAGNOSTIC_NOTICE]
     });
@@ -481,6 +482,7 @@ export class AirBalanceService {
         complianceSummary: DIAGNOSTIC_NOTICE
       },
       validationStatus: 'PASS',
+      authorityPolicy: 'DIAGNOSTIC',
       authoritativeEligible: false,
       warnings: [...warnings, DIAGNOSTIC_NOTICE]
     });
