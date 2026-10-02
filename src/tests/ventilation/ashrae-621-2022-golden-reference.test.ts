@@ -7,7 +7,13 @@ import { Ashrae621AlternativeSystemService } from '../../calculations/ventilatio
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 import { ProductionScopeService } from '../../calculations/scope/ProductionCalculationScope';
-import { Ashrae621SpaceType, Ashrae621Ez, Ashrae621ExhaustType } from '../../data/ventilation/ashrae621/types';
+import {
+  Ashrae621SpaceType,
+  Ashrae621Ez,
+  Ashrae621ExhaustType,
+  StratifiedVentilationPrerequisites,
+  PersonalizedVentilationPrerequisites
+} from '../../data/ventilation/ashrae621/types';
 
 /**
  * INDEPENDENT ENGINEERING GOLDEN REFERENCE SUITE — ANSI/ASHRAE Standard 62.1-2022
@@ -137,6 +143,12 @@ describe('PROMPT 4 — ASHRAE 62.1-2022 Independent Engineering Golden Reference
         ezConfig: ez3,
         ezConditions: {
           supplyTempRelationship: 'cooling',
+          stratifiedPrerequisites: {
+            tempDiffRoomSupplyC: 3.0,
+            returnOpeningHeightM: 3.0,
+            noMechanicalMixingDevices: true,
+            protectedFromImpingingAirstreams: true
+          },
           stratifiedPrerequisitesMet: true,
           verticalThrowMet: false,
           returnHeightGt55m: false
@@ -240,11 +252,19 @@ describe('PROMPT 4 — ASHRAE 62.1-2022 Independent Engineering Golden Reference
     });
 
     it('D. Stratified cases: Case 1 (ez-floor-cool-strat-case1: Ez = 1.05), Case 2 (ez-3: Ez = 1.2), Case 3 (ez-floor-cool-strat-h-gte55m: Ez = 1.5)', () => {
+      const validStrat: StratifiedVentilationPrerequisites = {
+        tempDiffRoomSupplyC: 3.0,
+        returnOpeningHeightM: 3.0,
+        noMechanicalMixingDevices: true,
+        protectedFromImpingingAirstreams: true
+      };
+
       // Case 1: Underfloor cooling with vertical throw >= 0.25 m/s at 1.4 m and ceiling return <= 5.5 m -> Ez = 1.05
       const cfgCase1 = getEz('ez-floor-cool-strat-case1');
       expect(cfgCase1.ez).toBe(1.05);
       const resCase1 = EzSelectionService.validateEzConfiguration(cfgCase1, {
         supplyTempRelationship: 'cooling',
+        stratifiedPrerequisites: validStrat,
         stratifiedPrerequisitesMet: true,
         verticalThrowMet: true,
         returnHeightGt55m: false
@@ -257,6 +277,7 @@ describe('PROMPT 4 — ASHRAE 62.1-2022 Independent Engineering Golden Reference
       expect(cfgCase2.ez).toBe(1.2);
       const resCase2 = EzSelectionService.validateEzConfiguration(cfgCase2, {
         supplyTempRelationship: 'cooling',
+        stratifiedPrerequisites: validStrat,
         stratifiedPrerequisitesMet: true,
         verticalThrowMet: false,
         returnHeightGt55m: false
@@ -269,6 +290,7 @@ describe('PROMPT 4 — ASHRAE 62.1-2022 Independent Engineering Golden Reference
       expect(cfgCase3.ez).toBe(1.5);
       const resCase3 = EzSelectionService.validateEzConfiguration(cfgCase3, {
         supplyTempRelationship: 'cooling',
+        stratifiedPrerequisites: validStrat,
         stratifiedPrerequisitesMet: true,
         verticalThrowMet: false,
         returnHeightGt55m: true
@@ -298,10 +320,17 @@ describe('PROMPT 4 — ASHRAE 62.1-2022 Independent Engineering Golden Reference
     });
 
     it('F. Personalized ventilation cases: ceiling cool (Ez = 1.40), ceiling warm (Ez = 1.40), strat nonaspirating (Ez = 1.20), strat aspirating (Ez = 1.50)', () => {
+      const validPersonal: PersonalizedVentilationPrerequisites = {
+        airDistributedInBreathingZone: true,
+        headRegionVelocityMs: 0.20,
+        returnOpeningHeightM: 3.0
+      };
+
       // 1. Personalized + ceiling cool + ceiling return -> Ez = 1.40
       const cfgCeilCool = getEz('ez-personalized-ceiling-cool');
       expect(cfgCeilCool.ez).toBe(1.40);
       const resCeilCool = EzSelectionService.validateEzConfiguration(cfgCeilCool, {
+        personalizedPrerequisites: validPersonal,
         personalizedPrerequisitesMet: true,
         supplyTempRelationship: 'cooling',
         personalizedSystemType: 'ceiling_cool'
@@ -313,6 +342,7 @@ describe('PROMPT 4 — ASHRAE 62.1-2022 Independent Engineering Golden Reference
       const cfgCeilWarm = getEz('ez-personalized-ceiling-warm');
       expect(cfgCeilWarm.ez).toBe(1.40);
       const resCeilWarm = EzSelectionService.validateEzConfiguration(cfgCeilWarm, {
+        personalizedPrerequisites: validPersonal,
         personalizedPrerequisitesMet: true,
         supplyTempRelationship: 'heating_gte_8c',
         personalizedSystemType: 'ceiling_warm'
@@ -324,6 +354,7 @@ describe('PROMPT 4 — ASHRAE 62.1-2022 Independent Engineering Golden Reference
       const cfgStratNon = getEz('ez-personalized-strat-nonaspirating');
       expect(cfgStratNon.ez).toBe(1.20);
       const resStratNon = EzSelectionService.validateEzConfiguration(cfgStratNon, {
+        personalizedPrerequisites: validPersonal,
         personalizedPrerequisitesMet: true,
         supplyTempRelationship: 'cooling',
         personalizedSystemType: 'stratified_nonaspirating'
@@ -335,6 +366,7 @@ describe('PROMPT 4 — ASHRAE 62.1-2022 Independent Engineering Golden Reference
       const cfgStratAsp = getEz('ez-personalized-strat-aspirating');
       expect(cfgStratAsp.ez).toBe(1.50);
       const resStratAsp = EzSelectionService.validateEzConfiguration(cfgStratAsp, {
+        personalizedPrerequisites: validPersonal,
         personalizedPrerequisitesMet: true,
         supplyTempRelationship: 'cooling',
         personalizedSystemType: 'stratified_aspirating'

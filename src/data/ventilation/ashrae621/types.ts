@@ -279,3 +279,9 @@ export const ASHRAE_62_1_PRODUCTION_BASIS: ProductionStandardBasis = {
   ...VENTILATION_PRODUCTION_SCOPE,
   activeScopeIdentifier: 'ANSI/ASHRAE Standard 62.1-2022 + Addendum j (Exhaust: Addendum x)'
 };
+
+export type {
+  PersonalizedVentilationPrerequisites,
+  StratifiedSystemPrerequisites,
+  StratifiedVentilationPrerequisites
+} from '../../../calculations/ventilation/EzSelectionService';

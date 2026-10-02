@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { EzSelectionService } from '../../calculations/ventilation/EzSelectionService';
+import {
+  EzSelectionService,
+  StratifiedVentilationPrerequisites,
+  PersonalizedVentilationPrerequisites
+} from '../../calculations/ventilation/EzSelectionService';
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
 import { VentilationEngine } from '../../lib/VentilationEngine';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
@@ -66,6 +70,13 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
   });
 
   it('resolves floor supply displacement ventilation with return height dependency', () => {
+    const validStrat: StratifiedVentilationPrerequisites = {
+      tempDiffRoomSupplyC: 3.0,
+      returnOpeningHeightM: 3.0,
+      noMechanicalMixingDevices: true,
+      protectedFromImpingingAirstreams: true
+    };
+
     // Return height < 5.5 m -> Ez = 1.2 (Stratified Case 2)
     const resLow = EzSelectionService.resolveEzFromCriteria({
       supplyLocation: 'floor',
@@ -73,6 +84,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
       supplyTempRelationship: 'cooling',
       verticalThrowMet: false, // low velocity displacement
       returnHeightGte55m: false,
+      stratifiedPrerequisites: validStrat,
       stratifiedPrerequisitesMet: true
     });
     expect(resLow.status).toBe('PASS');
@@ -86,6 +98,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
       supplyTempRelationship: 'cooling',
       verticalThrowMet: false, // low velocity displacement
       returnHeightGte55m: true,
+      stratifiedPrerequisites: validStrat,
       stratifiedPrerequisitesMet: true
     });
     expect(resHigh.status).toBe('PASS');
@@ -99,6 +112,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
       supplyTempRelationship: 'cooling',
       verticalThrowMet: true,
       returnHeightGte55m: false,
+      stratifiedPrerequisites: validStrat,
       stratifiedPrerequisitesMet: true
     });
     expect(resCase1.status).toBe('PASS');
@@ -136,8 +150,8 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
       expect(result.reasons[0]).toContain('not satisfied');
     });
 
-    // 3. stratifiedPrerequisitesMet=true -> allowed
-    it('allows resolution when compact stratifiedPrerequisitesMet is true', () => {
+    // 3. stratifiedPrerequisitesMet=true without structured evidence -> INCOMPLETE
+    it('returns INCOMPLETE when compact stratifiedPrerequisitesMet is true without structured evidence', () => {
       const result = EzSelectionService.resolveEzFromCriteria({
         supplyLocation: 'floor',
         returnLocation: 'ceiling',
@@ -146,9 +160,8 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
         returnHeightM: 4.0,
         stratifiedPrerequisitesMet: true
       });
-      expect(result.status).toBe('PASS');
-      expect(result.ez).toBe(1.2);
-      expect(result.selectedConfig?.id).toBe('ez-3');
+      expect(result.status).toBe('INCOMPLETE');
+      expect(result.ez).toBeNull();
     });
 
     // 4. Complete structured prerequisites -> allowed
@@ -513,6 +526,13 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
 
     // 8. 5.499 m -> low-height case (<= 5.5 m)
     it('treats 5.499 m as low-return-height (<= 5.5 m)', () => {
+      const validStrat: StratifiedVentilationPrerequisites = {
+        tempDiffRoomSupplyC: 3.0,
+        returnOpeningHeightM: 3.0,
+        noMechanicalMixingDevices: true,
+        protectedFromImpingingAirstreams: true
+      };
+
       // Case 2: low throw + <= 5.5 m -> Ez = 1.20
       const resCase2 = EzSelectionService.resolveEzFromCriteria({
         supplyLocation: 'floor',
@@ -520,6 +540,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
         supplyTempRelationship: 'cooling',
         verticalThrowMet: false,
         returnHeightM: 5.499,
+        stratifiedPrerequisites: validStrat,
         stratifiedPrerequisitesMet: true
       });
       expect(resCase2.status).toBe('PASS');
@@ -533,6 +554,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
         supplyTempRelationship: 'cooling',
         verticalThrowMet: true,
         returnHeightM: 5.499,
+        stratifiedPrerequisites: validStrat,
         stratifiedPrerequisitesMet: true
       });
       expect(resCase1.status).toBe('PASS');
@@ -542,6 +564,13 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
 
     // 9. 5.500 m -> low-height case (<= 5.5 m)
     it('treats exactly 5.500 m as low-return-height (<= 5.5 m boundary belongs to <= 5.5 m case)', () => {
+      const validStrat: StratifiedVentilationPrerequisites = {
+        tempDiffRoomSupplyC: 3.0,
+        returnOpeningHeightM: 3.0,
+        noMechanicalMixingDevices: true,
+        protectedFromImpingingAirstreams: true
+      };
+
       // Case 2: low throw + <= 5.5 m -> Ez = 1.20
       const resCase2 = EzSelectionService.resolveEzFromCriteria({
         supplyLocation: 'floor',
@@ -549,6 +578,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
         supplyTempRelationship: 'cooling',
         verticalThrowMet: false,
         returnHeightM: 5.500,
+        stratifiedPrerequisites: validStrat,
         stratifiedPrerequisitesMet: true
       });
       expect(resCase2.status).toBe('PASS');
@@ -562,6 +592,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
         supplyTempRelationship: 'cooling',
         verticalThrowMet: true,
         returnHeightM: 5.500,
+        stratifiedPrerequisites: validStrat,
         stratifiedPrerequisitesMet: true
       });
       expect(resCase1.status).toBe('PASS');
@@ -571,6 +602,13 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
 
     // 10. 5.501 m -> high-height case (> 5.5 m)
     it('treats 5.501 m as high-return-height (> 5.5 m)', () => {
+      const validStrat: StratifiedVentilationPrerequisites = {
+        tempDiffRoomSupplyC: 3.0,
+        returnOpeningHeightM: 3.0,
+        noMechanicalMixingDevices: true,
+        protectedFromImpingingAirstreams: true
+      };
+
       // Case 3: low throw + > 5.5 m -> Ez = 1.50
       const resCase3 = EzSelectionService.resolveEzFromCriteria({
         supplyLocation: 'floor',
@@ -578,6 +616,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
         supplyTempRelationship: 'cooling',
         verticalThrowMet: false,
         returnHeightM: 5.501,
+        stratifiedPrerequisites: validStrat,
         stratifiedPrerequisitesMet: true
       });
       expect(resCase3.status).toBe('PASS');
@@ -599,6 +638,12 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
   });
 
   it('resolves personalized ventilation configurations and enforces prerequisites', () => {
+    const validPersonal: PersonalizedVentilationPrerequisites = {
+      airDistributedInBreathingZone: true,
+      headRegionVelocityMs: 0.20,
+      returnOpeningHeightM: 3.0
+    };
+
     // Missing Section 6.2.1.2.2 prerequisites -> INCOMPLETE
     const noPrereq = EzSelectionService.resolveEzFromCriteria({
       isPersonalizedVentilation: true,
@@ -619,6 +664,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
     // 1. Personalized air + ceiling supply cool air + ceiling return -> Ez = 1.40
     const p1 = EzSelectionService.resolveEzFromCriteria({
       isPersonalizedVentilation: true,
+      personalizedPrerequisites: validPersonal,
       personalizedPrerequisitesMet: true,
       personalizedSystemType: 'ceiling_cool'
     });
@@ -629,6 +675,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
     // 2. Personalized air + ceiling supply warm air + ceiling return -> Ez = 1.40
     const p2 = EzSelectionService.resolveEzFromCriteria({
       isPersonalizedVentilation: true,
+      personalizedPrerequisites: validPersonal,
       personalizedPrerequisitesMet: true,
       personalizedSystemType: 'ceiling_warm'
     });
@@ -639,6 +686,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
     // 3. Personalized air + stratified distribution + nonaspirating floor supply devices + ceiling return -> Ez = 1.20
     const p3 = EzSelectionService.resolveEzFromCriteria({
       isPersonalizedVentilation: true,
+      personalizedPrerequisites: validPersonal,
       personalizedPrerequisitesMet: true,
       personalizedSystemType: 'stratified_nonaspirating'
     });
@@ -649,6 +697,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
     // 4. Personalized air + stratified distribution + aspirating floor supply devices + ceiling return -> Ez = 1.50
     const p4 = EzSelectionService.resolveEzFromCriteria({
       isPersonalizedVentilation: true,
+      personalizedPrerequisites: validPersonal,
       personalizedPrerequisitesMet: true,
       personalizedSystemType: 'stratified_aspirating'
     });
@@ -1029,8 +1078,8 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
       expect(tempContra.ez).toBeNull();
     });
 
-    // 10. All prerequisites satisfied
-    it('resolves successfully when all prerequisites are satisfied (structured or compact)', () => {
+    // 10. Prerequisites validation: structured passes, compact boolean alone is INCOMPLETE
+    it('resolves successfully with structured prerequisites and rejects compact boolean alone as INCOMPLETE', () => {
       // Structured
       const structuredRes = EzSelectionService.resolveEzFromCriteria({
         isPersonalizedVentilation: true,
@@ -1049,15 +1098,14 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
       expect(structuredRes.ez).toBe(1.40);
       expect(structuredRes.selectedConfig?.id).toBe('ez-personalized-ceiling-cool');
 
-      // Compact
+      // Compact alone without structured evidence -> INCOMPLETE
       const compactRes = EzSelectionService.resolveEzFromCriteria({
         isPersonalizedVentilation: true,
         personalizedSystemType: 'stratified_aspirating',
         personalizedPrerequisitesMet: true
       });
-      expect(compactRes.status).toBe('PASS');
-      expect(compactRes.ez).toBe(1.50);
-      expect(compactRes.selectedConfig?.id).toBe('ez-personalized-strat-aspirating');
+      expect(compactRes.status).toBe('INCOMPLETE');
+      expect(compactRes.ez).toBeNull();
     });
 
     // 11. All four personalized Table 6-4 values remain unchanged
@@ -1119,6 +1167,13 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
     expect(invalidTemp.reason).toContain('cooling');
 
     // When conditions are compliant, passes
+    const validStrat: StratifiedVentilationPrerequisites = {
+      tempDiffRoomSupplyC: 3.0,
+      returnOpeningHeightM: 3.0,
+      noMechanicalMixingDevices: true,
+      protectedFromImpingingAirstreams: true
+    };
+
     const validCool = Ashrae621ZoneService.calculateZone({
       expectedStandard: 'ASHRAE 62.1',
       expectedEdition: '2022',
@@ -1130,6 +1185,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
       supplyTempRelationship: 'cooling',
       verticalThrowMet: false,
       returnHeightGte55m: false,
+      stratifiedPrerequisites: validStrat,
       stratifiedPrerequisitesMet: true
     });
     expect(validCool.status).toBe('PASS');
@@ -1139,6 +1195,13 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
   describe('REGRESSION: Mandatory Physical Qualification Enforcement (No Direct Ez Injection Bypass)', () => {
     // 1. Stratified Distribution Safety Gate (Table 6-4 & Section 6.2.1.2.1)
     describe('Stratified Distribution Safety Gate', () => {
+      const validStrat: StratifiedVentilationPrerequisites = {
+        tempDiffRoomSupplyC: 3.0,
+        returnOpeningHeightM: 3.0,
+        noMechanicalMixingDevices: true,
+        protectedFromImpingingAirstreams: true
+      };
+
       it('rejects directly injected verified ez-3 with missing prerequisite evidence as INCOMPLETE in calculateZone', () => {
         // Direct injection of verified Table 6-4 ez-3 with no conditions
         const result = Ashrae621ZoneService.calculateZone({
@@ -1184,6 +1247,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
           ezConfig: get2022Ez('ez-3'),
           supplyTempRelationship: 'cooling',
           returnHeightGte55m: false,
+          stratifiedPrerequisites: validStrat,
           stratifiedPrerequisitesMet: true
           // verticalThrowMet omitted
         });
@@ -1203,6 +1267,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
           ezConfig: get2022Ez('ez-3'),
           supplyTempRelationship: 'cooling',
           verticalThrowMet: false,
+          stratifiedPrerequisites: validStrat,
           stratifiedPrerequisitesMet: true
           // returnHeight omitted
         });
@@ -1350,6 +1415,12 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
           supplyTempRelationship: 'cooling',
           verticalThrowMet: false,
           returnHeightGte55m: false,
+          stratifiedPrerequisites: {
+            tempDiffRoomSupplyC: 3.0,
+            returnOpeningHeightM: 3.0,
+            noMechanicalMixingDevices: true,
+            protectedFromImpingingAirstreams: true
+          },
           stratifiedPrerequisitesMet: true
         });
         expect(allowed.status).toBe('PASS');
@@ -1477,6 +1548,12 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
       });
 
       it('allows directly injected personalized config when VALID prerequisite evidence is provided in calculateZone', () => {
+        const validPersonal: PersonalizedVentilationPrerequisites = {
+          airDistributedInBreathingZone: true,
+          headRegionVelocityMs: 0.20,
+          returnOpeningHeightM: 3.0
+        };
+
         const allowedCool = Ashrae621ZoneService.calculateZone({
           expectedStandard: 'ASHRAE 62.1',
           expectedEdition: '2022',
@@ -1486,6 +1563,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
           useDefaultOccupancy: false,
           ezConfig: get2022Ez('ez-personalized-ceiling-cool'),
           supplyTempRelationship: 'cooling',
+          personalizedPrerequisites: validPersonal,
           personalizedPrerequisitesMet: true
         });
         expect(allowedCool.status).toBe('PASS');
@@ -1501,6 +1579,7 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
           useDefaultOccupancy: false,
           ezConfig: get2022Ez('ez-personalized-ceiling-warm'),
           supplyTempRelationship: 'heating_gte_8c',
+          personalizedPrerequisites: validPersonal,
           personalizedPrerequisitesMet: true
         });
         expect(allowedWarm.status).toBe('PASS');
