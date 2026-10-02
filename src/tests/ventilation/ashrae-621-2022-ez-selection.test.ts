@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { EzSelectionService } from '../../calculations/ventilation/EzSelectionService';
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
+import { VentilationEngine } from '../../lib/VentilationEngine';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 
 describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => {
@@ -1827,5 +1828,310 @@ describe('ASHRAE 62.1-2022 Table 6-4 Ez Selection & Physical Conditions', () => 
 
     // In production safety gate, unverified data is blocked from uncertified calculation
     expect(result.status).toBe('BLOCKED');
+  });
+
+  describe('Final Release Verification — Verified Issues 1 and 2 (Ez Qualification & Manual Override)', () => {
+    const ezCeilWarmFloorRet = get2022Ez('ez-ceil-warm-floor-ret');
+    const ezFloorWarmFloorRet = get2022Ez('ez-floor-warm-floor-ret');
+    const ezCooling1 = get2022Ez('ez-1');
+
+    // Test A: Select ez-ceil-warm-floor-ret with no qualifying conditions
+    it('Test A: Select ez-ceil-warm-floor-ret with no qualifying conditions -> INCOMPLETE / non-authoritative', () => {
+      const zoneRes = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ezCeilWarmFloorRet
+      });
+      expect(zoneRes.status).toBe('INCOMPLETE');
+      expect(zoneRes.voz).toBeNull();
+
+      const prodRes = VentilationEngine.runSingleZone({
+        edition: '2022',
+        density: { elevation: 0, temperature: 20 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: ezCeilWarmFloorRet
+        }
+      });
+      expect(prodRes.status).toBe('INCOMPLETE');
+      expect(prodRes.isAuthoritative).toBe(false);
+      expect(prodRes.isApprovedForEngineeringUse).toBe(false);
+      expect(prodRes.finalDesignOutdoorAir).toBeNull();
+    });
+
+    // Test B: Select ez-floor-warm-floor-ret with no qualifying conditions
+    it('Test B: Select ez-floor-warm-floor-ret with no qualifying conditions -> INCOMPLETE / non-authoritative', () => {
+      const zoneRes = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ezFloorWarmFloorRet
+      });
+      expect(zoneRes.status).toBe('INCOMPLETE');
+      expect(zoneRes.voz).toBeNull();
+
+      const prodRes = VentilationEngine.runSingleZone({
+        edition: '2022',
+        density: { elevation: 0, temperature: 20 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: ezFloorWarmFloorRet
+        }
+      });
+      expect(prodRes.status).toBe('INCOMPLETE');
+      expect(prodRes.isAuthoritative).toBe(false);
+      expect(prodRes.isApprovedForEngineeringUse).toBe(false);
+      expect(prodRes.finalDesignOutdoorAir).toBeNull();
+    });
+
+    // Test C: Provide contradictory conditions
+    it('Test C: Provide contradictory conditions -> FAIL or BLOCKED', () => {
+      // Contradictory cooling on ceiling warm air supply
+      const contraTemp1 = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ezCeilWarmFloorRet,
+        supplyAirCondition: 'cool',
+        supplyTempRelationship: 'cooling'
+      });
+      expect(contraTemp1.status).toBe('FAIL');
+      expect(contraTemp1.voz).toBeNull();
+
+      // Contradictory cooling on floor warm air supply
+      const contraTemp2 = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ezFloorWarmFloorRet,
+        supplyAirCondition: 'cool',
+        supplyTempRelationship: 'cooling'
+      });
+      expect(contraTemp2.status).toBe('FAIL');
+      expect(contraTemp2.voz).toBeNull();
+
+      // Contradictory return location (ceiling return on floor return config)
+      const contraLoc = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ezCeilWarmFloorRet,
+        supplyAirCondition: 'warm',
+        supplyTempRelationship: 'heating_gte_8c',
+        returnLocation: 'ceiling' // Contradicts floor return!
+      });
+      expect(contraLoc.status).toBe('FAIL');
+      expect(contraLoc.voz).toBeNull();
+    });
+
+    // Test D: Provide valid matching conditions
+    it('Test D: Provide valid matching conditions -> PASS and authoritative', () => {
+      const prodRes = VentilationEngine.runSingleZone({
+        edition: '2022',
+        density: { elevation: 0, temperature: 20 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: ezCeilWarmFloorRet,
+          supplyAirCondition: 'warm',
+          supplyTempRelationship: 'heating_gte_8c',
+          supplyLocation: 'ceiling',
+          returnLocation: 'floor'
+        }
+      });
+      expect(prodRes.status).toBe('PASS');
+      expect(prodRes.isAuthoritative).toBe(true);
+      expect(prodRes.isApprovedForEngineeringUse).toBe(true);
+      expect(prodRes.finalDesignOutdoorAir).toBeGreaterThan(0);
+      expect(prodRes.voz).toBeGreaterThan(0);
+
+      const prodResFloor = VentilationEngine.runSingleZone({
+        edition: '2022',
+        density: { elevation: 0, temperature: 20 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: ezFloorWarmFloorRet,
+          supplyAirCondition: 'warm',
+          supplyTempRelationship: 'heating_gte_8c',
+          supplyLocation: 'floor',
+          returnLocation: 'floor'
+        }
+      });
+      expect(prodResFloor.status).toBe('PASS');
+      expect(prodResFloor.isAuthoritative).toBe(true);
+      expect(prodResFloor.isApprovedForEngineeringUse).toBe(true);
+      expect(prodResFloor.finalDesignOutdoorAir).toBeGreaterThan(0);
+    });
+
+    // Test E: Provide conditions belonging to a different Ez configuration
+    it('Test E: Provide conditions belonging to a different Ez configuration -> FAIL or BLOCKED', () => {
+      // Conditions for ez-2 (ceiling supply + ceiling return) passed into ez-ceil-warm-floor-ret
+      const diffConfig1 = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ezCeilWarmFloorRet,
+        supplyAirCondition: 'warm',
+        supplyTempRelationship: 'heating_gte_8c',
+        supplyLocation: 'ceiling',
+        returnLocation: 'ceiling' // ez-2 return location, NOT floor
+      });
+      expect(diffConfig1.status).toBe('FAIL');
+      expect(diffConfig1.voz).toBeNull();
+
+      // Conditions for ez-1 (cooling ceiling/ceiling) passed into ez-floor-warm-floor-ret
+      const diffConfig2 = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ezFloorWarmFloorRet,
+        supplyAirCondition: 'cool',
+        supplyTempRelationship: 'cooling',
+        supplyLocation: 'ceiling',
+        returnLocation: 'ceiling'
+      });
+      expect(diffConfig2.status).toBe('FAIL');
+      expect(diffConfig2.voz).toBeNull();
+    });
+
+    // Test F: Manual Ez override WITH justification
+    it('Test F: Manual Ez override WITH justification -> NOT_VERIFIED or BLOCKED at production boundary, non-authoritative, null output', () => {
+      const manualEz = EzSelectionService.createManualOverride(1.15, 'On-site tracer gas decay test measured Ez = 1.15 per ASTM E741');
+      expect(manualEz.isManualOverride).toBe(true);
+      expect(manualEz.manualOverrideBasis).toBeTruthy();
+
+      const zoneRes = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: manualEz
+      });
+      expect(['NOT_VERIFIED', 'BLOCKED']).toContain(zoneRes.status);
+      expect(zoneRes.voz).toBeNull();
+
+      const prodRes = VentilationEngine.runSingleZone({
+        edition: '2022',
+        density: { elevation: 0, temperature: 20 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: manualEz
+        }
+      });
+      expect(['NOT_VERIFIED', 'BLOCKED']).toContain(prodRes.status);
+      expect(prodRes.isAuthoritative).toBe(false);
+      expect(prodRes.isApprovedForEngineeringUse).toBe(false);
+      expect(prodRes.voz).toBeNull();
+      expect(prodRes.vot).toBeNull();
+      expect(prodRes.finalDesignOutdoorAir).toBeNull();
+    });
+
+    // Test G: Manual Ez override WITHOUT justification
+    it('Test G: Manual Ez override WITHOUT justification -> INCOMPLETE', () => {
+      const unjustifiedOverride = {
+        ...EzSelectionService.createManualOverride(1.15, ''),
+        manualOverrideBasis: '',
+        manualJustification: ''
+      };
+
+      const zoneRes = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: unjustifiedOverride
+      });
+      expect(zoneRes.status).toBe('INCOMPLETE');
+      expect(zoneRes.voz).toBeNull();
+    });
+
+    // Test H: Normal verified Table 6-4 Ez remains unchanged and produces normal PASS behavior
+    it('Test H: Normal verified Table 6-4 Ez remains unchanged and produces normal PASS behavior', () => {
+      const prodRes = VentilationEngine.runSingleZone({
+        edition: '2022',
+        density: { elevation: 0, temperature: 20 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: ezCooling1
+        }
+      });
+      expect(prodRes.status).toBe('PASS');
+      expect(prodRes.isAuthoritative).toBe(true);
+      expect(prodRes.isApprovedForEngineeringUse).toBe(true);
+      expect(prodRes.finalDesignOutdoorAir).toBeGreaterThan(0);
+      expect(prodRes.voz).toBeGreaterThan(0);
+      expect(prodRes.auditRecord).toBeDefined();
+      expect(prodRes.auditRecord?.finalResult.isAuthoritative).toBe(true);
+      expect(prodRes.auditRecord?.isApprovedForEngineeringUse).toBe(true);
+    });
+
+    // Test I: Fallback prevents any conditional Table 6-4 configuration from escaping without physical qualification
+    it('Test I: Fallback safety gate BLOCKS any conditional configuration attempting to escape without proof', () => {
+      const syntheticConditionalEz = {
+        ...ezCooling1,
+        id: 'ez-synthetic-conditional',
+        supplyAirCondition: 'warm' as const,
+        verticalThrowCondition: 'Vertical throw >= 0.25 m/s'
+      };
+      const validation = EzSelectionService.validateEzConfiguration(syntheticConditionalEz);
+      expect(validation.valid).toBe(false);
+      expect(validation.status).toBe('BLOCKED');
+      expect(validation.reasons[0]).toContain('cannot pass without verified physical qualification evidence');
+    });
   });
 });

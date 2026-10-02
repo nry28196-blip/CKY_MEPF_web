@@ -55,6 +55,8 @@ export interface EzSelectionCriteria {
 }
 
 export interface EzValidationConditions {
+  supplyLocation?: 'ceiling' | 'floor' | 'breathing_zone' | 'other' | null;
+  returnLocation?: 'ceiling' | 'floor' | 'other' | null;
   supplyTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
   spaceTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
   supplyAirCondition?: 'cool' | 'warm' | 'isothermal' | 'any' | null;
@@ -1420,6 +1422,12 @@ export class EzSelectionService {
       if (conditions?.supplyAirCondition === 'cool') {
         return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air'] };
       }
+      if (conditions?.supplyLocation && conditions.supplyLocation !== 'ceiling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory supply location: ez-2 requires ceiling supply'] };
+      }
+      if (conditions?.returnLocation && conditions.returnLocation !== 'ceiling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory return location: ez-2 requires ceiling return'] };
+      }
       return { valid: true, status: 'PASS', reasons: [] };
     }
 
@@ -1436,6 +1444,12 @@ export class EzSelectionService {
       }
       if (conditions.supplyJetVelocityMet !== true) {
         return { valid: false, status: 'FAIL', reasons: ['Configuration requires supply jet velocity >= 0.8 m/s within 1.4 m of floor'] };
+      }
+      if (conditions?.supplyLocation && conditions.supplyLocation !== 'ceiling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory supply location: ez-ceil-warm-lt8c-highvel requires ceiling supply'] };
+      }
+      if (conditions?.returnLocation && conditions.returnLocation !== 'ceiling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory return location: ez-ceil-warm-lt8c-highvel requires ceiling return'] };
       }
       return { valid: true, status: 'PASS', reasons: [] };
     }
@@ -1454,6 +1468,54 @@ export class EzSelectionService {
       if (conditions.supplyJetVelocityMet !== false) {
         return { valid: false, status: 'FAIL', reasons: ['Configuration requires supply jet velocity < 0.8 m/s within 1.4 m of floor'] };
       }
+      if (conditions?.supplyLocation && conditions.supplyLocation !== 'ceiling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory supply location: ez-ceil-warm-lt8c-lowvel requires ceiling supply'] };
+      }
+      if (conditions?.returnLocation && conditions.returnLocation !== 'ceiling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory return location: ez-ceil-warm-lt8c-lowvel requires ceiling return'] };
+      }
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    if (ezConfig.id === 'ez-ceil-warm-floor-ret') {
+      const tempRel = conditions?.supplyTempRelationship || conditions?.spaceTempRelationship;
+      const isWarm = conditions?.supplyAirCondition === 'warm' || tempRel === 'heating_gte_8c' || tempRel === 'heating_lt_8c';
+      if (!isWarm) {
+        if (conditions?.supplyAirCondition === 'cool' || tempRel === 'cooling') {
+          return { valid: false, status: 'FAIL', reasons: ['Contradictory supply condition: ez-ceil-warm-floor-ret requires heating / warm supply air but cooling was provided'] };
+        }
+        return { valid: false, status: 'INCOMPLETE', reasons: ['Missing qualifying heating / warm supply air condition for ceiling warm air supply with floor return'] };
+      }
+      if (conditions?.supplyAirCondition === 'cool' || tempRel === 'cooling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory supply condition: ez-ceil-warm-floor-ret requires heating / warm supply air'] };
+      }
+      if (conditions?.supplyLocation && conditions.supplyLocation !== 'ceiling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory supply location: ez-ceil-warm-floor-ret requires ceiling supply'] };
+      }
+      if (conditions?.returnLocation && conditions.returnLocation !== 'floor') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory return location: ez-ceil-warm-floor-ret requires floor return'] };
+      }
+      return { valid: true, status: 'PASS', reasons: [] };
+    }
+
+    if (ezConfig.id === 'ez-floor-warm-floor-ret') {
+      const tempRel = conditions?.supplyTempRelationship || conditions?.spaceTempRelationship;
+      const isWarm = conditions?.supplyAirCondition === 'warm' || tempRel === 'heating_gte_8c' || tempRel === 'heating_lt_8c';
+      if (!isWarm) {
+        if (conditions?.supplyAirCondition === 'cool' || tempRel === 'cooling') {
+          return { valid: false, status: 'FAIL', reasons: ['Contradictory supply condition: ez-floor-warm-floor-ret requires heating / warm supply air but cooling was provided'] };
+        }
+        return { valid: false, status: 'INCOMPLETE', reasons: ['Missing qualifying heating / warm supply air condition for floor warm air supply with floor return'] };
+      }
+      if (conditions?.supplyAirCondition === 'cool' || tempRel === 'cooling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory supply condition: ez-floor-warm-floor-ret requires heating / warm supply air'] };
+      }
+      if (conditions?.supplyLocation && conditions.supplyLocation !== 'floor') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory supply location: ez-floor-warm-floor-ret requires floor supply'] };
+      }
+      if (conditions?.returnLocation && conditions.returnLocation !== 'floor') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory return location: ez-floor-warm-floor-ret requires floor return'] };
+      }
       return { valid: true, status: 'PASS', reasons: [] };
     }
 
@@ -1467,6 +1529,12 @@ export class EzSelectionService {
       const tempRel = conditions?.supplyTempRelationship || conditions?.spaceTempRelationship;
       if (tempRel === 'cooling' || conditions?.supplyAirCondition === 'cool') {
         return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air'] };
+      }
+      if (conditions?.supplyLocation && conditions.supplyLocation !== 'floor') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory supply location: ez-floor-warm-ceil-ret requires floor supply'] };
+      }
+      if (conditions?.returnLocation && conditions.returnLocation !== 'ceiling') {
+        return { valid: false, status: 'FAIL', reasons: ['Contradictory return location: ez-floor-warm-ceil-ret requires ceiling return'] };
       }
       return { valid: true, status: 'PASS', reasons: [] };
     }
@@ -1500,8 +1568,16 @@ export class EzSelectionService {
       return { valid: true, status: 'PASS', reasons: [] };
     }
 
-    // 5. General Temperature Contradictions for other configurations (e.g., ez-1, ez-ceil-warm-floor-ret, ez-floor-warm-floor-ret)
+    // 5. General Temperature and Location Contradictions for other configurations (e.g., ez-1)
     if (conditions) {
+      if (ezConfig.id === 'ez-1') {
+        if (conditions.supplyLocation && conditions.supplyLocation !== 'ceiling') {
+          return { valid: false, status: 'FAIL', reasons: ['Contradictory supply location: ez-1 requires ceiling supply'] };
+        }
+        if (conditions.returnLocation && conditions.returnLocation !== 'ceiling') {
+          return { valid: false, status: 'FAIL', reasons: ['Contradictory return location: ez-1 requires ceiling return'] };
+        }
+      }
       if (ezConfig.supplyAirCondition === 'cool') {
         const isWarm = conditions.supplyAirCondition === 'warm' ||
                        conditions.supplyTempRelationship === 'heating_gte_8c' ||
@@ -1520,6 +1596,22 @@ export class EzSelectionService {
           return { valid: false, status: 'FAIL', reasons: ['Configuration requires heating supply air'] };
         }
       }
+    }
+
+    // Safety Gate: No conditional Table 6-4 configuration may escape through the general fallback
+    if (ezConfig.supplyAirCondition === 'warm' || 
+        ezConfig.isStratified || 
+        ezConfig.isPersonalized || 
+        (ezConfig.distributionCategory as string) === 'makeup' || 
+        Boolean(ezConfig.verticalThrowCondition) || 
+        Boolean(ezConfig.supplyJetVelocityCondition) || 
+        Boolean(ezConfig.returnAirHeightCondition) ||
+        Boolean(ezConfig.additionalQualifyingConditions)) {
+      return {
+        valid: false,
+        status: 'BLOCKED',
+        reasons: [`Conditional Table 6-4 configuration '${ezConfig.id}' cannot pass without verified physical qualification evidence.`]
+      };
     }
 
     return { valid: true, status: 'PASS', reasons: [] };

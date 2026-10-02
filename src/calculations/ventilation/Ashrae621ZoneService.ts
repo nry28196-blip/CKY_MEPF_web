@@ -1,6 +1,6 @@
 import { AuditStatus } from '../../types';
 import { ValidationStatus, VentilationValidationService } from './VentilationValidationService';
-import { Ashrae621SpaceType, Ashrae621Ez } from '../../data/ventilation/ashrae621/types';
+import { Ashrae621SpaceType, Ashrae621Ez, SourceType } from '../../data/ventilation/ashrae621/types';
 import { DataProvenanceValidationService } from './DataProvenanceValidationService';
 import { EzSelectionService, EzValidationConditions, PersonalizedVentilationPrerequisites, StratifiedSystemPrerequisites } from './EzSelectionService';
 import { normalizeAddendumIdentifier } from '../scope/ProductionCalculationScope';
@@ -35,6 +35,8 @@ export interface ZoneVentilationInput {
   designOccupancy: number | null;
   useDefaultOccupancy: boolean;
   ezConfig: Ashrae621Ez | null;
+  supplyLocation?: 'ceiling' | 'floor' | 'breathing_zone' | 'other' | null;
+  returnLocation?: 'ceiling' | 'floor' | 'other' | null;
   supplyTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
   spaceTempRelationship?: 'cooling' | 'heating_gte_8c' | 'heating_lt_8c' | 'none' | null;
   supplyAirCondition?: 'cool' | 'warm' | 'isothermal' | 'any' | null;
@@ -122,7 +124,14 @@ export class Ashrae621ZoneService {
       return this.emptyResult(spaceTypeValidation.status, reason);
     }
 
-    if (input.ezConfig.isManualOverride) {
+    const isOverride = Boolean(
+      input.ezConfig.isManualOverride ||
+      input.ezConfig.sourceType === SourceType.USER_OVERRIDE ||
+      input.ezConfig.distributionCategory === 'override' ||
+      input.ezConfig.id.startsWith('manual-override')
+    );
+
+    if (isOverride) {
       if (!input.ezConfig.manualOverrideBasis && !input.ezConfig.manualJustification) {
         return this.emptyResult('INCOMPLETE', 'Missing engineering justification for Ez manual override');
       }
@@ -141,6 +150,8 @@ export class Ashrae621ZoneService {
 
     // Establish that the selected Table 6-4 Ez (or manual override) is valid for the physical configuration
     const conditions: EzValidationConditions = {
+      supplyLocation: input.supplyLocation ?? input.ezConditions?.supplyLocation,
+      returnLocation: input.returnLocation ?? input.ezConditions?.returnLocation,
       supplyTempRelationship: input.supplyTempRelationship ?? input.ezConditions?.supplyTempRelationship,
       spaceTempRelationship: input.spaceTempRelationship ?? input.ezConditions?.spaceTempRelationship,
       supplyAirCondition: input.supplyAirCondition ?? input.ezConditions?.supplyAirCondition,
@@ -162,6 +173,9 @@ export class Ashrae621ZoneService {
     const ezConfigValidation = EzSelectionService.validateEzConfiguration(input.ezConfig, conditions);
     if (!ezConfigValidation.valid) {
       return this.emptyResult(ezConfigValidation.status, ezConfigValidation.reasons[0]);
+    }
+    if (ezConfigValidation.status !== 'PASS') {
+      statuses.push(ezConfigValidation.status);
     }
 
     const az = input.area;
@@ -225,8 +239,10 @@ export class Ashrae621ZoneService {
       status: AuditStatus.DERIVED
     });
 
-    if (input.ezConfig.isManualOverride) {
+    if (isOverride || ezConfigValidation.status === 'NOT_VERIFIED' || input.ezConfig.verificationStatus === 'NOT_VERIFIED') {
       statuses.push('NOT_VERIFIED');
+    } else if (ezConfigValidation.status === 'BLOCKED' || (input.ezConfig.verificationStatus as string) === 'BLOCKED') {
+      statuses.push('BLOCKED');
     } else {
       statuses.push('PASS');
     }
