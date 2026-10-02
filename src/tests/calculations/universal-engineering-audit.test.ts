@@ -161,6 +161,7 @@ describe('PROMPT 5 — Universal Engineering Audit & Provenance Contract', () =>
           id: 'test_blocked_path',
           name: 'Blocked Test Path'
         },
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
         inputs: { test: 123 },
         provenance: {
           test: {
@@ -207,6 +208,7 @@ describe('PROMPT 5 — Universal Engineering Audit & Provenance Contract', () =>
           id: 'single_zone',
           name: 'Single-Zone Ventilation'
         },
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
         inputs: { rp: 2.5, area: 100 },
         provenance: {
           rp: {
@@ -314,6 +316,7 @@ describe('PROMPT 5 — Universal Engineering Audit & Provenance Contract', () =>
           id: 'pipe_sizing',
           name: 'Water Supply Fixture Unit Sizing'
         },
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
         inputs: { wsfu: 15 },
         provenance: {
           wsfu: {
@@ -639,7 +642,7 @@ describe('PROMPT 5 — Universal Engineering Audit & Provenance Contract', () =>
     });
 
     it('3. PASS + authority policy omitted -> not authoritative (fail-safe default)', () => {
-      const audit = EngineeringAuditService.createAuditRecord({
+      const audit = (EngineeringAuditService.createAuditRecord as any)({
         ...baseParams,
         validationStatus: 'PASS'
         // authorityPolicy omitted!

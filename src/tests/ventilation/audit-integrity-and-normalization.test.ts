@@ -3,7 +3,8 @@ import { VentilationEngine, SingleZoneInput, MultiZoneInput } from '../../lib/Ve
 import { Ashrae621ZoneService } from '../../calculations/ventilation/Ashrae621ZoneService';
 import { Ashrae621ExhaustService } from '../../calculations/ventilation/Ashrae621ExhaustService';
 import { ProductionScopeService, normalizeAddendumIdentifier } from '../../calculations/scope/ProductionCalculationScope';
-import { EngineeringAuditService } from '../../calculations/audit/EngineeringAuditContract';
+import { EngineeringAuditService, CalculationAuditRecord } from '../../calculations/audit/EngineeringAuditContract';
+import { Ashrae622Service } from '../../calculations/ventilation/Ashrae622Service';
 import { StandardDataProvider } from '../../data/ventilation/StandardDataProvider';
 
 describe('Audit Integrity Fail-Closed & Addendum Normalization Verification', () => {
@@ -319,6 +320,243 @@ describe('Audit Integrity Fail-Closed & Addendum Normalization Verification', ()
       expect(result.status).toBe('BLOCKED');
       expect(result.requiredExhaust).toBeNull();
       expect(result.complianceNotes?.some(n => n.includes('Unapproved exhaust addenda'))).toBe(true);
+    });
+
+    it('rejects wrong-path addenda: zone service rejects Addendum x, exhaust service rejects Addendum j', () => {
+      // Zone service path must only accept Addendum j
+      const zoneWrongPath = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        expectedAddenda: ['Addendum x'],
+        spaceType: officeSpace,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ezCooling
+      });
+      expect(zoneWrongPath.status).toBe('BLOCKED');
+      expect(zoneWrongPath.voz).toBeNull();
+      expect(zoneWrongPath.reason).toContain('Unapproved addenda requested');
+
+      // Exhaust service path must only accept Addendum x
+      const exhaustWrongPath = Ashrae621ExhaustService.calculate({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        expectedAddenda: ['Addendum j'],
+        exhaustType: copyExhaust,
+        qty: 50,
+        designExhaust: 100
+      });
+      expect(exhaustWrongPath.status).toBe('BLOCKED');
+      expect(exhaustWrongPath.requiredExhaust).toBeNull();
+      expect(exhaustWrongPath.complianceNotes?.some(n => n.includes('Unapproved exhaust addenda'))).toBe(true);
+    });
+  });
+
+  // =========================================================================
+  // 4. AUDIT COMPLETENESS & AUTHORITATIVE INTEGRITY
+  // =========================================================================
+  describe('4. Audit Completeness & Authoritative Integrity', () => {
+    it('withholds authoritative status and numeric result if auditRecord indicates non-authoritative', () => {
+      const mockAuditRecord: CalculationAuditRecord = {
+        system: 'Ventilation',
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        revisionBasis: 'ANSI/ASHRAE Standard 62.1-2022',
+        calculationPath: { id: 'single_zone', name: 'Single-Zone Ventilation' },
+        authorityPolicy: 'DIAGNOSTIC',
+        inputs: {},
+        provenance: {},
+        equations: [],
+        intermediateResults: [],
+        finalResult: {
+          symbol: 'Voz',
+          name: 'Zone Outdoor Airflow',
+          value: null,
+          unit: 'L/s',
+          isAuthoritative: false,
+          complianceSummary: 'Non-authoritative'
+        },
+        validationStatus: 'PASS',
+        isApprovedForEngineeringUse: false,
+        warnings: [],
+        unsupportedItems: [],
+        timestamp: new Date().toISOString()
+      };
+
+      const spy = vi.spyOn(EngineeringAuditService, 'fromZoneCalculation').mockReturnValue(mockAuditRecord);
+
+      try {
+        const input: SingleZoneInput = {
+          edition: '2022',
+          density: { elevation: 0, temperature: 20 },
+          zone: {
+            expectedStandard: 'ASHRAE 62.1',
+            expectedEdition: '2022',
+            spaceType: officeSpace,
+            area: 100,
+            designOccupancy: 5,
+            useDefaultOccupancy: false,
+            ezConfig: ezCooling
+          }
+        };
+
+        const result = VentilationEngine.runSingleZone(input);
+
+        // Numeric output is withheld because audit record is not approved / not authoritative
+        expect(result.isAuthoritative).toBe(false);
+        expect(result.isApprovedForEngineeringUse).toBe(false);
+        expect(result.voz).toBeNull();
+        expect(result.vot).toBeNull();
+        expect(result.finalDesignOutdoorAir).toBeNull();
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('ensures nested diagnostic sub-calculations cannot elevate to authoritative in outer calculations', () => {
+      const diagSubAudit = EngineeringAuditService.createAuditRecord({
+        system: 'Ventilation',
+        standard: 'Non-Standard Diagnostic Utility',
+        edition: 'Diagnostic',
+        revisionBasis: 'Air Balance Continuity Diagnostic',
+        calculationPath: {
+          id: 'room_air_balance_diagnostic',
+          name: 'Room Air Balance Diagnostic Utility'
+        },
+        inputs: { flow: 50 },
+        provenance: {
+          flow: {
+            key: 'flow',
+            name: 'Flow',
+            value: 50,
+            unit: 'L/s',
+            source: 'PROJECT_SPECIFICATION',
+            verificationStatus: 'VERIFIED',
+            engineeringStatus: 'USER_SUPPLIED'
+          }
+        },
+        equations: [],
+        intermediateResults: [],
+        finalResult: {
+          symbol: 'Q_net',
+          name: 'Net Flow',
+          value: 50,
+          unit: 'L/s'
+        },
+        validationStatus: 'PASS',
+        authorityPolicy: 'DIAGNOSTIC'
+      });
+
+      expect(diagSubAudit.authorityPolicy).toBe('DIAGNOSTIC');
+      expect(diagSubAudit.isApprovedForEngineeringUse).toBe(false);
+      expect(diagSubAudit.finalResult.isAuthoritative).toBe(false);
+
+      // Now create outer calculation referencing the diagnostic sub-result
+      const outerAudit = EngineeringAuditService.createAuditRecord({
+        system: 'Ventilation',
+        standard: 'ASHRAE 62.1',
+        edition: '2022',
+        revisionBasis: 'ANSI/ASHRAE Standard 62.1-2022',
+        calculationPath: {
+          id: 'multi_zone_system',
+          name: 'Multi-Zone System'
+        },
+        inputs: { subFlow: diagSubAudit.finalResult.value },
+        provenance: {
+          subFlow: {
+            key: 'subFlow',
+            name: 'Diagnostic Sub-Flow',
+            value: diagSubAudit.finalResult.value,
+            unit: 'L/s',
+            source: 'DIAGNOSTIC_UTILITY',
+            verificationStatus: 'NOT_VERIFIED', // Correctly demoted: diagnostic cannot become VERIFIED standard input
+            engineeringStatus: 'DERIVED'
+          }
+        },
+        equations: [],
+        intermediateResults: [],
+        finalResult: {
+          symbol: 'Vot',
+          name: 'System Flow',
+          value: 100,
+          unit: 'L/s'
+        },
+        validationStatus: 'PASS',
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION'
+      });
+
+      // Because sub-input is NOT_VERIFIED, outer validation converts to BLOCKED and non-authoritative
+      expect(outerAudit.validationStatus).toBe('BLOCKED');
+      expect(outerAudit.isApprovedForEngineeringUse).toBe(false);
+      expect(outerAudit.finalResult.isAuthoritative).toBe(false);
+      expect(outerAudit.finalResult.value).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // 5. ASHRAE 62.2 SEPARATION & NON-AUTHORITATIVE INVARIANTS
+  // =========================================================================
+  describe('5. ASHRAE 62.2 Separation & Non-Authoritative Invariants', () => {
+    it('blocks ASHRAE 62.2 from entering the commercial 62.1 VentilationEngine', () => {
+      const input: any = {
+        edition: '2022',
+        density: { elevation: 0, temperature: 20 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.2',
+          expectedEdition: '2022',
+          spaceType: officeSpace,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: ezCooling
+        }
+      };
+
+      const result = VentilationEngine.runSingleZone(input);
+
+      expect(result.status).toBe('BLOCKED');
+      expect(result.voz).toBeNull();
+      expect(result.vot).toBeNull();
+      expect(result.finalDesignOutdoorAir).toBeNull();
+      expect(result.isAuthoritative).toBe(false);
+      expect(result.isApprovedForEngineeringUse).toBe(false);
+    });
+
+    it('verifies ASHRAE 62.2 WARNING status is non-authoritative', () => {
+      const result = Ashrae622Service.calculateWholeDwelling({
+        floorArea: 100,
+        bedrooms: 3,
+        infiltrationCredit: 10,
+        infiltrationVerified: false, // Unverified infiltration produces WARNING
+        localExhaust: null,
+        coefficients: StandardDataProvider.get622Coefficients('2022')
+      });
+
+      expect(result.status).toBe('WARNING');
+      expect(result.isAuthoritative).toBe(false);
+      expect(result.isApprovedForEngineeringUse).toBe(false);
+    });
+
+    it('verifies ASHRAE 62.2 INCOMPLETE status is non-authoritative with null fan flow', () => {
+      const result = Ashrae622Service.calculateWholeDwelling({
+        floorArea: 100,
+        bedrooms: 3,
+        infiltrationCredit: 0,
+        infiltrationVerified: false,
+        localExhaust: {
+          kitchenRequired: null, // Incomplete local exhaust
+          kitchenInstalled: 20,
+          bathRequired: 25,
+          bathInstalled: 25
+        },
+        coefficients: StandardDataProvider.get622Coefficients('2022')
+      });
+
+      expect(result.status).toBe('INCOMPLETE');
+      expect(result.qFan).toBeNull();
+      expect(result.isAuthoritative).toBe(false);
+      expect(result.isApprovedForEngineeringUse).toBe(false);
     });
   });
 });

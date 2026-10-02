@@ -118,6 +118,7 @@ describe('FINAL VENTILATION PRODUCTION HARDENING — FALSE PASS REGRESSION SUITE
           id: 'test_path',
           name: 'Test Path'
         },
+        authorityPolicy: 'AUTHORITATIVE_PRODUCTION',
         inputs: { customVal: 42 },
         provenance: {
           customVal: {

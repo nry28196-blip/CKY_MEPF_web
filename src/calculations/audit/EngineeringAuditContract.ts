@@ -100,7 +100,7 @@ export interface CalculationAuditRecord {
   readonly edition: string;
   readonly revisionBasis: string;
   readonly calculationPath: CalculationPathRecord;
-  readonly authorityPolicy?: AuditAuthorityPolicy;
+  readonly authorityPolicy: AuditAuthorityPolicy;
   readonly inputs: Record<string, number | string | boolean | null>;
   readonly provenance: Record<string, InputProvenanceRecord>;
   readonly equations: CalculationEquationRecord[];
@@ -131,7 +131,7 @@ export interface CreateAuditRecordParams {
     complianceSummary?: string;
   };
   validationStatus: ValidationStatus;
-  authorityPolicy?: AuditAuthorityPolicy;
+  authorityPolicy: AuditAuthorityPolicy;
   authoritativeEligible?: boolean;
   warnings?: string[];
   unsupportedItems?: string[];
@@ -722,7 +722,7 @@ export class EngineeringAuditService {
       complianceSummary?: string;
     };
     validationStatus: ValidationStatus;
-    authorityPolicy?: AuditAuthorityPolicy;
+    authorityPolicy: AuditAuthorityPolicy;
     authoritativeEligible?: boolean;
     warnings?: string[];
     unsupportedItems?: string[];
