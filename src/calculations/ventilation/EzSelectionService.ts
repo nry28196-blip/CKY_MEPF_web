@@ -642,6 +642,11 @@ export class EzSelectionService {
 
   /**
    * Validates Section 6.2.1.2.1 Stratified System Prerequisites.
+   *
+   * Tri-state Boolean qualification field rule:
+   * 1. TRUE = asserted qualified, but TRUE alone is NOT evidence.
+   * 2. FALSE = explicitly asserted NOT qualified (always FAIL).
+   * 3. OMITTED / undefined / null = no assertion provided (evaluate structured evidence).
    */
   static validateStratifiedPrerequisites(conditions?: EzValidationConditions): { valid: boolean; status: ValidationStatus; reasons: string[] } {
     if (!conditions) {
@@ -649,6 +654,21 @@ export class EzSelectionService {
         valid: false,
         status: 'INCOMPLETE',
         reasons: ['Stratified system prerequisites under ASHRAE 62.1-2022 Section 6.2.1.2.1 must be verified (supply temp at least 2°C below room, return height > 2.8 m, no mechanical mixing, protected from impinging airstreams).']
+      };
+    }
+
+    // Explicit negative assertion (FALSE): always produces FAIL
+    // - FALSE + missing structured evidence → FAIL
+    // - FALSE + incomplete structured evidence → FAIL
+    // - FALSE + complete valid structured evidence → FAIL
+    // - FALSE + contradictory structured evidence → FAIL
+    if (conditions.stratifiedPrerequisitesMet === false) {
+      return {
+        valid: false,
+        status: 'FAIL',
+        reasons: conditions.stratifiedPrerequisites
+          ? ['Contradictory stratified prerequisites: structured prerequisites provided but stratifiedPrerequisitesMet is explicitly false.']
+          : ['Stratified system prerequisites under Section 6.2.1.2.1 not satisfied: stratifiedPrerequisitesMet is explicitly false.']
       };
     }
 
@@ -742,13 +762,6 @@ export class EzSelectionService {
         };
       }
 
-      if (conditions.stratifiedPrerequisitesMet === false) {
-        return {
-          valid: false, status: 'FAIL',
-          reasons: ['Contradictory stratified prerequisites: structured prerequisites provided but stratifiedPrerequisitesMet is false.']
-        };
-      }
-
       if (supplyTempConditionMet === null) {
         return {
           valid: false, status: 'INCOMPLETE',
@@ -778,11 +791,6 @@ export class EzSelectionService {
       }
 
       return { valid: true, status: 'PASS', reasons: [] };
-    } else if (conditions.stratifiedPrerequisitesMet === false) {
-      return {
-        valid: false, status: 'FAIL',
-        reasons: ['Stratified system prerequisites under Section 6.2.1.2.1 not satisfied.']
-      };
     }
 
     return {
@@ -794,6 +802,11 @@ export class EzSelectionService {
 
   /**
    * Validates Section 6.2.1.2.2 Personalized Ventilation Prerequisites.
+   *
+   * Tri-state Boolean qualification field rule:
+   * 1. TRUE = asserted qualified, but TRUE alone is NOT evidence.
+   * 2. FALSE = explicitly asserted NOT qualified (always FAIL).
+   * 3. OMITTED / undefined / null = no assertion provided (evaluate structured evidence).
    */
   static validatePersonalizedPrerequisites(conditions?: EzValidationConditions): { valid: boolean; status: ValidationStatus; reasons: string[] } {
     if (!conditions) {
@@ -812,15 +825,23 @@ export class EzSelectionService {
       };
     }
 
+    // Explicit negative assertion (FALSE): always produces FAIL
+    // - FALSE + missing structured evidence → FAIL
+    // - FALSE + incomplete structured evidence → FAIL
+    // - FALSE + complete valid structured evidence → FAIL
+    // - FALSE + contradictory structured evidence → FAIL
+    if (conditions.personalizedPrerequisitesMet === false) {
+      return {
+        valid: false,
+        status: 'FAIL',
+        reasons: conditions.personalizedPrerequisites
+          ? ['Contradictory personalized prerequisites: structured prerequisites provided but personalizedPrerequisitesMet is explicitly false.']
+          : ['Personalized ventilation prerequisites under Section 6.2.1.2.2 not satisfied: personalizedPrerequisitesMet is explicitly false.']
+      };
+    }
+
     const pReq = conditions.personalizedPrerequisites;
     if (pReq) {
-      if (conditions.personalizedPrerequisitesMet === false) {
-        return {
-          valid: false, status: 'FAIL',
-          reasons: ['Contradictory personalized prerequisites: structured prerequisites provided but personalizedPrerequisitesMet is false.']
-        };
-      }
-
       if (pReq.airDistributedInBreathingZone === false) {
         return {
           valid: false, status: 'FAIL',
@@ -924,11 +945,6 @@ export class EzSelectionService {
       }
 
       return { valid: true, status: 'PASS', reasons: [] };
-    } else if (conditions.personalizedPrerequisitesMet === false) {
-      return {
-        valid: false, status: 'FAIL',
-        reasons: ['Personalized ventilation prerequisites under Section 6.2.1.2.2 not satisfied.']
-      };
     }
 
     return {

@@ -632,5 +632,256 @@ describe('FINAL EZ SAFETY FIX: Unify Missing / Undefined Stratified and Personal
       expect(enginePersonal.isApprovedForEngineeringUse).toBe(true);
       expect(enginePersonal.voz).toBe(zonePersonal.voz);
     });
+
+    it('enforces authoritative FAIL across all three layers for explicit negative Boolean ({ stratifiedPrerequisitesMet: false })', () => {
+      // Direct
+      const direct = EzSelectionService.validateEzConfiguration(ez3, {
+        supplyTempRelationship: 'cooling',
+        verticalThrowMet: false,
+        returnHeightGte55m: false,
+        stratifiedPrerequisitesMet: false
+      });
+      expect(direct.valid).toBe(false);
+      expect(direct.status).toBe('FAIL');
+
+      // Zone Service
+      const zoneRes = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ez3,
+        supplyTempRelationship: 'cooling',
+        verticalThrowMet: false,
+        returnHeightGte55m: false,
+        stratifiedPrerequisitesMet: false
+      });
+      expect(zoneRes.status).toBe('FAIL');
+      expect(zoneRes.voz).toBeNull();
+
+      // VentilationEngine
+      const engineRes = VentilationEngine.runSingleZone({
+        edition: '2022',
+        density: { elevation: 0, temperature: 20, relativeHumidity: 0 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: ez3,
+          supplyTempRelationship: 'cooling',
+          verticalThrowMet: false,
+          returnHeightGte55m: false,
+          stratifiedPrerequisitesMet: false
+        }
+      });
+      expect(engineRes.status).toBe('FAIL');
+      expect(engineRes.isAuthoritative).toBe(false);
+      expect(engineRes.isApprovedForEngineeringUse).toBe(false);
+      expect(engineRes.voz).toBeNull();
+      expect(engineRes.vot).toBeNull();
+    });
+
+    it('enforces authoritative FAIL across all three layers for explicit negative Boolean ({ personalizedPrerequisitesMet: false })', () => {
+      // Direct
+      const direct = EzSelectionService.validateEzConfiguration(ezPersonalCool, {
+        supplyTempRelationship: 'cooling',
+        personalizedSystemType: 'ceiling_cool',
+        personalizedPrerequisitesMet: false
+      });
+      expect(direct.valid).toBe(false);
+      expect(direct.status).toBe('FAIL');
+
+      // Zone Service
+      const zoneRes = Ashrae621ZoneService.calculateZone({
+        expectedStandard: 'ASHRAE 62.1',
+        expectedEdition: '2022',
+        spaceType: office,
+        area: 100,
+        designOccupancy: 5,
+        useDefaultOccupancy: false,
+        ezConfig: ezPersonalCool,
+        supplyTempRelationship: 'cooling',
+        personalizedSystemType: 'ceiling_cool',
+        personalizedPrerequisitesMet: false
+      });
+      expect(zoneRes.status).toBe('FAIL');
+      expect(zoneRes.voz).toBeNull();
+
+      // VentilationEngine
+      const engineRes = VentilationEngine.runSingleZone({
+        edition: '2022',
+        density: { elevation: 0, temperature: 20, relativeHumidity: 0 },
+        zone: {
+          expectedStandard: 'ASHRAE 62.1',
+          expectedEdition: '2022',
+          spaceType: office,
+          area: 100,
+          designOccupancy: 5,
+          useDefaultOccupancy: false,
+          ezConfig: ezPersonalCool,
+          supplyTempRelationship: 'cooling',
+          personalizedSystemType: 'ceiling_cool',
+          personalizedPrerequisitesMet: false
+        }
+      });
+      expect(engineRes.status).toBe('FAIL');
+      expect(engineRes.isAuthoritative).toBe(false);
+      expect(engineRes.isApprovedForEngineeringUse).toBe(false);
+      expect(engineRes.voz).toBeNull();
+      expect(engineRes.vot).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // Section: Explicit Tri-State Boolean Qualification Matrix
+  // =========================================================================
+  describe('Explicit Tri-State Boolean Qualification Matrix', () => {
+    const contradictoryStratPrereqs: StratifiedVentilationPrerequisites = {
+      ...completeValidStratPrereqs,
+      tempDiffRoomSupplyC: 1.0, // violation: < 2°C
+      supplyTempBelowRoomGte2C: false
+    };
+
+    const incompleteStratPrereqs = {
+      tempDiffRoomSupplyC: 3.0,
+      supplyTempBelowRoomGte2C: true
+      // missing returnOpeningHeightM, noMechanicalMixingDevices, protectedFromImpingingAirstreams
+    };
+
+    const contradictoryPersonalPrereqs: PersonalizedVentilationPrerequisites = {
+      ...completeValidPersonalPrereqs,
+      headRegionVelocityMs: 0.35, // violation: > 0.25 m/s
+      headRegionVelocityMet: false
+    };
+
+    const incompletePersonalPrereqs = {
+      airDistributedInBreathingZone: true
+      // missing velocity, return height
+    };
+
+    // --- Stratified Tri-State Matrix ---
+    describe('Stratified Tri-State Matrix', () => {
+      it('Boolean omitted / undefined / null: Missing Boolean + missing structured evidence → INCOMPLETE', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({}).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: undefined }).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: null }).status).toBe('INCOMPLETE');
+      });
+
+      it('Boolean omitted / undefined / null: Missing Boolean + incomplete structured evidence → INCOMPLETE', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisites: incompleteStratPrereqs }).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisites: incompleteStratPrereqs, stratifiedPrerequisitesMet: undefined }).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisites: incompleteStratPrereqs, stratifiedPrerequisitesMet: null }).status).toBe('INCOMPLETE');
+      });
+
+      it('Boolean omitted / undefined / null: Missing Boolean + complete valid structured evidence → allow PASS', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisites: completeValidStratPrereqs }).status).toBe('PASS');
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisites: completeValidStratPrereqs, stratifiedPrerequisitesMet: undefined }).status).toBe('PASS');
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisites: completeValidStratPrereqs, stratifiedPrerequisitesMet: null }).status).toBe('PASS');
+      });
+
+      it('Boolean omitted / undefined / null: Missing Boolean + contradictory/invalid structured evidence → FAIL', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisites: contradictoryStratPrereqs }).status).toBe('FAIL');
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisites: contradictoryStratPrereqs, stratifiedPrerequisitesMet: undefined }).status).toBe('FAIL');
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisites: contradictoryStratPrereqs, stratifiedPrerequisitesMet: null }).status).toBe('FAIL');
+      });
+
+      it('Boolean TRUE: TRUE + missing structured evidence → INCOMPLETE', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: true }).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: true, stratifiedPrerequisites: undefined }).status).toBe('INCOMPLETE');
+      });
+
+      it('Boolean TRUE: TRUE + incomplete structured evidence → INCOMPLETE', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: true, stratifiedPrerequisites: incompleteStratPrereqs }).status).toBe('INCOMPLETE');
+      });
+
+      it('Boolean TRUE: TRUE + complete valid structured evidence → PASS', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: true, stratifiedPrerequisites: completeValidStratPrereqs }).status).toBe('PASS');
+      });
+
+      it('Boolean TRUE: TRUE + contradictory/invalid structured evidence → FAIL', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: true, stratifiedPrerequisites: contradictoryStratPrereqs }).status).toBe('FAIL');
+      });
+
+      it('Boolean FALSE: FALSE + missing structured evidence → FAIL', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: false }).status).toBe('FAIL');
+      });
+
+      it('Boolean FALSE: FALSE + incomplete structured evidence → FAIL', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: false, stratifiedPrerequisites: incompleteStratPrereqs }).status).toBe('FAIL');
+      });
+
+      it('Boolean FALSE: FALSE + complete valid structured evidence → FAIL', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: false, stratifiedPrerequisites: completeValidStratPrereqs }).status).toBe('FAIL');
+      });
+
+      it('Boolean FALSE: FALSE + contradictory structured evidence → FAIL', () => {
+        expect(EzSelectionService.validateStratifiedPrerequisites({ stratifiedPrerequisitesMet: false, stratifiedPrerequisites: contradictoryStratPrereqs }).status).toBe('FAIL');
+      });
+    });
+
+    // --- Personalized Tri-State Matrix ---
+    describe('Personalized Tri-State Matrix', () => {
+      it('Boolean omitted / undefined / null: Missing Boolean + missing structured evidence → INCOMPLETE', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({}).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: undefined }).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: null }).status).toBe('INCOMPLETE');
+      });
+
+      it('Boolean omitted / undefined / null: Missing Boolean + incomplete structured evidence → INCOMPLETE', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisites: incompletePersonalPrereqs }).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisites: incompletePersonalPrereqs, personalizedPrerequisitesMet: undefined }).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisites: incompletePersonalPrereqs, personalizedPrerequisitesMet: null }).status).toBe('INCOMPLETE');
+      });
+
+      it('Boolean omitted / undefined / null: Missing Boolean + complete valid structured evidence → allow PASS', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisites: completeValidPersonalPrereqs }).status).toBe('PASS');
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisites: completeValidPersonalPrereqs, personalizedPrerequisitesMet: undefined }).status).toBe('PASS');
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisites: completeValidPersonalPrereqs, personalizedPrerequisitesMet: null }).status).toBe('PASS');
+      });
+
+      it('Boolean omitted / undefined / null: Missing Boolean + contradictory/invalid structured evidence → FAIL', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisites: contradictoryPersonalPrereqs }).status).toBe('FAIL');
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisites: contradictoryPersonalPrereqs, personalizedPrerequisitesMet: undefined }).status).toBe('FAIL');
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisites: contradictoryPersonalPrereqs, personalizedPrerequisitesMet: null }).status).toBe('FAIL');
+      });
+
+      it('Boolean TRUE: TRUE + missing structured evidence → INCOMPLETE', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: true }).status).toBe('INCOMPLETE');
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: true, personalizedPrerequisites: undefined }).status).toBe('INCOMPLETE');
+      });
+
+      it('Boolean TRUE: TRUE + incomplete structured evidence → INCOMPLETE', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: true, personalizedPrerequisites: incompletePersonalPrereqs }).status).toBe('INCOMPLETE');
+      });
+
+      it('Boolean TRUE: TRUE + complete valid structured evidence → PASS', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: true, personalizedPrerequisites: completeValidPersonalPrereqs }).status).toBe('PASS');
+      });
+
+      it('Boolean TRUE: TRUE + contradictory/invalid structured evidence → FAIL', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: true, personalizedPrerequisites: contradictoryPersonalPrereqs }).status).toBe('FAIL');
+      });
+
+      it('Boolean FALSE: FALSE + missing structured evidence → FAIL', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: false }).status).toBe('FAIL');
+      });
+
+      it('Boolean FALSE: FALSE + incomplete structured evidence → FAIL', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: false, personalizedPrerequisites: incompletePersonalPrereqs }).status).toBe('FAIL');
+      });
+
+      it('Boolean FALSE: FALSE + complete valid structured evidence → FAIL', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: false, personalizedPrerequisites: completeValidPersonalPrereqs }).status).toBe('FAIL');
+      });
+
+      it('Boolean FALSE: FALSE + contradictory structured evidence → FAIL', () => {
+        expect(EzSelectionService.validatePersonalizedPrerequisites({ personalizedPrerequisitesMet: false, personalizedPrerequisites: contradictoryPersonalPrereqs }).status).toBe('FAIL');
+      });
+    });
   });
 });
