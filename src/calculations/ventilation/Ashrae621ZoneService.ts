@@ -4,6 +4,7 @@ import { Ashrae621SpaceType, Ashrae621Ez, SourceType } from '../../data/ventilat
 import { DataProvenanceValidationService } from './DataProvenanceValidationService';
 import { EzSelectionService, EzValidationConditions, PersonalizedVentilationPrerequisites, StratifiedSystemPrerequisites } from './EzSelectionService';
 import { normalizeAddendumIdentifier } from '../scope/ProductionCalculationScope';
+import { EngineeringValidationLogger } from '../validation/EngineeringValidationLogger';
 
 export interface AuditTrailItem {
   symbol: string;
@@ -211,8 +212,46 @@ export class Ashrae621ZoneService {
     
     // Addendum j air-density correction: Voz = (Vbz / Ez) * Ep
     // Ep is the local air-density correction factor (historically also tracked as eRho in this codebase)
-    const epDensity = input.epDensity ?? input.eRho ?? 1.0;
-    const isDensitySpecified = input.epDensity !== undefined || input.eRho !== undefined;
+    if (input.epDensity !== undefined && input.epDensity !== null) {
+      if (typeof input.epDensity !== 'number' || !Number.isFinite(input.epDensity) || input.epDensity <= 0) {
+        EngineeringValidationLogger.logSafetyFailure({
+          system: 'Ashrae621ZoneService.calculateZone',
+          field: 'epDensity',
+          value: input.epDensity,
+          failureType: (typeof input.epDensity === 'number' && !Number.isFinite(input.epDensity)) ? 'NON_FINITE_NUMERIC' : 'OUT_OF_BOUNDS',
+          status: 'FAIL',
+          expected: 'finite number > 0',
+          message: 'Invalid air-density correction factor (epDensity): must be a finite number > 0'
+        });
+        return this.emptyResult('FAIL', 'Invalid air-density correction factor (epDensity): must be a finite number > 0');
+      }
+    }
+    if (input.eRho !== undefined && input.eRho !== null) {
+      if (typeof input.eRho !== 'number' || !Number.isFinite(input.eRho) || input.eRho <= 0) {
+        EngineeringValidationLogger.logSafetyFailure({
+          system: 'Ashrae621ZoneService.calculateZone',
+          field: 'eRho',
+          value: input.eRho,
+          failureType: (typeof input.eRho === 'number' && !Number.isFinite(input.eRho)) ? 'NON_FINITE_NUMERIC' : 'OUT_OF_BOUNDS',
+          status: 'FAIL',
+          expected: 'finite number > 0',
+          message: 'Invalid air-density correction factor (eRho): must be a finite number > 0'
+        });
+        return this.emptyResult('FAIL', 'Invalid air-density correction factor (eRho): must be a finite number > 0');
+      }
+    }
+
+    let epDensity = 1.0;
+    let isDensitySpecified = false;
+
+    if (input.epDensity !== undefined && input.epDensity !== null) {
+      epDensity = input.epDensity;
+      isDensitySpecified = true;
+    } else if (input.eRho !== undefined && input.eRho !== null) {
+      epDensity = input.eRho;
+      isDensitySpecified = true;
+    }
+
     const voz = (vbz / ez) * epDensity;
 
     auditTrail.push({

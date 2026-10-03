@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Wind, Plus, Trash2, Activity, ShieldAlert, GitBranch } from 'lucide-react';
+import { Settings, Wind, Plus, Trash2, Activity, ShieldAlert, GitBranch, AlertCircle } from 'lucide-react';
 import { useUnit } from '../lib/UnitContext';
 import { ASHRAE_FITTINGS_DB } from '../calculations/duct/FittingsDatabase';
 import { CriticalPathService, PathInput, DuctSection } from '../calculations/duct/CriticalPathService';
@@ -206,60 +206,124 @@ export default function StaticPressureCalc() {
                         className="bg-transparent text-white text-xs font-bold border-none focus:ring-0 p-0 mb-3 w-48"
                       />
                       
-                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                        <div>
-                          <label className="block text-[9px] text-slate-500 uppercase">Flow ({flowUnit})</label>
-                          <input type="number" min="0" value={sec.airflow} onChange={(e) => updateSection(path.id, sec.id, 'airflow', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] text-slate-500 uppercase">Shape</label>
-                          <select 
-                            value={sec.diameter !== undefined ? 'round' : 'rect'}
-                            onChange={(e) => {
-                              if (e.target.value === 'round') updateSection(path.id, sec.id, 'diameter', isMetric ? 300 : 12);
-                              else { updateSection(path.id, sec.id, 'width', isMetric ? 400 : 16); updateSection(path.id, sec.id, 'height', isMetric ? 300 : 12); }
-                            }}
-                            className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700"
-                          >
-                            <option value="rect">Rect</option>
-                            <option value="round">Round</option>
-                          </select>
-                        </div>
-                        {sec.diameter !== undefined ? (
-                          <div className="col-span-2">
-                            <label className="block text-[9px] text-slate-500 uppercase">Diameter ({dimUnit})</label>
-                            <input type="number" min="0" value={sec.diameter} onChange={(e) => updateSection(path.id, sec.id, 'diameter', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
-                          </div>
-                        ) : (
+                      {(() => {
+                        const isSecFlowNegative = sec.airflow < 0;
+                        const isSecFlowZero = sec.airflow === 0;
+                        const isSecFlowError = isSecFlowNegative || isSecFlowZero;
+                        const isSecWidthOversized = sec.width !== undefined && (sec.width > (isMetric ? 2400 : 96));
+                        const isSecAspectOversized = sec.width !== undefined && sec.height !== undefined && sec.height > 0 && (sec.width / sec.height > 4.0);
+                        const isSecDiamOversized = sec.diameter !== undefined && (sec.diameter > (isMetric ? 2400 : 96));
+                        const isSecDuctOversized = isSecWidthOversized || isSecAspectOversized || isSecDiamOversized;
+
+                        return (
                           <>
-                            <div>
-                              <label className="block text-[9px] text-slate-500 uppercase">W ({dimUnit})</label>
-                              <input type="number" min="0" value={sec.width} onChange={(e) => updateSection(path.id, sec.id, 'width', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                              <div>
+                                <label className="block text-[9px] text-slate-500 uppercase">Flow ({flowUnit})</label>
+                                <input 
+                                  type="number" 
+                                  value={sec.airflow} 
+                                  onChange={(e) => updateSection(path.id, sec.id, 'airflow', Number(e.target.value))} 
+                                  className={`w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border font-mono transition-colors ${
+                                    isSecFlowError
+                                      ? 'border-red-500 bg-red-950/30 text-red-400 ring-1 ring-red-500/30 focus:border-red-500'
+                                      : 'border-slate-700 focus:border-sky-500'
+                                  }`} 
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[9px] text-slate-500 uppercase">Shape</label>
+                                <select 
+                                  value={sec.diameter !== undefined ? 'round' : 'rect'}
+                                  onChange={(e) => {
+                                    if (e.target.value === 'round') updateSection(path.id, sec.id, 'diameter', isMetric ? 300 : 12);
+                                    else { updateSection(path.id, sec.id, 'width', isMetric ? 400 : 16); updateSection(path.id, sec.id, 'height', isMetric ? 300 : 12); }
+                                  }}
+                                  className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700"
+                                >
+                                  <option value="rect">Rect</option>
+                                  <option value="round">Round</option>
+                                </select>
+                              </div>
+                              {sec.diameter !== undefined ? (
+                                <div className="col-span-2">
+                                  <label className="block text-[9px] text-slate-500 uppercase">Diameter ({dimUnit})</label>
+                                  <input 
+                                    type="number" 
+                                    value={sec.diameter} 
+                                    onChange={(e) => updateSection(path.id, sec.id, 'diameter', Number(e.target.value))} 
+                                    className={`w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border font-mono transition-colors ${
+                                      isSecDiamOversized
+                                        ? 'border-red-500 bg-red-950/30 text-red-400 ring-1 ring-red-500/30 focus:border-red-500'
+                                        : 'border-slate-700 focus:border-sky-500'
+                                    }`} 
+                                  />
+                                </div>
+                              ) : (
+                                <>
+                                  <div>
+                                    <label className="block text-[9px] text-slate-500 uppercase">W ({dimUnit})</label>
+                                    <input 
+                                      type="number" 
+                                      value={sec.width} 
+                                      onChange={(e) => updateSection(path.id, sec.id, 'width', Number(e.target.value))} 
+                                      className={`w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border font-mono transition-colors ${
+                                        isSecWidthOversized || isSecAspectOversized
+                                          ? 'border-red-500 bg-red-950/30 text-red-400 ring-1 ring-red-500/30 focus:border-red-500'
+                                          : 'border-slate-700 focus:border-sky-500'
+                                      }`} 
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[9px] text-slate-500 uppercase">H ({dimUnit})</label>
+                                    <input 
+                                      type="number" 
+                                      value={sec.height} 
+                                      onChange={(e) => updateSection(path.id, sec.id, 'height', Number(e.target.value))} 
+                                      className={`w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border font-mono transition-colors ${
+                                        isSecAspectOversized
+                                          ? 'border-red-500 bg-red-950/30 text-red-400 ring-1 ring-red-500/30 focus:border-red-500'
+                                          : 'border-slate-700 focus:border-sky-500'
+                                      }`} 
+                                    />
+                                  </div>
+                                </>
+                              )}
+                              <div>
+                                <label className="block text-[9px] text-slate-500 uppercase">Len ({lenUnit})</label>
+                                <input type="number" min="0" value={sec.length} onChange={(e) => updateSection(path.id, sec.id, 'length', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                              </div>
+                              <div className="relative">
+                                <label className="block text-[9px] text-slate-500 uppercase">Fittings (ΣC)</label>
+                                <div className="flex space-x-1">
+                                  <input type="number" min="0" step="0.1" value={sec.fittingLossCoeff} onChange={(e) => updateSection(path.id, sec.id, 'fittingLossCoeff', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                                  <button onClick={() => setFittingSelectorOpen({pathId: path.id, sectionId: sec.id})} className="bg-sky-900/50 hover:bg-sky-800 text-sky-400 px-2 rounded border border-sky-700/50 flex items-center justify-center">
+                                    <Plus className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-[9px] text-slate-500 uppercase">Equip ({pressUnit})</label>
+                                <input type="number" min="0" step="1" value={sec.equipmentLoss} onChange={(e) => updateSection(path.id, sec.id, 'equipmentLoss', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
+                              </div>
                             </div>
-                            <div>
-                              <label className="block text-[9px] text-slate-500 uppercase">H ({dimUnit})</label>
-                              <input type="number" min="0" value={sec.height} onChange={(e) => updateSection(path.id, sec.id, 'height', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
-                            </div>
+
+                            {/* Section Level Error Alerts */}
+                            {(isSecFlowError || isSecDuctOversized) && (
+                              <div className="mt-2 text-[10px] font-mono flex flex-wrap gap-2 text-red-400 bg-red-950/30 p-1.5 rounded border border-red-900/40">
+                                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                                <div className="space-y-0.5">
+                                  {isSecFlowNegative && <div>Engineering Error: Negative airflow ({sec.airflow} {flowUnit}) is invalid.</div>}
+                                  {isSecFlowZero && <div>Engineering Error: Airflow cannot be zero.</div>}
+                                  {isSecWidthOversized && <div>Oversized Duct: Width ({sec.width}{dimUnit}) exceeds standard fabrication threshold ({isMetric ? '2,400 mm' : '96"'})</div>}
+                                  {isSecAspectOversized && !isSecWidthOversized && <div>Oversized Duct: Aspect ratio ({((sec.width || 0) / (sec.height || 1)).toFixed(1)}:1) exceeds SMACNA 4:1 limit.</div>}
+                                  {isSecDiamOversized && <div>Oversized Duct: Diameter ({sec.diameter}{dimUnit}) exceeds fabrication limit.</div>}
+                                </div>
+                              </div>
+                            )}
                           </>
-                        )}
-                        <div>
-                          <label className="block text-[9px] text-slate-500 uppercase">Len ({lenUnit})</label>
-                          <input type="number" min="0" value={sec.length} onChange={(e) => updateSection(path.id, sec.id, 'length', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
-                        </div>
-                        <div className="relative">
-                          <label className="block text-[9px] text-slate-500 uppercase">Fittings (ΣC)</label>
-                          <div className="flex space-x-1">
-                            <input type="number" min="0" step="0.1" value={sec.fittingLossCoeff} onChange={(e) => updateSection(path.id, sec.id, 'fittingLossCoeff', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
-                            <button onClick={() => setFittingSelectorOpen({pathId: path.id, sectionId: sec.id})} className="bg-sky-900/50 hover:bg-sky-800 text-sky-400 px-2 rounded border border-sky-700/50 flex items-center justify-center">
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-[9px] text-slate-500 uppercase">Equip ({pressUnit})</label>
-                          <input type="number" min="0" step="1" value={sec.equipmentLoss} onChange={(e) => updateSection(path.id, sec.id, 'equipmentLoss', Number(e.target.value))} className="w-full bg-slate-900 text-white rounded px-2 py-1.5 text-xs border border-slate-700" />
-                        </div>
-                      </div>
+                        );
+                      })()}
 
                       {secRes && (
                         <div className="mt-3 pt-3 border-t border-slate-800/60 flex flex-wrap gap-4 text-[10px] font-mono text-slate-400">

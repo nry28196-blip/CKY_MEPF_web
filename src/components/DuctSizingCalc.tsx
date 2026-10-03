@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ValidationBanner, { ValidationItem } from './ValidationBanner';
-import { Wind, Copy, FileSpreadsheet, AlertTriangle, CheckCircle2, Sliders, Settings, Layers, HelpCircle, Bookmark, Mail, Info } from 'lucide-react';
+import { Wind, Copy, FileSpreadsheet, AlertTriangle, AlertCircle, XCircle, CheckCircle2, Sliders, Settings, Layers, HelpCircle, Bookmark, Mail, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import TrendVisualizer from './TrendVisualizer';
@@ -192,7 +192,8 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
 
   // Determine status based on velocity limit
   const getVelocityStatus = (velocity: number): 'optimal' | 'warning' | 'danger' => {
-    if (velocity <= 0) return 'optimal';
+    if (appliedAirflow <= 0 || appliedDuctHeight <= 0) return 'danger';
+    if (velocity <= 0) return 'danger';
     if (velocity <= appliedVelocityLimit) return 'optimal';
     if (velocity <= appliedVelocityLimit * 1.2) return 'warning';
     return 'danger';
@@ -204,6 +205,18 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
   const velRoundMain = calculateVelocityRound(appliedAirflow, deMain);
   const velRectMain = calculateVelocityRect(appliedAirflow, widthMain, appliedDuctHeight);
   const statusMain = getVelocityStatus(velRectMain);
+  const aspectRatioMain = appliedDuctHeight > 0 && widthMain > 0 ? (widthMain / appliedDuctHeight) : 0;
+  const isAppliedWidthOversized = appliedAirflow > 0 && widthMain > 96;
+  const isAppliedAspectOversized = appliedAirflow > 0 && aspectRatioMain > 4.0;
+  const isAppliedDuctOversized = isAppliedWidthOversized || isAppliedAspectOversized;
+
+  // Live calculations for current user inputs before or during calculation
+  const liveDe = calculateDe(airflow > 0 ? airflow : 0, frictionRate > 0 ? frictionRate : 0.1);
+  const liveWidth = solveWidth(liveDe, ductHeight > 0 ? ductHeight : 12);
+  const liveAspectRatio = ductHeight > 0 && liveWidth > 0 ? (liveWidth / ductHeight) : 0;
+  const isLiveWidthOversized = airflow > 0 && liveWidth > 96;
+  const isLiveAspectOversized = airflow > 0 && liveAspectRatio > 4.0;
+  const isLiveDuctOversized = isLiveWidthOversized || isLiveAspectOversized;
 
   // Calculate results for BRANCHES
   const branches: BranchResult[] = appliedBranchPercentages.map((pct, idx) => {
@@ -353,18 +366,75 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
   };
   // Validation Engine
   const validations: ValidationItem[] = [];
-  if (velRectMain > appliedVelocityLimit) {
+  if (appliedAirflow < 0) {
     validations.push({
-      id: 'vel-main',
+      id: 'airflow-neg',
       severity: 'error',
-      message: `Main duct velocity (${Math.round(velRectMain)} FPM) exceeds the design limit (${appliedVelocityLimit} FPM). Increase duct size or reduce airflow.`,
+      message: `Main airflow is negative (${appliedAirflow} CFM). Duct design requires positive air volume.`,
+    });
+  } else if (appliedAirflow === 0) {
+    validations.push({
+      id: 'airflow-zero',
+      severity: 'error',
+      message: 'Main airflow is zero. Please enter a positive airflow rate (standard range: 100 to 50,000 CFM).',
+    });
+  } else if (appliedAirflow < 100 || appliedAirflow > 50000) {
+    validations.push({
+      id: 'airflow-bounds',
+      severity: 'warning',
+      message: `Main airflow (${appliedAirflow.toLocaleString()} CFM) is outside typical standard commercial single-duct envelope (100 to 50,000 CFM).`,
     });
   }
-  if (appliedFrictionRate > 0.15) {
+
+  if (appliedDuctHeight <= 0) {
+    validations.push({
+      id: 'height-invalid',
+      severity: 'error',
+      message: 'Assigned duct height must be greater than zero.',
+    });
+  } else if (appliedDuctHeight < 4 || appliedDuctHeight > 60) {
+    validations.push({
+      id: 'height-bounds',
+      severity: 'error',
+      message: `Assigned duct height (${appliedDuctHeight}") is outside standard commercial sheet metal range (4" to 60").`,
+    });
+  }
+
+  if (isAppliedDuctOversized) {
+    validations.push({
+      id: 'duct-oversized',
+      severity: 'error',
+      message: `Oversized duct error: Calculated width (${widthMain}") ${widthMain > 96 ? 'exceeds 96" maximum standard sheet metal fabrication limit' : ''}${widthMain > 96 && aspectRatioMain > 4.0 ? ' and ' : ''}${aspectRatioMain > 4.0 ? `aspect ratio (${aspectRatioMain.toFixed(1)}:1) exceeds SMACNA 4:1 standard limit` : ''}. Increase duct height or split airflow into parallel branches.`,
+    });
+  }
+
+  if (appliedFrictionRate <= 0 || appliedFrictionRate > 1.5) {
+    validations.push({
+      id: 'fric-bounds',
+      severity: 'error',
+      message: `Friction rate (${appliedFrictionRate} in.wg/100ft) is outside absolute calculation limits (0.01 to 1.5 in. wg/100 ft).`,
+    });
+  } else if (appliedFrictionRate > 0.15) {
     validations.push({
       id: 'fric-high',
       severity: 'warning',
       message: `Friction rate (${appliedFrictionRate} in.wg/100ft) is above the typical maximum for commercial systems (0.15). This may cause high energy consumption and noise.`,
+    });
+  }
+
+  if (appliedVelocityLimit <= 0 || appliedVelocityLimit < 400 || appliedVelocityLimit > 6000) {
+    validations.push({
+      id: 'vel-limit-bounds',
+      severity: 'error',
+      message: `Velocity limit (${appliedVelocityLimit} FPM) is outside absolute calculation limits (400 to 6,000 FPM).`,
+    });
+  }
+
+  if (velRectMain > appliedVelocityLimit && appliedAirflow > 0) {
+    validations.push({
+      id: 'vel-main',
+      severity: 'error',
+      message: `Main duct velocity (${Math.round(velRectMain)} FPM) exceeds the design limit (${appliedVelocityLimit} FPM). Increase duct size or reduce airflow.`,
     });
   }
   if (enableSplitting) {
@@ -452,266 +522,503 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
               <h3 className="text-sm font-semibold text-slate-300 tracking-wider uppercase">System Parameters</h3>
             </div>
 
-            {/* Parameter 1: Airflow */}
-            <div className="space-y-2 mb-6">
-              <div className="flex justify-between items-center text-xs">
-                <TooltipLabel label="Main Airflow (Q)" tooltip={t("mainAirflowTooltip")} className="text-slate-400 font-medium" />
-                <div className="flex items-center space-x-1.5">
-                  <input
-                    type="number"
-                    min="100"
-                    max="50000"
-                    value={airflow || ''}
-                    onChange={(e) => setAirflow(e.target.value === '' ? 0 : airflowUnitHook.getInternalValue(Number(e.target.value)))}
-                    className={`w-20 text-center font-mono text-xs rounded py-0.5 focus:outline-none transition-colors bg-slate-950 border ${airflow !== 0 && (airflow < 100 || airflow > 50000)
-                      ? 'border-red-500/70 text-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500/20'
-                      : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
-                      } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
-                  />
-                  <span className="text-xs text-slate-500 font-mono">{flowUnit}</span>
-                </div>
-              </div>
-              <input
-                type="range"
-                min="200"
-                max="15000"
-                step="50"
-                value={airflowUnitHook.getDisplayValue(airflow) || 200}
-                onChange={(e) => setAirflow(airflowUnitHook.getInternalValue(Number(e.target.value)))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
-              />
-              <div className="flex justify-between text-xs text-slate-500 font-mono">
-                <span>200 CFM</span>
-                <span>7,500 CFM</span>
-                <span>15,000 CFM</span>
-              </div>
-              {airflow !== 0 && (airflow < 100 || airflow > 50000) && (
-                <InputAlert type="warning" message="Recommended safe range: 100 to 50,000 CFM (equivalent)" />
-              )}
-            </div>
+            {(() => {
+              // Engineering Threshold Validations for UI Visual Error States
+              // 1. Airflow (Q)
+              const isAirflowNegative = airflow < 0;
+              const isAirflowZero = airflow === 0 || isNaN(airflow);
+              const isAirflowExtreme = airflow > 100000;
+              const isAirflowDuctOversized = airflow > 0 && isLiveDuctOversized;
+              const isAirflowError = isAirflowNegative || isAirflowZero || isAirflowExtreme || isAirflowDuctOversized;
+              const isAirflowWarning = !isAirflowError && (airflow < 100 || airflow > 50000);
 
-            {/* Parameter 2: Friction rate */}
-            <div className="space-y-2 mb-6">
-              <div className="flex justify-between items-center text-xs">
-                <TooltipLabel label="Friction Loss Rate (F)" tooltip={t("frictionLossTooltip")} className="text-slate-400 font-medium" />
-                <div className="flex items-center space-x-1.5">
-                  <input
-                    type="number"
-                    min="0.01"
-                    max="1.5"
-                    step="0.01"
-                    value={frictionRate || ''}
-                    onChange={(e) => setFrictionRate(e.target.value === '' ? 0 : fricUnitHook.getInternalValue(Number(e.target.value)))}
-                    className={`w-20 text-center font-mono text-xs rounded py-0.5 focus:outline-none transition-colors bg-slate-950 border ${frictionRate !== 0 && (frictionRate < 0.01 || frictionRate > 1.5)
-                      ? 'border-red-500/70 text-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500/20'
-                      : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
-                      } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
-                  />
-                  <span className="text-xs text-slate-500 font-mono">in/100ft</span>
-                </div>
-              </div>
-              <input
-                type="range"
-                min="0.04"
-                max="0.40"
-                step="0.01"
-                value={frictionRate || 0.04}
-                onChange={(e) => setFrictionRate(fricUnitHook.getInternalValue(Number(e.target.value)))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
-              />
-              <div className="flex justify-between text-xs text-slate-500 font-mono">
-                <span>0.04 (Low Noise)</span>
-                <span>0.10 (Standard)</span>
-                <span>0.40 (High Velocity)</span>
-              </div>
-              {frictionRate !== 0 && (frictionRate < 0.01 || frictionRate > 1.5) && (
-                <InputAlert type="error" message="Absolute calculation limits: 0.01 to 1.5 in. wg/100 ft" />
-              )}
-              {frictionRate !== 0 && frictionRate >= 0.01 && frictionRate <= 1.5 && (frictionRate < 0.05 || frictionRate > 0.15) && (
-                <InputAlert type="warning" message={`Typical standard design range is 0.05 - 0.15 in. wg/100 ft. ${frictionRate > 0.15 ? 'Higher rates may increase noise/energy.' : 'Lower rates may result in oversized ducts.'}`} />
-              )}
-            </div>
+              let airflowAlert: { type: 'error' | 'warning'; message: string } | null = null;
+              if (isAirflowNegative) {
+                airflowAlert = {
+                  type: 'error',
+                  message: `Engineering Error: Negative airflow (${airflow} ${flowUnit}) is invalid. Ductwork requires positive airflow volume.`
+                };
+              } else if (isAirflowZero) {
+                airflowAlert = {
+                  type: 'error',
+                  message: `Engineering Error: Airflow cannot be zero. Enter positive airflow (standard range: 100 to 50,000 ${flowUnit}).`
+                };
+              } else if (isAirflowExtreme) {
+                airflowAlert = {
+                  type: 'error',
+                  message: `Engineering Error: Airflow (${(airflowUnitHook.getDisplayValue(airflow) || 0).toLocaleString()} ${flowUnit}) exceeds practical single-duct capacity (100,000 ${flowUnit}). Split into primary headers or risers.`
+                };
+              } else if (isAirflowDuctOversized) {
+                airflowAlert = {
+                  type: 'error',
+                  message: isLiveWidthOversized
+                    ? `Oversized Duct Error: Airflow of ${(airflowUnitHook.getDisplayValue(airflow) || 0).toLocaleString()} ${flowUnit} produces duct width (${liveWidth}" / ${Math.round(liveWidth * 25.4)} mm) exceeding 96" (2,400 mm) standard fabrication threshold (Aspect ratio ${liveAspectRatio.toFixed(1)}:1). Reduce airflow, increase duct height, or enable branch splitting.`
+                    : `Oversized Duct Error: Airflow of ${(airflowUnitHook.getDisplayValue(airflow) || 0).toLocaleString()} ${flowUnit} produces aspect ratio (${liveAspectRatio.toFixed(1)}:1) exceeding SMACNA 4:1 standard limit (resulting size: ${liveWidth}" x ${ductHeight}"). Reduce airflow, increase duct height, or enable branch splitting.`
+                };
+              } else if (airflow < 100) {
+                airflowAlert = {
+                  type: 'warning',
+                  message: `Engineering Warning: Airflow (${airflow} ${flowUnit}) is below typical standard commercial HVAC range (min 100 ${flowUnit}).`
+                };
+              } else if (airflow > 50000) {
+                airflowAlert = {
+                  type: 'warning',
+                  message: `Engineering Warning: Airflow (${(airflowUnitHook.getDisplayValue(airflow) || 0).toLocaleString()} ${flowUnit}) exceeds standard single-duct envelope (max 50,000 ${flowUnit}). Consider dual risers or parallel mains.`
+                };
+              }
 
-            {/* Parameter 3: Duct Type & Velocity Limit */}
-            <div className="space-y-4 mb-6">
-              <div className="space-y-2">
-                <div><TooltipLabel label="System / Duct Type" tooltip={t("ductTypeTooltip")} className="text-xs text-slate-400 font-medium mb-1" />
-                  <span className="text-xs text-slate-500 font-normal">For reference guidelines</span></div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setDuctType('supply')}
-                    className={`flex-1 text-[11px] py-1.5 rounded font-mono border transition-all ${
-                      ductType === 'supply'
-                        ? 'bg-sky-950/50 border-sky-500/50 text-sky-300'
-                        : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                    }`}
-                  >
-                    Supply
-                  </button>
-                  <button
-                    onClick={() => setDuctType('return')}
-                    className={`flex-1 text-[11px] py-1.5 rounded font-mono border transition-all ${
-                      ductType === 'return'
-                        ? 'bg-purple-950/50 border-purple-500/50 text-purple-300'
-                        : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                    }`}
-                  >
-                    Return
-                  </button>
-                  <button
-                    onClick={() => setDuctType('exhaust')}
-                    className={`flex-1 text-[11px] py-1.5 rounded font-mono border transition-all ${
-                      ductType === 'exhaust'
-                        ? 'bg-amber-950/50 border-amber-500/50 text-amber-300'
-                        : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                    }`}
-                  >
-                    Exhaust
-                  </button>
-                </div>
-              </div>
+              // 2. Friction Loss Rate (F)
+              const isFrictionNegative = frictionRate <= 0 || isNaN(frictionRate);
+              const isFrictionOutOfBounds = frictionRate > 0 && (frictionRate < 0.01 || frictionRate > 1.5);
+              const isFrictionError = isFrictionNegative || isFrictionOutOfBounds;
+              const isFrictionWarning = !isFrictionError && (frictionRate < 0.05 || frictionRate > 0.15);
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <TooltipLabel label="Max Velocity Limit" tooltip={ductType === 'supply' ? t("maxVelSupply") : ductType === 'return' ? t("maxVelReturn") : t("maxVelExhaust")} className="text-slate-400 font-medium" />
-                  <div className="flex items-center space-x-1.5">
+              let frictionAlert: { type: 'error' | 'warning'; message: string } | null = null;
+              if (isFrictionNegative) {
+                frictionAlert = {
+                  type: 'error',
+                  message: 'Engineering Error: Friction loss rate must be greater than 0.'
+                };
+              } else if (isFrictionOutOfBounds) {
+                frictionAlert = {
+                  type: 'error',
+                  message: 'Engineering Error: Friction rate outside calculation limits: 0.01 to 1.5 in. wg/100 ft (0.08 to 12 Pa/m).'
+                };
+              } else if (isFrictionWarning) {
+                frictionAlert = {
+                  type: 'warning',
+                  message: `Typical standard design range is 0.05 - 0.15 in. wg/100 ft. ${
+                    frictionRate > 0.15
+                      ? 'Higher rates increase fan energy and aerodynamic noise.'
+                      : 'Lower rates (< 0.05) result in economically oversized ducts.'
+                  }`
+                };
+              }
+
+              // 3. Velocity Limit (V)
+              const isVelocityNegative = velocityLimit <= 0 || isNaN(velocityLimit);
+              const isVelocityOutOfBounds = velocityLimit > 0 && (velocityLimit < 400 || velocityLimit > 6000);
+              const isVelocityError = isVelocityNegative || isVelocityOutOfBounds;
+              const isVelocityWarning = !isVelocityError && (velocityLimit < 500 || velocityLimit > 2500);
+
+              let velocityAlert: { type: 'error' | 'warning'; message: string } | null = null;
+              if (isVelocityNegative) {
+                velocityAlert = {
+                  type: 'error',
+                  message: 'Engineering Error: Velocity limit must be greater than 0 FPM.'
+                };
+              } else if (isVelocityOutOfBounds) {
+                velocityAlert = {
+                  type: 'error',
+                  message: 'Engineering Error: Velocity limit outside calculation limits: 400 to 6,000 FPM (2 to 30 m/s).'
+                };
+              } else if (isVelocityWarning) {
+                velocityAlert = {
+                  type: 'warning',
+                  message: `Typical standard design range is 500 - 2,500 FPM. ${
+                    velocityLimit > 2500
+                      ? 'Velocities above 2,500 FPM cause severe acoustic noise and NC rating failure.'
+                      : 'Velocities below 500 FPM result in economically oversized ducts.'
+                  }`
+                };
+              }
+
+              // 4. Assigned Duct Height (H) & Oversized Ducts
+              const isHeightNegative = ductHeight <= 0 || isNaN(ductHeight);
+              const isHeightBelowMin = ductHeight > 0 && ductHeight < 4;
+              const isHeightAboveMax = ductHeight > 60;
+              const isHeightBoundsError = isHeightNegative || isHeightBelowMin || isHeightAboveMax;
+              const isHeightDuctOversized = ductHeight > 0 && isLiveDuctOversized;
+              const isHeightError = isHeightBoundsError || isHeightDuctOversized;
+              const isHeightWarning = !isHeightError && (ductHeight < 6 || ductHeight > 36);
+
+              let heightAlert: { type: 'error' | 'warning'; message: string } | null = null;
+              if (isHeightNegative) {
+                heightAlert = {
+                  type: 'error',
+                  message: 'Engineering Error: Duct height must be greater than 0 inches.'
+                };
+              } else if (isHeightBelowMin) {
+                heightAlert = {
+                  type: 'error',
+                  message: 'Engineering Error: Duct height is below minimum fabrication depth of 4 inches (100 mm).'
+                };
+              } else if (isHeightAboveMax) {
+                heightAlert = {
+                  type: 'error',
+                  message: 'Engineering Error: Duct height exceeds 60 inches (1,500 mm) maximum commercial depth limit.'
+                };
+              } else if (isLiveWidthOversized) {
+                heightAlert = {
+                  type: 'error',
+                  message: `Oversized Duct Error: Resulting width (${liveWidth}" / ${Math.round(liveWidth * 25.4)} mm) exceeds 96" (2,400 mm) standard fabrication threshold (Aspect ratio ${liveAspectRatio.toFixed(1)}:1). Increase duct height or split airflow into parallel branches.`
+                };
+              } else if (isLiveAspectOversized) {
+                heightAlert = {
+                  type: 'error',
+                  message: `Oversized Duct Error: Aspect ratio (${liveAspectRatio.toFixed(1)}:1) exceeds SMACNA 4:1 standard limit (resulting size: ${liveWidth}" x ${ductHeight}"). Increase duct height to eliminate air turbulence and wall fluttering.`
+                };
+              } else if (isHeightWarning) {
+                heightAlert = {
+                  type: 'warning',
+                  message: `Engineering Warning: Duct height (${ductHeight}") is outside typical commercial range (6" to 36"). Unusual depths may require custom fabrication.`
+                };
+              }
+
+              return (
+                <>
+                  {/* Parameter 1: Airflow */}
+                  <div className="space-y-2 mb-6">
+                    <div className="flex justify-between items-center text-xs">
+                      <TooltipLabel label="Main Airflow (Q)" tooltip={t("mainAirflowTooltip")} className="text-slate-400 font-medium" />
+                      <div className="flex items-center space-x-1.5">
+                        <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            value={airflow === 0 ? '' : airflow}
+                            placeholder="0"
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '' || v === '-') {
+                                setAirflow(0);
+                              } else {
+                                const num = Number(v);
+                                setAirflow(isNaN(num) ? 0 : airflowUnitHook.getInternalValue(num));
+                              }
+                            }}
+                            className={`w-24 text-center font-mono text-xs rounded py-1 px-2 pr-6 focus:outline-none transition-all bg-slate-950 border ${
+                              isAirflowError
+                                ? 'border-red-500 bg-red-950/30 text-red-400 ring-1 ring-red-500/30 focus:border-red-500 focus:ring-red-500/50'
+                                : isAirflowWarning
+                                ? 'border-amber-500/70 bg-amber-950/20 text-amber-300 ring-1 ring-amber-500/20 focus:border-amber-500 focus:ring-amber-500/40'
+                                : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
+                            }`}
+                          />
+                          <div className="absolute right-1.5 pointer-events-none">
+                            {isAirflowError ? (
+                              <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+                            ) : isAirflowWarning ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                            ) : null}
+                          </div>
+                        </div>
+                        <span className="text-xs text-slate-500 font-mono">{flowUnit}</span>
+                      </div>
+                    </div>
                     <input
-                      type="number"
-                      min="400"
-                      max="6000"
-                      value={velocityLimit || ''}
-                      onChange={(e) => setVelocityLimit(e.target.value === '' ? 0 : velUnitHook.getInternalValue(Number(e.target.value)))}
-                      className={`w-20 text-center font-mono text-xs rounded py-0.5 focus:outline-none transition-colors bg-slate-950 border ${velocityLimit !== 0 && (velocityLimit < 400 || velocityLimit > 6000)
-                        ? 'border-red-500/70 text-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500/20'
-                        : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
-                        } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
-                    />
-                    <span className="text-xs text-slate-500 font-mono">{velUnit}</span>
-                  </div>
-                </div>
-                <input
-                  type="range"
-                  min="600"
-                  max="2500"
-                  step="50"
-                  value={velocityLimit || 600}
-                  onChange={(e) => setVelocityLimit(velUnitHook.getInternalValue(Number(e.target.value)))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
-                />
-                <div className="flex justify-between text-xs text-slate-500 font-mono">
-                  <span>600 (Quiet)</span>
-                  <span>1,200 (Office)</span>
-                  <span>2,500 (Ind.)</span>
-                </div>
-                {velocityLimit !== 0 && (velocityLimit < 400 || velocityLimit > 6000) && (
-                  <InputAlert type="error" message="Absolute calculation limits: 400 to 6,000 FPM" />
-                )}
-                {velocityLimit !== 0 && velocityLimit >= 400 && velocityLimit <= 6000 && (velocityLimit < 500 || velocityLimit > 2500) && (
-                  <InputAlert type="warning" message={`Typical standard design range is 500 - 2,500 FPM. ${velocityLimit > 2500 ? 'Velocities above 2,500 FPM may cause severe acoustic noise.' : 'Velocities below 500 FPM may be economically oversized.'}`} />
-                )}
-              </div>
-
-              {/* Interactive Reference Table */}
-              <div className="bg-slate-950/40 rounded-lg border border-slate-800/80 overflow-hidden">
-                <div className="px-3 py-2 bg-slate-900/50 border-b border-slate-800/80 flex items-center">
-                  <Info className="w-3 h-3 text-slate-400 mr-1.5" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Velocity Guidelines</span>
-                </div>
-                <div className="p-0">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-800/50 text-slate-500">
-                        <th className="px-3 py-1.5 font-medium">Application</th>
-                        <th className="px-3 py-1.5 font-medium text-right">Main Duct</th>
-                        <th className="px-3 py-1.5 font-medium text-right">Branch</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/50">
-                      <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'supply' ? 'bg-sky-950/30 text-sky-200' : 'text-slate-400'}`} onClick={() => setDuctType('supply')}>
-                        <td className="px-3 py-2 flex items-center">
-                          <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ductType === 'supply' ? 'bg-sky-500' : 'bg-transparent'}`}></div>
-                          Supply Air
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono">
-                          {(velUnitHook.getDisplayValue(1000) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(2000) || 0).toFixed(0)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono">
-                          {(velUnitHook.getDisplayValue(600) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1200) || 0).toFixed(0)}
-                        </td>
-                      </tr>
-                      <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'return' ? 'bg-purple-950/30 text-purple-200' : 'text-slate-400'}`} onClick={() => setDuctType('return')}>
-                        <td className="px-3 py-2 flex items-center">
-                          <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ductType === 'return' ? 'bg-purple-500' : 'bg-transparent'}`}></div>
-                          Return Air
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono">
-                          {(velUnitHook.getDisplayValue(800) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1500) || 0).toFixed(0)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono">
-                          {(velUnitHook.getDisplayValue(400) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1000) || 0).toFixed(0)}
-                        </td>
-                      </tr>
-                      <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'exhaust' ? 'bg-amber-950/30 text-amber-200' : 'text-slate-400'}`} onClick={() => setDuctType('exhaust')}>
-                        <td className="px-3 py-2 flex items-center">
-                          <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ductType === 'exhaust' ? 'bg-amber-500' : 'bg-transparent'}`}></div>
-                          General Exhaust
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono">
-                          {(velUnitHook.getDisplayValue(1500) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(2000) || 0).toFixed(0)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono">
-                          {(velUnitHook.getDisplayValue(1000) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1500) || 0).toFixed(0)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div className="px-3 py-1.5 bg-slate-900/30 text-xs text-slate-500 flex justify-between border-t border-slate-800/50">
-                    <span>* Values in {velUnit}. Varies by noise constraint.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Parameter 4: Assigned Height */}
-            <div className="space-y-3 mb-6 pt-2 border-t border-slate-800">
-              <div className="flex justify-between items-center">
-                <TooltipLabel label="Assigned Duct Height (H)" tooltip={t("ductHeightTooltip")} className="text-xs text-slate-400 font-medium" />
-                <div className="flex items-center space-x-1">
-                  <input
-                    type="number"
-                    min="4"
-                    max="60"
-                    value={ductHeight || ''}
-                    onChange={(e) => setDuctHeight(e.target.value === '' ? 0 : lenUnitHook.getInternalValue(Number(e.target.value)))}
-                    className={`w-16 text-center font-mono text-xs rounded py-0.5 focus:outline-none transition-colors bg-slate-950 border ${(ductHeight < 4 || ductHeight > 60)
-                      ? 'border-red-500/70 text-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500/20'
-                      : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
-                      } invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500`}
-                  />
-                  <span className="text-xs text-slate-500 font-mono">IN</span>
-                </div>
-              </div>
-
-              {(ductHeight < 4 || ductHeight > 60) && (
-                <InputAlert type="warning" message="Recommended safe range: 4 to 60 inches" />
-              )}
-
-              {/* standard height shortcuts */}
-              <div className="flex flex-wrap gap-1.5">
-                {standardHeights.map((h) => (
-                  <button
-                    key={h}
-                    onClick={() => setDuctHeight(h)}
-                    className={`text-xs px-2 py-1 rounded font-mono border transition-all ${ductHeight === h
-                      ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300'
-                      : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      type="range"
+                      min="200"
+                      max="15000"
+                      step="50"
+                      value={Math.max(200, Math.min(15000, airflowUnitHook.getDisplayValue(airflow) || 200))}
+                      onChange={(e) => setAirflow(airflowUnitHook.getInternalValue(Number(e.target.value)))}
+                      className={`w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer transition-colors ${
+                        isAirflowError ? 'accent-red-500' : isAirflowWarning ? 'accent-amber-500' : 'accent-emerald-500'
                       }`}
-                  >
-                    {h}"
-                  </button>
-                ))}
-              </div>
-            </div>
+                    />
+                    <div className="flex justify-between text-xs text-slate-500 font-mono">
+                      <span>200 CFM</span>
+                      <span>7,500 CFM</span>
+                      <span>15,000 CFM</span>
+                    </div>
+                    {airflowAlert && (
+                      <InputAlert type={airflowAlert.type} message={airflowAlert.message} />
+                    )}
+                  </div>
+
+                  {/* Parameter 2: Friction rate */}
+                  <div className="space-y-2 mb-6">
+                    <div className="flex justify-between items-center text-xs">
+                      <TooltipLabel label="Friction Loss Rate (F)" tooltip={t("frictionLossTooltip")} className="text-slate-400 font-medium" />
+                      <div className="flex items-center space-x-1.5">
+                        <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={frictionRate || ''}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '' || v === '-') {
+                                setFrictionRate(0);
+                              } else {
+                                const num = Number(v);
+                                setFrictionRate(isNaN(num) ? 0 : fricUnitHook.getInternalValue(num));
+                              }
+                            }}
+                            className={`w-24 text-center font-mono text-xs rounded py-1 px-2 pr-6 focus:outline-none transition-all bg-slate-950 border ${
+                              isFrictionError
+                                ? 'border-red-500 bg-red-950/30 text-red-400 ring-1 ring-red-500/30 focus:border-red-500 focus:ring-red-500/50'
+                                : isFrictionWarning
+                                ? 'border-amber-500/70 bg-amber-950/20 text-amber-300 ring-1 ring-amber-500/20 focus:border-amber-500 focus:ring-amber-500/40'
+                                : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
+                            }`}
+                          />
+                          <div className="absolute right-1.5 pointer-events-none">
+                            {isFrictionError ? (
+                              <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+                            ) : isFrictionWarning ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                            ) : null}
+                          </div>
+                        </div>
+                        <span className="text-xs text-slate-500 font-mono">in/100ft</span>
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.04"
+                      max="0.40"
+                      step="0.01"
+                      value={Math.max(0.04, Math.min(0.40, frictionRate || 0.04))}
+                      onChange={(e) => setFrictionRate(fricUnitHook.getInternalValue(Number(e.target.value)))}
+                      className={`w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer transition-colors ${
+                        isFrictionError ? 'accent-red-500' : isFrictionWarning ? 'accent-amber-500' : 'accent-emerald-500'
+                      }`}
+                    />
+                    <div className="flex justify-between text-xs text-slate-500 font-mono">
+                      <span>0.04 (Low Noise)</span>
+                      <span>0.10 (Standard)</span>
+                      <span>0.40 (High Velocity)</span>
+                    </div>
+                    {frictionAlert && (
+                      <InputAlert type={frictionAlert.type} message={frictionAlert.message} />
+                    )}
+                  </div>
+
+                  {/* Parameter 3: Duct Type & Velocity Limit */}
+                  <div className="space-y-4 mb-6">
+                    <div className="space-y-2">
+                      <div><TooltipLabel label="System / Duct Type" tooltip={t("ductTypeTooltip")} className="text-xs text-slate-400 font-medium mb-1" />
+                        <span className="text-xs text-slate-500 font-normal">For reference guidelines</span></div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setDuctType('supply')}
+                          className={`flex-1 text-[11px] py-1.5 rounded font-mono border transition-all ${
+                            ductType === 'supply'
+                              ? 'bg-sky-950/50 border-sky-500/50 text-sky-300'
+                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                          }`}
+                        >
+                          Supply
+                        </button>
+                        <button
+                          onClick={() => setDuctType('return')}
+                          className={`flex-1 text-[11px] py-1.5 rounded font-mono border transition-all ${
+                            ductType === 'return'
+                              ? 'bg-purple-950/50 border-purple-500/50 text-purple-300'
+                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                          }`}
+                        >
+                          Return
+                        </button>
+                        <button
+                          onClick={() => setDuctType('exhaust')}
+                          className={`flex-1 text-[11px] py-1.5 rounded font-mono border transition-all ${
+                            ductType === 'exhaust'
+                              ? 'bg-amber-950/50 border-amber-500/50 text-amber-300'
+                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                          }`}
+                        >
+                          Exhaust
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <TooltipLabel label="Max Velocity Limit" tooltip={ductType === 'supply' ? t("maxVelSupply") : ductType === 'return' ? t("maxVelReturn") : t("maxVelExhaust")} className="text-slate-400 font-medium" />
+                        <div className="flex items-center space-x-1.5">
+                          <div className="relative flex items-center">
+                            <input
+                              type="number"
+                              value={velocityLimit || ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === '' || v === '-') {
+                                  setVelocityLimit(0);
+                                } else {
+                                  const num = Number(v);
+                                  setVelocityLimit(isNaN(num) ? 0 : velUnitHook.getInternalValue(num));
+                                }
+                              }}
+                              className={`w-24 text-center font-mono text-xs rounded py-1 px-2 pr-6 focus:outline-none transition-all bg-slate-950 border ${
+                                isVelocityError
+                                  ? 'border-red-500 bg-red-950/30 text-red-400 ring-1 ring-red-500/30 focus:border-red-500 focus:ring-red-500/50'
+                                  : isVelocityWarning
+                                  ? 'border-amber-500/70 bg-amber-950/20 text-amber-300 ring-1 ring-amber-500/20 focus:border-amber-500 focus:ring-amber-500/40'
+                                  : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
+                              }`}
+                            />
+                            <div className="absolute right-1.5 pointer-events-none">
+                              {isVelocityError ? (
+                                <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+                              ) : isVelocityWarning ? (
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                              ) : null}
+                            </div>
+                          </div>
+                          <span className="text-xs text-slate-500 font-mono">{velUnit}</span>
+                        </div>
+                      </div>
+                      <input
+                        type="range"
+                        min="600"
+                        max="2500"
+                        step="50"
+                        value={Math.max(600, Math.min(2500, velocityLimit || 600))}
+                        onChange={(e) => setVelocityLimit(velUnitHook.getInternalValue(Number(e.target.value)))}
+                        className={`w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer transition-colors ${
+                          isVelocityError ? 'accent-red-500' : isVelocityWarning ? 'accent-amber-500' : 'accent-emerald-500'
+                        }`}
+                      />
+                      <div className="flex justify-between text-xs text-slate-500 font-mono">
+                        <span>600 (Quiet)</span>
+                        <span>1,200 (Office)</span>
+                        <span>2,500 (Ind.)</span>
+                      </div>
+                      {velocityAlert && (
+                        <InputAlert type={velocityAlert.type} message={velocityAlert.message} />
+                      )}
+                    </div>
+
+                    {/* Interactive Reference Table */}
+                    <div className="bg-slate-950/40 rounded-lg border border-slate-800/80 overflow-hidden">
+                      <div className="px-3 py-2 bg-slate-900/50 border-b border-slate-800/80 flex items-center">
+                        <Info className="w-3 h-3 text-slate-400 mr-1.5" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Velocity Guidelines</span>
+                      </div>
+                      <div className="p-0">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-slate-800/50 text-slate-500">
+                              <th className="px-3 py-1.5 font-medium">Application</th>
+                              <th className="px-3 py-1.5 font-medium text-right">Main Duct</th>
+                              <th className="px-3 py-1.5 font-medium text-right">Branch</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/50">
+                            <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'supply' ? 'bg-sky-950/30 text-sky-200' : 'text-slate-400'}`} onClick={() => setDuctType('supply')}>
+                              <td className="px-3 py-2 flex items-center">
+                                <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ductType === 'supply' ? 'bg-sky-500' : 'bg-transparent'}`}></div>
+                                Supply Air
+                              </td>
+                              <td className="px-3 py-2 text-right font-mono">
+                                {(velUnitHook.getDisplayValue(1000) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(2000) || 0).toFixed(0)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-mono">
+                                {(velUnitHook.getDisplayValue(600) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1200) || 0).toFixed(0)}
+                              </td>
+                            </tr>
+                            <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'return' ? 'bg-purple-950/30 text-purple-200' : 'text-slate-400'}`} onClick={() => setDuctType('return')}>
+                              <td className="px-3 py-2 flex items-center">
+                                <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ductType === 'return' ? 'bg-purple-500' : 'bg-transparent'}`}></div>
+                                Return Air
+                              </td>
+                              <td className="px-3 py-2 text-right font-mono">
+                                {(velUnitHook.getDisplayValue(800) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1500) || 0).toFixed(0)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-mono">
+                                {(velUnitHook.getDisplayValue(400) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1000) || 0).toFixed(0)}
+                              </td>
+                            </tr>
+                            <tr className={`transition-colors cursor-pointer hover:bg-slate-800/30 ${ductType === 'exhaust' ? 'bg-amber-950/30 text-amber-200' : 'text-slate-400'}`} onClick={() => setDuctType('exhaust')}>
+                              <td className="px-3 py-2 flex items-center">
+                                <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ductType === 'exhaust' ? 'bg-amber-500' : 'bg-transparent'}`}></div>
+                                General Exhaust
+                              </td>
+                              <td className="px-3 py-2 text-right font-mono">
+                                {(velUnitHook.getDisplayValue(1500) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(2000) || 0).toFixed(0)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-mono">
+                                {(velUnitHook.getDisplayValue(1000) || 0).toFixed(0)} - {(velUnitHook.getDisplayValue(1500) || 0).toFixed(0)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <div className="px-3 py-1.5 bg-slate-900/30 text-xs text-slate-500 flex justify-between border-t border-slate-800/50">
+                          <span>* Values in {velUnit}. Varies by noise constraint.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Parameter 4: Assigned Height */}
+                  <div className="space-y-3 mb-6 pt-2 border-t border-slate-800">
+                    <div className="flex justify-between items-center">
+                      <TooltipLabel label="Assigned Duct Height (H)" tooltip={t("ductHeightTooltip")} className="text-xs text-slate-400 font-medium" />
+                      <div className="flex items-center space-x-1.5">
+                        <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            value={ductHeight === 0 ? '' : ductHeight}
+                            placeholder="0"
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '' || v === '-') {
+                                setDuctHeight(0);
+                              } else {
+                                const num = Number(v);
+                                setDuctHeight(isNaN(num) ? 0 : lenUnitHook.getInternalValue(num));
+                              }
+                            }}
+                            className={`w-20 text-center font-mono text-xs rounded py-1 px-2 pr-6 focus:outline-none transition-all bg-slate-950 border ${
+                              isHeightError
+                                ? 'border-red-500 bg-red-950/30 text-red-400 ring-1 ring-red-500/30 focus:border-red-500 focus:ring-red-500/50'
+                                : isHeightWarning
+                                ? 'border-amber-500/70 bg-amber-950/20 text-amber-300 ring-1 ring-amber-500/20 focus:border-amber-500 focus:ring-amber-500/40'
+                                : 'text-emerald-400 border-slate-800 focus:border-emerald-500'
+                            }`}
+                          />
+                          <div className="absolute right-1.5 pointer-events-none">
+                            {isHeightError ? (
+                              <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+                            ) : isHeightWarning ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                            ) : null}
+                          </div>
+                        </div>
+                        <span className="text-xs text-slate-500 font-mono">IN</span>
+                      </div>
+                    </div>
+
+                    {heightAlert && (
+                      <InputAlert type={heightAlert.type} message={heightAlert.message} />
+                    )}
+
+                    {/* standard height shortcuts */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {standardHeights.map((h) => {
+                        const presetWidth = solveWidth(liveDe, h);
+                        const presetAspect = h > 0 && presetWidth > 0 ? (presetWidth / h) : 0;
+                        const isPresetOversized = airflow > 0 && (presetWidth > 96 || presetAspect > 4.0);
+
+                        return (
+                          <button
+                            key={h}
+                            onClick={() => setDuctHeight(h)}
+                            title={isPresetOversized ? `Width ${presetWidth.toFixed(0)}" exceeds 96" or 4:1 aspect ratio at current airflow` : undefined}
+                            className={`text-xs px-2 py-1 rounded font-mono border transition-all relative ${
+                              ductHeight === h
+                                ? isHeightError
+                                  ? 'bg-red-950/60 border-red-500/80 text-red-300 shadow-sm ring-1 ring-red-500/40'
+                                  : 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300'
+                                : isPresetOversized
+                                ? 'bg-slate-950/40 border-red-900/40 text-red-400/80 hover:border-red-700/60 hover:text-red-300'
+                                : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                            }`}
+                          >
+                            {h}"
+                            {isPresetOversized && (
+                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 ml-1 mb-0.5" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Custom Toggle: Enable Splitting Engine */}
             <div className="flex items-center justify-between p-3 bg-slate-950/50 rounded-xl border border-slate-850">
@@ -757,23 +1064,56 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
 
                 <div className="space-y-3 pt-2">
                   <span className="block text-xs font-semibold text-slate-500 uppercase tracking-widest">Adjust Split Proportions</span>
-                  {branchPercentages.map((pct, idx) => (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex justify-between text-[11px] font-mono">
-                        <span className="text-slate-400">Branch #{idx + 1} ({Math.round(airflow * pct / 100)} CFM)</span>
-                        <span className="text-emerald-400 font-bold">{(pct || 0).toFixed(1)}%</span>
+                  {branchPercentages.map((pct, idx) => {
+                    const branchCfm = (airflow * pct) / 100;
+                    const branchDe = calculateDe(branchCfm > 0 ? branchCfm : 0, frictionRate > 0 ? frictionRate : 0.1);
+                    const branchW = solveWidth(branchDe, ductHeight > 0 ? ductHeight : 12);
+                    const branchAspect = ductHeight > 0 && branchW > 0 ? (branchW / ductHeight) : 0;
+                    const isBranchWidthOversized = branchCfm > 0 && branchW > 96;
+                    const isBranchAspectOversized = branchCfm > 0 && branchAspect > 4.0;
+                    const isBranchOversized = isBranchWidthOversized || isBranchAspectOversized;
+                    const branchVel = calculateVelocityRect(branchCfm, branchW, ductHeight > 0 ? ductHeight : 12);
+                    const isBranchVelDanger = branchVel > velocityLimit && branchCfm > 0;
+                    const hasBranchError = isBranchOversized || isBranchVelDanger;
+
+                    return (
+                      <div key={idx} className={`p-2 rounded-lg border transition-all ${
+                        hasBranchError
+                          ? 'bg-red-950/20 border-red-900/50'
+                          : 'bg-slate-950/30 border-slate-850/60'
+                      }`}>
+                        <div className="flex justify-between items-center text-[11px] font-mono mb-1.5">
+                          <span className={hasBranchError ? 'text-red-400 font-semibold flex items-center gap-1.5' : 'text-slate-400'}>
+                            Branch #{idx + 1} ({Math.round(airflowUnitHook.getDisplayValue(branchCfm))} {flowUnit})
+                            {isBranchOversized && (
+                              <span className="text-[9px] text-red-400 font-bold bg-red-950/60 px-1 py-0.5 rounded border border-red-800/50">
+                                OVERSIZED ({Math.round(branchW)}")
+                              </span>
+                            )}
+                            {isBranchVelDanger && (
+                              <span className="text-[9px] text-red-400 font-bold bg-red-950/60 px-1 py-0.5 rounded border border-red-800/50">
+                                VELOCITY EXCEEDED
+                              </span>
+                            )}
+                          </span>
+                          <span className={hasBranchError ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold'}>
+                            {(pct || 0).toFixed(1)}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="5"
+                          max="85"
+                          step="0.5"
+                          value={pct}
+                          onChange={(e) => handlePercentChange(idx, Number(e.target.value))}
+                          className={`w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer transition-colors ${
+                            hasBranchError ? 'accent-red-500' : 'accent-emerald-500'
+                          }`}
+                        />
                       </div>
-                      <input
-                        type="range"
-                        min="5"
-                        max="85"
-                        step="0.5"
-                        value={pct}
-                        onChange={(e) => handlePercentChange(idx, Number(e.target.value))}
-                        className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 invalid:border-red-500 invalid:text-red-400 focus:invalid:border-red-500 focus:invalid:ring-red-500"
-                      />
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div className="text-xs text-slate-500 flex items-center justify-between font-mono bg-slate-950/30 p-2 rounded border border-slate-850">
                     <span>Proportion Integrity</span>
                     <span className="text-emerald-400/90">Sum total: 100% (Balanced)</span>
@@ -841,15 +1181,24 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                   <div className="flex flex-col">
                     <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Rectangular Sizing</span>
                     <div className="flex items-end gap-1.5">
-                      <span className="text-4xl font-bold text-emerald-400 font-mono leading-none">
+                      <span className={`text-4xl font-bold font-mono leading-none ${
+                        isAppliedDuctOversized ? 'text-red-400' : 'text-emerald-400'
+                      }`}>
                         {(lenUnitHook.getDisplayValue(widthMain) || 0).toFixed(0)}x{(lenUnitHook.getDisplayValue(ductHeight) || 0).toFixed(0)}
                       </span>
                       <span className="text-sm text-slate-500 font-bold mb-1">in</span>
                     </div>
                     <div className="mt-2 flex items-center h-6">
-                      <span className="text-xs text-slate-500 font-mono">
-                        ({Math.round(widthMain * 25.4)}x{Math.round(ductHeight * 25.4)} mm)
-                      </span>
+                      {isAppliedDuctOversized ? (
+                        <span className="text-xs text-red-400 font-mono flex items-center bg-red-950/40 px-2 py-0.5 rounded border border-red-900/50 uppercase tracking-wider">
+                          <AlertCircle className="h-3 w-3 mr-1 text-red-400" />
+                          {widthMain > 96 ? 'OVERSIZED WIDTH (>96")' : 'HIGH ASPECT (>4:1)'}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-500 font-mono">
+                          ({Math.round(widthMain * 25.4)}x{Math.round(ductHeight * 25.4)} mm)
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -859,8 +1208,9 @@ export default function DuctSizingCalc({ restoredParams, onSaveCalculation, auto
                   <div className="flex flex-col">
                     <span className="block text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Velocity (Rect)</span>
                     <div className="flex items-end gap-1.5">
-                      <span className={`text-4xl font-bold font-mono leading-none ${statusMain === 'optimal' ? 'text-emerald-400' : statusMain === 'warning' ? 'text-amber-400' : 'text-red-500' }>
-                        }`}>
+                      <span className={`text-4xl font-bold font-mono leading-none ${
+                        statusMain === 'optimal' ? 'text-emerald-400' : statusMain === 'warning' ? 'text-amber-400' : 'text-red-500'
+                      }`}>
                         {(velUnitHook.getDisplayValue(velRectMain) || 0).toFixed(0)}
                       </span>
                       <span className="text-sm text-slate-500 font-bold mb-1">{velUnit}</span>

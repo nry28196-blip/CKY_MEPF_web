@@ -1,6 +1,7 @@
 import { Ashrae621Ez, SourceType } from '../../data/ventilation/ashrae621/types';
 import { ASHRAE_621_2022_EZ_VALUES } from '../../data/ventilation/ashrae621/2022/data';
 import { ValidationStatus } from './VentilationValidationService';
+import { EngineeringValidationLogger } from '../validation/EngineeringValidationLogger';
 
 export interface PersonalizedVentilationPrerequisites {
   /** Personalized air distributed in the breathing zone */
@@ -75,6 +76,7 @@ export interface EzValidationConditions {
   personalizedSystemType?: 'ceiling_cool' | 'ceiling_warm' | 'stratified_nonaspirating' | 'stratified_aspirating' | null;
   stratifiedPrerequisites?: StratifiedSystemPrerequisites;
   stratifiedPrerequisitesMet?: boolean | null;
+  distributionCategory?: 'ceiling' | 'floor' | 'makeup' | 'personalized' | 'unidirectional' | 'override' | 'stratified' | null;
 }
 
 export interface EzResolutionResult {
@@ -540,7 +542,22 @@ export class EzSelectionService {
       const isCoolAir = supplyAirCondition === 'cool' || spaceTempRelationship === 'cooling' || (criteria.distributionCategory === 'stratified' && !supplyAirCondition && !spaceTempRelationship);
       if (isCoolAir && returnLocation === 'ceiling') {
         // Validate return height and detect contradictions between numeric and boolean representations FIRST
-        const hasNumericReturnHeight = typeof criteria.returnHeightM === 'number';
+        if (criteria.returnHeightM !== undefined && criteria.returnHeightM !== null) {
+          if (typeof criteria.returnHeightM !== 'number' || !Number.isFinite(criteria.returnHeightM)) {
+            EngineeringValidationLogger.logNonFinite({
+              system: 'EzSelectionService.resolveEzFromCriteria',
+              field: 'returnHeightM',
+              value: criteria.returnHeightM,
+              expected: 'finite number (m)',
+              message: 'Invalid return height: returnHeightM must be a finite number.'
+            });
+            return {
+              ezConfig: null, selectedConfig: null, ez: null, status: 'FAIL',
+              reasons: ['Invalid return height: returnHeightM must be a finite number.']
+            };
+          }
+        }
+        const hasNumericReturnHeight = typeof criteria.returnHeightM === 'number' && Number.isFinite(criteria.returnHeightM);
         const hasBoolGt55 = typeof criteria.returnHeightGt55m === 'boolean';
         const hasBoolGte55 = typeof criteria.returnHeightGte55m === 'boolean';
 
@@ -674,8 +691,44 @@ export class EzSelectionService {
 
     const sReq = conditions.stratifiedPrerequisites;
     if (sReq) {
+      // Validate numeric finiteness for supply air temperature difference
+      if (sReq.tempDiffRoomSupplyC !== undefined && sReq.tempDiffRoomSupplyC !== null) {
+        if (typeof sReq.tempDiffRoomSupplyC !== 'number' || !Number.isFinite(sReq.tempDiffRoomSupplyC)) {
+          EngineeringValidationLogger.logNonFinite({
+            system: 'EzSelectionService.validateStratifiedPrerequisites',
+            field: 'tempDiffRoomSupplyC',
+            value: sReq.tempDiffRoomSupplyC,
+            expected: 'finite number >= 2.0 °C',
+            message: 'Invalid stratified prerequisite: supply air temperature difference must be a finite number.'
+          });
+          return {
+            valid: false,
+            status: 'FAIL',
+            reasons: ['Invalid stratified prerequisite: supply air temperature difference must be a finite number.']
+          };
+        }
+      }
+
+      // Validate numeric finiteness for return opening height
+      if (sReq.returnOpeningHeightM !== undefined && sReq.returnOpeningHeightM !== null) {
+        if (typeof sReq.returnOpeningHeightM !== 'number' || !Number.isFinite(sReq.returnOpeningHeightM)) {
+          EngineeringValidationLogger.logNonFinite({
+            system: 'EzSelectionService.validateStratifiedPrerequisites',
+            field: 'returnOpeningHeightM',
+            value: sReq.returnOpeningHeightM,
+            expected: 'finite number > 2.8 m',
+            message: 'Invalid stratified prerequisite: return opening height must be a finite number.'
+          });
+          return {
+            valid: false,
+            status: 'FAIL',
+            reasons: ['Invalid stratified prerequisite: return opening height must be a finite number.']
+          };
+        }
+      }
+
       let supplyTempConditionMet: boolean | null = null;
-      const hasNumericTemp = typeof sReq.tempDiffRoomSupplyC === 'number';
+      const hasNumericTemp = typeof sReq.tempDiffRoomSupplyC === 'number' && Number.isFinite(sReq.tempDiffRoomSupplyC);
       const hasBoolTemp = typeof sReq.supplyTempBelowRoomGte2C === 'boolean';
 
       if (hasNumericTemp && hasBoolTemp) {
@@ -712,7 +765,7 @@ export class EzSelectionService {
       }
 
       let returnOpeningConditionMet: boolean | null = null;
-      const hasNumericHeight = typeof sReq.returnOpeningHeightM === 'number';
+      const hasNumericHeight = typeof sReq.returnOpeningHeightM === 'number' && Number.isFinite(sReq.returnOpeningHeightM);
       const hasBoolHeight = typeof sReq.returnOpeningHeightGt28m === 'boolean';
 
       if (hasNumericHeight && hasBoolHeight) {
@@ -849,8 +902,44 @@ export class EzSelectionService {
         };
       }
 
+      // Validate numeric finiteness for head region velocity
+      if (pReq.headRegionVelocityMs !== undefined && pReq.headRegionVelocityMs !== null) {
+        if (typeof pReq.headRegionVelocityMs !== 'number' || !Number.isFinite(pReq.headRegionVelocityMs)) {
+          EngineeringValidationLogger.logNonFinite({
+            system: 'EzSelectionService.validatePersonalizedPrerequisites',
+            field: 'headRegionVelocityMs',
+            value: pReq.headRegionVelocityMs,
+            expected: 'finite number <= 0.25 m/s',
+            message: 'Invalid personalized prerequisite: occupant head region velocity must be a finite number.'
+          });
+          return {
+            valid: false,
+            status: 'FAIL',
+            reasons: ['Invalid personalized prerequisite: occupant head region velocity must be a finite number.']
+          };
+        }
+      }
+
+      // Validate numeric finiteness for return opening height
+      if (pReq.returnOpeningHeightM !== undefined && pReq.returnOpeningHeightM !== null) {
+        if (typeof pReq.returnOpeningHeightM !== 'number' || !Number.isFinite(pReq.returnOpeningHeightM)) {
+          EngineeringValidationLogger.logNonFinite({
+            system: 'EzSelectionService.validatePersonalizedPrerequisites',
+            field: 'returnOpeningHeightM',
+            value: pReq.returnOpeningHeightM,
+            expected: 'finite number > 2.8 m',
+            message: 'Invalid personalized prerequisite: return opening height must be a finite number.'
+          });
+          return {
+            valid: false,
+            status: 'FAIL',
+            reasons: ['Invalid personalized prerequisite: return opening height must be a finite number.']
+          };
+        }
+      }
+
       let velocityConditionMet: boolean | null = null;
-      const hasNumericVel = typeof pReq.headRegionVelocityMs === 'number';
+      const hasNumericVel = typeof pReq.headRegionVelocityMs === 'number' && Number.isFinite(pReq.headRegionVelocityMs);
       const hasBoolVel = typeof pReq.headRegionVelocityMet === 'boolean';
 
       if (hasNumericVel && hasBoolVel) {
@@ -887,7 +976,7 @@ export class EzSelectionService {
       }
 
       let returnOpeningConditionMet: boolean | null = null;
-      const hasNumericHeight = typeof pReq.returnOpeningHeightM === 'number';
+      const hasNumericHeight = typeof pReq.returnOpeningHeightM === 'number' && Number.isFinite(pReq.returnOpeningHeightM);
       const hasBoolHeight = typeof pReq.returnOpeningHeightGt28m === 'boolean';
 
       if (hasNumericHeight && hasBoolHeight) {
@@ -962,7 +1051,17 @@ export class EzSelectionService {
       return { isReturnGt55m: null };
     }
 
-    const hasNumericReturnHeight = typeof conditions.returnHeightM === 'number';
+    if (conditions.returnHeightM !== undefined && conditions.returnHeightM !== null) {
+      if (typeof conditions.returnHeightM !== 'number' || !Number.isFinite(conditions.returnHeightM)) {
+        return {
+          isReturnGt55m: null,
+          status: 'FAIL',
+          reason: 'Invalid return height: returnHeightM must be a finite number.'
+        };
+      }
+    }
+
+    const hasNumericReturnHeight = typeof conditions.returnHeightM === 'number' && Number.isFinite(conditions.returnHeightM);
     const hasBoolGt55 = typeof conditions.returnHeightGt55m === 'boolean';
     const hasBoolGte55 = typeof conditions.returnHeightGte55m === 'boolean';
 

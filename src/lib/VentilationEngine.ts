@@ -4,6 +4,7 @@ import { ValidationStatus, VentilationValidationService } from '../calculations/
 import { Ashrae621SimplifiedSystemService, SimplifiedSystemInput, SimplifiedSystemResult } from '../calculations/ventilation/Ashrae621SimplifiedSystemService';
 import { Ashrae621AlternativeSystemService, AlternativeSystemInput, AlternativeSystemResult } from '../calculations/ventilation/Ashrae621AlternativeSystemService';
 import { CalculationAuditRecord, EngineeringAuditService } from '../calculations/audit/EngineeringAuditContract';
+import { EngineeringValidationLogger } from '../calculations/validation/EngineeringValidationLogger';
 
 export interface SingleZoneInput {
   edition?: "2019" | "2022" | "2025";
@@ -194,8 +195,71 @@ export class VentilationEngine {
     // 1. Calculate Density
     const densityResult = DensityCorrectionService.calculate(input.density);
     
-    // 2. Pass Eρ to zone
-    const zoneInput = { ...input.zone, eRho: densityResult.eRho };
+    // 2. Validate caller-supplied epDensity / eRho if provided
+    const callerEp = input.zone?.epDensity;
+    const callerERho = input.zone?.eRho;
+    if (callerEp !== undefined && callerEp !== null) {
+      if (typeof callerEp !== 'number' || !Number.isFinite(callerEp) || callerEp <= 0) {
+        EngineeringValidationLogger.logSafetyFailure({
+          system: 'VentilationEngine.runSingleZone',
+          field: 'zone.epDensity',
+          value: callerEp,
+          failureType: (typeof callerEp === 'number' && !Number.isFinite(callerEp)) ? 'NON_FINITE_NUMERIC' : 'OUT_OF_BOUNDS',
+          status: 'FAIL',
+          expected: 'finite number > 0',
+          message: 'Invalid caller-supplied air-density correction factor (epDensity): must be a finite number > 0'
+        });
+        return {
+          zone: {
+            ...Ashrae621ZoneService.calculateZone({ ...input.zone }),
+            status: 'FAIL',
+            reason: 'Invalid caller-supplied air-density correction factor (epDensity): must be a finite number > 0'
+          },
+          density: densityResult,
+          voz: null,
+          vot: null,
+          finalDesignOutdoorAir: null,
+          auditTrail: [],
+          revisionState: input.zone?.spaceType?.revisionState?.source || 'Unknown',
+          status: 'FAIL',
+          isAuthoritative: false,
+          isApprovedForEngineeringUse: false
+        };
+      }
+    }
+    if (callerERho !== undefined && callerERho !== null) {
+      if (typeof callerERho !== 'number' || !Number.isFinite(callerERho) || callerERho <= 0) {
+        EngineeringValidationLogger.logSafetyFailure({
+          system: 'VentilationEngine.runSingleZone',
+          field: 'zone.eRho',
+          value: callerERho,
+          failureType: (typeof callerERho === 'number' && !Number.isFinite(callerERho)) ? 'NON_FINITE_NUMERIC' : 'OUT_OF_BOUNDS',
+          status: 'FAIL',
+          expected: 'finite number > 0',
+          message: 'Invalid caller-supplied air-density correction factor (eRho): must be a finite number > 0'
+        });
+        return {
+          zone: {
+            ...Ashrae621ZoneService.calculateZone({ ...input.zone }),
+            status: 'FAIL',
+            reason: 'Invalid caller-supplied air-density correction factor (eRho): must be a finite number > 0'
+          },
+          density: densityResult,
+          voz: null,
+          vot: null,
+          finalDesignOutdoorAir: null,
+          auditTrail: [],
+          revisionState: input.zone?.spaceType?.revisionState?.source || 'Unknown',
+          status: 'FAIL',
+          isAuthoritative: false,
+          isApprovedForEngineeringUse: false
+        };
+      }
+    }
+
+    // 3. Pass production-calculated Eρ to zone (sanitizing any caller-supplied Ep/eRho to prevent bypass)
+    const { epDensity: _callerEp, eRho: _callerERho, ...cleanZone } = input.zone || {};
+    const zoneInput: ZoneVentilationInput = { ...cleanZone, epDensity: densityResult.eRho, eRho: densityResult.eRho } as ZoneVentilationInput;
     const zoneResult = Ashrae621ZoneService.calculateZone(zoneInput);
     
     const statuses = [zoneResult.status, densityResult.status];
@@ -368,14 +432,50 @@ export class VentilationEngine {
     // 1. Calculate Density
     const densityResult = DensityCorrectionService.calculate(input.density);
     
-    // 2. Zone Calculations (Pass Eρ for Voz calculation)
+    // 2. Zone Calculations (Pass Eρ for Voz calculation, validating and sanitizing caller-supplied Ep to prevent bypass)
     const zoneResults: ZoneVentilationResult[] = [];
-    const statuses: ValidationStatus[] = [];
+    const statuses: ValidationStatus[] = [densityResult.status];
     
     for (const z of input.zones) {
-      const zResult = Ashrae621ZoneService.calculateZone({ ...z, eRho: densityResult.eRho });
-      zoneResults.push(zResult);
-      statuses.push(zResult.status);
+      const callerEp = z.epDensity;
+      const callerERho = z.eRho;
+      let callerEpInvalid = false;
+      if (callerEp !== undefined && callerEp !== null) {
+        if (typeof callerEp !== 'number' || !Number.isFinite(callerEp) || callerEp <= 0) {
+          callerEpInvalid = true;
+        }
+      }
+      if (callerERho !== undefined && callerERho !== null) {
+        if (typeof callerERho !== 'number' || !Number.isFinite(callerERho) || callerERho <= 0) {
+          callerEpInvalid = true;
+        }
+      }
+
+      const { epDensity: _zEp, eRho: _zERho, ...cleanZ } = z;
+      if (callerEpInvalid) {
+        EngineeringValidationLogger.logSafetyFailure({
+          system: 'VentilationEngine.runMultiZone',
+          field: 'zone.epDensity/eRho',
+          value: callerEp ?? callerERho,
+          failureType: 'NON_FINITE_NUMERIC',
+          status: 'FAIL',
+          expected: 'finite number > 0',
+          message: `Invalid caller-supplied air-density correction factor for zone "${z.id || 'unknown'}": must be a finite number > 0`
+        });
+        const rawRes = Ashrae621ZoneService.calculateZone({ ...cleanZ, epDensity: densityResult.eRho, eRho: densityResult.eRho });
+        const failedRes: ZoneVentilationResult = {
+          ...rawRes,
+          status: 'FAIL',
+          voz: null,
+          reason: 'Invalid caller-supplied air-density correction factor (epDensity/eRho): must be a finite number > 0'
+        };
+        zoneResults.push(failedRes);
+        statuses.push('FAIL');
+      } else {
+        const zResult = Ashrae621ZoneService.calculateZone({ ...cleanZ, epDensity: densityResult.eRho, eRho: densityResult.eRho });
+        zoneResults.push(zResult);
+        statuses.push(zResult.status);
+      }
     }
     
     const zoneAggrStatus = VentilationValidationService.aggregateStatus(statuses);
